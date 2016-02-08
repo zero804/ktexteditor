@@ -2193,10 +2193,14 @@ void KateViewInternal::paintCursor()
     if (tagLine(m_displayCursor)) {
         updateDirty();    //paintText (0,0,width(), height(), true);
     }
+    Q_FOREACH ( const auto& secondary, view()->secondaryCursors() ) {
+        if (tagLine(secondary)) {
+            updateDirty();
+        }
+    }
 }
 
-// Point in content coordinates
-void KateViewInternal::placeCursor(const QPoint &p, bool keepSelection, bool updateSelection)
+KTextEditor::Cursor KateViewInternal::pointToCursor(const QPoint& p) const
 {
     KateTextLayout thisLine = yToKateTextLayout(p.y());
     KTextEditor::Cursor c;
@@ -2208,6 +2212,17 @@ void KateViewInternal::placeCursor(const QPoint &p, bool keepSelection, bool upd
     c = renderer()->xToCursor(thisLine, startX() + p.x(), !m_view->wrapCursor());
 
     if (c.line() < 0 || c.line() >= doc()->lines()) {
+        return {};
+    }
+
+    return c;
+}
+
+// Point in content coordinates
+void KateViewInternal::placeCursor(const QPoint &p, bool keepSelection, bool updateSelection)
+{
+    auto c = pointToCursor(p);
+    if ( ! c.isValid() ) {
         return;
     }
 
@@ -2523,6 +2538,16 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
     switch (e->button()) {
     case Qt::LeftButton:
         m_selChangedByUser = false;
+
+        if (e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
+            setSelection({});
+            view()->toggleSecondaryCursorAt(pointToCursor(e->pos()));
+            e->accept();
+            return;
+        }
+        else {
+            view()->clearSecondaryCursors();
+        }
 
         if (m_possibleTripleClick) {
             m_possibleTripleClick = false;

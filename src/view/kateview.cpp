@@ -267,6 +267,9 @@ KTextEditor::ViewPrivate::~ViewPrivate()
 
     delete m_config;
 
+    qDeleteAll(m_secondaryCursors);
+    m_secondaryCursors.clear();
+
     KTextEditor::EditorPrivate::self()->deregisterView(this);
 }
 
@@ -3593,6 +3596,38 @@ void KTextEditor::ViewPrivate::printPreview()
 }
 
 //END
+
+bool KTextEditor::ViewPrivate::toggleSecondaryCursorAt(const KTextEditor::Cursor& cursor) {
+    Q_FOREACH ( const auto moving, m_secondaryCursors ) {
+        if ( moving->toCursor() == cursor ) {
+            m_secondaryCursors.removeAll(moving);
+            delete moving;
+            return false;
+        }
+    }
+    auto moving = m_doc->newMovingCursor(cursor);
+    m_secondaryCursors.append(moving);
+
+    qDebug() << "new list of secondary cursors:" << m_secondaryCursors;
+
+    return true;
+}
+
+void KTextEditor::ViewPrivate::clearSecondaryCursors()
+{
+    qDeleteAll(m_secondaryCursors);
+    m_secondaryCursors.clear();
+}
+
+QVector<KTextEditor::Cursor> KTextEditor::ViewPrivate::secondaryCursors() const
+{
+    QVector<KTextEditor::Cursor> cursors;
+    cursors.reserve(m_secondaryCursors.size());
+    foreach ( const auto moving, m_secondaryCursors ) {
+        cursors.append(moving->toCursor());
+    }
+    return cursors;
+}
 
 KTextEditor::Attribute::Ptr KTextEditor::ViewPrivate::defaultStyleAttribute(KTextEditor::DefaultStyle defaultStyle) const
 {

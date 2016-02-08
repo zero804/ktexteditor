@@ -171,6 +171,13 @@ public:
     bool mouseTrackingEnabled() const Q_DECL_OVERRIDE;
     bool setMouseTrackingEnabled(bool enable) Q_DECL_OVERRIDE;
 
+    QVector<KTextEditor::Cursor> secondaryCursors() const;
+    bool toggleSecondaryCursorAt(const KTextEditor::Cursor& cursor);
+    void clearSecondaryCursors();
+
+private:
+    QVector<KTextEditor::MovingCursor*> m_secondaryCursors;
+
 private:
     void notifyMousePositionChanged(const KTextEditor::Cursor &newPosition);
 

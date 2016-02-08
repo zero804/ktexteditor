@@ -269,6 +269,7 @@ private:
     void updateCursor(const KTextEditor::Cursor &newCursor, bool force = false, bool center = false, bool calledExternally = false);
     void updateBracketMarks();
 
+    KTextEditor::Cursor pointToCursor(const QPoint& p) const;
     void placeCursor(const QPoint &p, bool keepSelection = false, bool updateSelection = true);
     bool isTargetSelected(const QPoint &p);
     //Returns whether the given range affects the area currently visible in the view
