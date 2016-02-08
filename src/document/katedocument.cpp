@@ -2866,11 +2866,16 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
     }
 
     /**
+     * always unfreeze on typing
+     */
+    view->cursors()->setSecondaryFrozen(false);
+
+    /**
      * auto bracket handling for newly inserted text
      * remember if we should auto add some
      */
     QChar closingBracket;
-    if (view->config()->autoBrackets() && chars.size() == 1) {
+    if (view->config()->autoBrackets() && chars.size() == 1 && !view->cursors()->hasSecondaryCursors()) {
         /**
          * we inserted a bracket?
          * => remember the matching closing one
@@ -2926,17 +2931,13 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
             view->removeSelectedText();
         }
 
-        const KTextEditor::Cursor oldCur(view->cursorPosition());
+        auto oldCursors = view->allCursors();
 
-        const bool multiLineBlockMode = view->blockSelection() && view->selection();
         if (view->currentInputMode()->overwrite()) {
-            // blockmode multiline selection case: remove chars in every line
-            const KTextEditor::Range selectionRange = view->selectionRange();
-            const int startLine = multiLineBlockMode ? qMax(0, selectionRange.start().line()) : view->cursorPosition().line();
-            const int endLine = multiLineBlockMode ? qMin(selectionRange.end().line(), lastLine()) : startLine;
-            const int virtualColumn = toVirtualColumn(multiLineBlockMode ? selectionRange.end() : view->cursorPosition());
+            Q_FOREACH ( const auto& cursor, view->allCursors() ) {
+                auto line = cursor.line();
+                auto virtualColumn = toVirtualColumn(view->cursorPosition());
 
-            for (int line = endLine; line >= startLine; --line) {
                 Kate::TextLine textLine = m_buffer->plainLine(line);
                 Q_ASSERT(textLine);
                 const int column = fromVirtualColumn(line, virtualColumn);
@@ -2944,30 +2945,19 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
                     textLine->length() - column));
 
                 // replace mode needs to know what was removed so it can be restored with backspace
-                if (oldCur.column() < lineLength(line)) {
-                    QChar removed = characterAt(KTextEditor::Cursor(line, column));
-                    view->currentInputMode()->overwrittenChar(removed);
-                }
+#warning fix this: backspace in overwrite mode restores characters
+//                 if (oldCur.column() < lineLength(line)) {
+//                     QChar removed = characterAt(KTextEditor::Cursor(line, column));
+//                     view->currentInputMode()->overwrittenChar(removed);
+//                 }
 
                 removeText(r);
             }
         }
 
-        if (multiLineBlockMode) {
-            KTextEditor::Range selectionRange = view->selectionRange();
-            const int startLine = qMax(0, selectionRange.start().line());
-            const int endLine = qMin(selectionRange.end().line(), lastLine());
-            const int column = toVirtualColumn(selectionRange.end());
-            for (int line = endLine; line >= startLine; --line) {
-                editInsertText(line, fromVirtualColumn(line, column), chars);
-            }
-            int newSelectionColumn = toVirtualColumn(view->cursorPosition());
-            selectionRange.setRange(KTextEditor::Cursor(selectionRange.start().line(), fromVirtualColumn(selectionRange.start().line(), newSelectionColumn))
-                                    , KTextEditor::Cursor(selectionRange.end().line(), fromVirtualColumn(selectionRange.end().line(), newSelectionColumn)));
-            view->setSelection(selectionRange);
-        } else {
-            chars = eventuallyReplaceTabs(view->cursorPosition(), chars);
-            insertText(view->cursorPosition(), chars);
+        Q_FOREACH ( const auto& cursor, view->allCursors() ) {
+            auto adjusted = eventuallyReplaceTabs(cursor, chars);
+            insertText(cursor, adjusted);
         }
 
         /**
@@ -2978,33 +2968,38 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
          */
         if (!closingBracket.isNull()) {
             // add bracket to the view
-            const auto cursorPos(view->cursorPosition());
-            const auto nextChar = view->document()->text({cursorPos, cursorPos + Cursor{0, 1}}).trimmed();
-            if ( nextChar.isEmpty() || ! nextChar.at(0).isLetterOrNumber() ) {
-                insertText(view->cursorPosition(), QString(closingBracket));
-                const auto insertedAt(view->cursorPosition());
-                view->setCursorPosition(cursorPos);
-                m_currentAutobraceRange.reset(newMovingRange({cursorPos - Cursor{0, 1}, insertedAt},
-                                                            KTextEditor::MovingRange::DoNotExpand));
-                connect(view, &View::cursorPositionChanged,
-                        this, &DocumentPrivate::checkCursorForAutobrace, Qt::UniqueConnection);
+            Q_FOREACH ( const auto& cursorPos, view->allCursors() ) {
+                const auto nextChar = view->document()->text({cursorPos, cursorPos + Cursor{0, 1}}).trimmed();
+                if ( nextChar.isEmpty() || ! nextChar.at(0).isLetterOrNumber() ) {
+                    insertText(view->cursorPosition(), QString(closingBracket));
+                    const auto insertedAt(view->cursorPosition());
+                    view->setCursorPosition(cursorPos);
+                    m_currentAutobraceRange.reset(newMovingRange({cursorPos - Cursor{0, 1}, insertedAt},
+                                                                KTextEditor::MovingRange::DoNotExpand));
+                    connect(view, &View::cursorPositionChanged,
+                            this, &DocumentPrivate::checkCursorForAutobrace, Qt::UniqueConnection);
 
-                // add bracket to chars inserted! needed for correct signals + indent
-                chars.append(closingBracket);
+                    // add bracket to chars inserted! needed for correct signals + indent
+                    chars.append(closingBracket);
+                }
             }
         }
 
         // end edit session here, to have updated HL in userTypedChar!
         editEnd();
 
-        // trigger indentation
-        KTextEditor::Cursor b(view->cursorPosition());
-        m_indenter->userTypedChar(view, b, chars.isEmpty() ? QChar() :  chars.at(chars.length() - 1));
+        if ( ! view->cursors()->hasSecondaryCursors() ) {
+            // trigger indentation
+            KTextEditor::Cursor b(view->cursorPosition());
+            m_indenter->userTypedChar(view, b, chars.isEmpty() ? QChar() :  chars.at(chars.length() - 1));
+        }
 
         /**
          * inform the view about the original inserted chars
          */
-        view->slotTextInserted(view, oldCur, chars);
+        Q_FOREACH ( const auto& oldCur, oldCursors ) {
+            view->slotTextInserted(view, oldCur, chars);
+        }
     }
 
     /**
@@ -3029,26 +3024,26 @@ void KTextEditor::DocumentPrivate::newLine(KTextEditor::ViewPrivate *v)
     }
 
     // query cursor position
-    KTextEditor::Cursor c = v->cursorPosition();
+    Q_FOREACH ( auto c, v->allCursors() ) {
+        if (c.line() > (int)lastLine()) {
+            c.setLine(lastLine());
+        }
 
-    if (c.line() > (int)lastLine()) {
-        c.setLine(lastLine());
+        if (c.line() < 0) {
+            c.setLine(0);
+        }
+
+        uint ln = c.line();
+
+        Kate::TextLine textLine = plainKateTextLine(ln);
+
+        if (c.column() > (int)textLine->length()) {
+            c.setColumn(textLine->length());
+        }
+
+        // first: wrap line
+        editWrapLine(c.line(), c.column());
     }
-
-    if (c.line() < 0) {
-        c.setLine(0);
-    }
-
-    uint ln = c.line();
-
-    Kate::TextLine textLine = plainKateTextLine(ln);
-
-    if (c.column() > (int)textLine->length()) {
-        c.setColumn(textLine->length());
-    }
-
-    // first: wrap line
-    editWrapLine(c.line(), c.column());
 
     // end edit session here, to have updated HL in userTypedChar!
     editEnd();
@@ -3093,15 +3088,18 @@ void KTextEditor::DocumentPrivate::transpose(const KTextEditor::Cursor &cursor)
 
 void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, const KTextEditor::Cursor &c)
 {
+    /**
+     * always unfreeze secondary cursors on typing
+     */
+    view->cursors()->setSecondaryFrozen(false);
+
     if (!view->config()->persistentSelection() && view->selection()) {
-        if (view->blockSelection() && view->selection() && toVirtualColumn(view->selectionRange().start()) == toVirtualColumn(view->selectionRange().end())) {
-            // Remove one character after selection line
-            KTextEditor::Range range = view->selectionRange();
-            range.setStart(KTextEditor::Cursor(range.start().line(), range.start().column() - 1));
-            view->setSelection(range);
+        auto range = view->selectionRange();
+        // only bail out on non-zero-width selections, the rest is handled below
+        if ( ! view->blockSelection() || range.start().column() != range.end().column() ) {
+            view->removeSelectedText();
+            return;
         }
-        view->removeSelectedText();
-        return;
     }
 
     uint col = qMax(c.column(), 0);
@@ -3125,7 +3123,8 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
             removeText(KTextEditor::Range(beginCursor, endCursor));
             // in most cases cursor is moved by removeText, but we should do it manually
             // for past-end-of-line cursors in block mode
-            view->setCursorPosition(beginCursor);
+#warning how do we solve this for block mode?
+//             view->setCursorPosition(beginCursor);
         } else {
             // backspace indents: erase to next indent position
             Kate::TextLine textLine = m_buffer->plainLine(line);
@@ -3133,6 +3132,12 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
             // don't forget this check!!!! really!!!!
             if (!textLine) {
                 return;
+            }
+
+            if ( view->blockSelection() && col > textLine->length() ) {
+                view->clearSelection(false);
+                insertText(c, QStringLiteral(" "), true);
+                removeText({c-KTextEditor::Cursor{0, 1}, c}, true);
             }
 
             int colX = textLine->toVirtualColumn(col, config()->tabWidth());
@@ -3155,7 +3160,7 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
                 removeText(KTextEditor::Range(beginCursor, endCursor));
                 // in most cases cursor is moved by removeText, but we should do it manually
                 // for past-end-of-line cursors in block mode
-                view->setCursorPosition(beginCursor);
+//                 view->setCursorPosition(beginCursor);
             }
         }
     } else {
@@ -3222,13 +3227,55 @@ void KTextEditor::DocumentPrivate::paste(KTextEditor::ViewPrivate *view, const Q
 
     int lines = s.count(newLineChar);
 
+    auto paste_text_at = [this, view, s, lines](const KTextEditor::Cursor& pos) {
+        editStart();
+
+        if (config()->ovr()) {
+            QStringList pasteLines = s.split(newLineChar);
+
+            if (!view->blockSelection()) {
+                int endColumn = (pasteLines.count() == 1 ? pos.column() : 0) + pasteLines.last().length();
+                removeText(KTextEditor::Range(pos,
+                                            pos.line() + pasteLines.count() - 1, endColumn));
+            } else {
+                int maxi = qMin(pos.line() + pasteLines.count(), this->lines());
+
+                for (int i = pos.line(); i < maxi; ++i) {
+                    int pasteLength = pasteLines.at(i - pos.line()).length();
+                    removeText(KTextEditor::Range(i, pos.column(),
+                                                  i, qMin(pasteLength + pos.column(), lineLength(i))));
+                }
+            }
+        }
+
+        insertText(pos, s, view->blockSelection());
+        editEnd();
+
+        // move cursor right for block select, as the user is moved right internal
+        // even in that case, but user expects other behavior in block selection
+        // mode !
+        // just let cursor stay, that was it before I changed to moving ranges!
+        if (view->blockSelection()) {
+            view->setCursorPositionInternal(pos);
+        }
+
+        if (config()->indentPastedText()) {
+            KTextEditor::Range range = KTextEditor::Range(KTextEditor::Cursor(pos.line(), 0),
+                                    KTextEditor::Cursor(pos.line() + lines, 0));
+
+            m_indenter->indent(view, range);
+        }
+
+        if (!view->blockSelection()) {
+            emit charactersSemiInteractivelyInserted(pos, s);
+        }
+    };
+
     m_undoManager->undoSafePoint();
 
     editStart();
-
-    KTextEditor::Cursor pos = view->cursorPosition();
     if (!view->config()->persistentSelection() && view->selection()) {
-        pos = view->selectionRange().start();
+        auto pos = view->selectionRange().start();
         if (view->blockSelection()) {
             pos = rangeOnLine(view->selectionRange(), pos.line()).start();
             if (lines == 0) {
@@ -3239,46 +3286,12 @@ void KTextEditor::DocumentPrivate::paste(KTextEditor::ViewPrivate *view, const Q
         }
         view->removeSelectedText();
     }
-
-    if (config()->ovr()) {
-        QStringList pasteLines = s.split(newLineChar);
-
-        if (!view->blockSelection()) {
-            int endColumn = (pasteLines.count() == 1 ? pos.column() : 0) + pasteLines.last().length();
-            removeText(KTextEditor::Range(pos,
-                                          pos.line() + pasteLines.count() - 1, endColumn));
-        } else {
-            int maxi = qMin(pos.line() + pasteLines.count(), this->lines());
-
-            for (int i = pos.line(); i < maxi; ++i) {
-                int pasteLength = pasteLines.at(i - pos.line()).length();
-                removeText(KTextEditor::Range(i, pos.column(),
-                                              i, qMin(pasteLength + pos.column(), lineLength(i))));
-            }
-        }
-    }
-
-    insertText(pos, s, view->blockSelection());
     editEnd();
 
-    // move cursor right for block select, as the user is moved right internal
-    // even in that case, but user expects other behavior in block selection
-    // mode !
-    // just let cursor stay, that was it before I changed to moving ranges!
-    if (view->blockSelection()) {
-        view->setCursorPositionInternal(pos);
+    Q_FOREACH ( const auto& cursor, view->allCursors() ) {
+        paste_text_at(cursor);
     }
 
-    if (config()->indentPastedText()) {
-        KTextEditor::Range range = KTextEditor::Range(KTextEditor::Cursor(pos.line(), 0),
-                                   KTextEditor::Cursor(pos.line() + lines, 0));
-
-        m_indenter->indent(view, range);
-    }
-
-    if (!view->blockSelection()) {
-        emit charactersSemiInteractivelyInserted(pos, s);
-    }
     m_undoManager->undoSafePoint();
 }
 
@@ -3304,24 +3317,23 @@ void KTextEditor::DocumentPrivate::insertTab(KTextEditor::ViewPrivate *view, con
         return;
     }
 
-    int lineLen = line(view->cursorPosition().line()).length();
-    KTextEditor::Cursor c = view->cursorPosition();
-
     editStart();
 
-    if (!view->config()->persistentSelection() && view->selection()) {
-        view->removeSelectedText();
-    } else if (view->currentInputMode()->overwrite() && c.column() < lineLen) {
-        KTextEditor::Range r = KTextEditor::Range(view->cursorPosition(), 1);
+    Q_FOREACH ( auto c, view->allCursors() ) {
+        int lineLen = line(c.line()).length();
+        if (!view->config()->persistentSelection() && view->selection()) {
+            view->removeSelectedText();
+        } else if (view->currentInputMode()->overwrite() && c.column() < lineLen) {
+            KTextEditor::Range r = KTextEditor::Range(c, 1);
 
-        // replace mode needs to know what was removed so it can be restored with backspace
-        QChar removed = line(view->cursorPosition().line()).at(r.start().column());
-        view->currentInputMode()->overwrittenChar(removed);
-        removeText(r);
+            // replace mode needs to know what was removed so it can be restored with backspace
+            QChar removed = line(c.line()).at(r.start().column());
+            view->currentInputMode()->overwrittenChar(removed);
+            removeText(r);
+        }
+
+        editInsertText(c.line(), c.column(), QLatin1String("\t"));
     }
-
-    c = view->cursorPosition();
-    editInsertText(c.line(), c.column(), QLatin1String("\t"));
 
     editEnd();
 }

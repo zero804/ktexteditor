@@ -326,7 +326,7 @@ bool InputModeManager::isAnyVisualMode() const
 void InputModeManager::viEnterNormalMode()
 {
     bool moveCursorLeft = (m_currentViMode == ViMode::InsertMode || m_currentViMode == ViMode::ReplaceMode)
-                          && m_viewInternal->getCursor().column() > 0;
+                          && m_viewInternal->primaryCursor().column() > 0;
 
     if (!m_lastChangeRecorder->isReplaying() &&
             (m_currentViMode == ViMode::InsertMode ||

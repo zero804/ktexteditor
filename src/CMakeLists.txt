@@ -151,6 +151,7 @@ view/kateanimation.cpp
 view/katetextanimation.cpp
 view/katestatusbar.cpp
 view/wordcounter.cpp
+view/katemulticursor.cpp
 
 # spell checking
 spellcheck/prefixstore.h

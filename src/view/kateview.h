@@ -34,10 +34,13 @@
 #include <QModelIndex>
 #include <QMenu>
 #include <QSpacerItem>
+#include <QTimer>
+#include <QVarLengthArray>
 
 #include "katetextrange.h"
 #include "katetextfolding.h"
 #include "katerenderer.h"
+#include "katemulticursor.h"
 
 namespace KTextEditor
 {
@@ -73,6 +76,11 @@ class QVBoxLayout;
 namespace KTextEditor
 {
 
+class Selection : public QVector<KTextEditor::MovingRange*> {
+public:
+    Selection differenceTo(const Selection& previous) const;
+};
+
 //
 // Kate KTextEditor::View class ;)
 //
@@ -91,6 +99,7 @@ class KTEXTEDITOR_EXPORT ViewPrivate : public KTextEditor::View,
     friend class KTextEditor::View;
     friend class ::KateViewInternal;
     friend class ::KateIconBorder;
+    friend class CalculatingCursor;
 
 public:
     ViewPrivate (KTextEditor::DocumentPrivate *doc, QWidget *parent, KTextEditor::MainWindow *mainWindow = Q_NULLPTR);
@@ -113,6 +122,13 @@ public:
     QString viewInputModeHuman() const Q_DECL_OVERRIDE;
 
     void setInputMode(InputMode mode);
+
+    const KateMultiCursor* cursors() const;
+    const KateMultiSelection* selections() const;
+    KateMultiCursor* cursors();
+    KateMultiSelection* selections();
+
+    Cursors allCursors();
 
     //
     // KTextEditor::ClipboardInterface
@@ -170,13 +186,6 @@ public:
 
     bool mouseTrackingEnabled() const Q_DECL_OVERRIDE;
     bool setMouseTrackingEnabled(bool enable) Q_DECL_OVERRIDE;
-
-    QVector<KTextEditor::Cursor> secondaryCursors() const;
-    bool toggleSecondaryCursorAt(const KTextEditor::Cursor& cursor);
-    void clearSecondaryCursors();
-
-private:
-    QVector<KTextEditor::MovingCursor*> m_secondaryCursors;
 
 private:
     void notifyMousePositionChanged(const KTextEditor::Cursor &newPosition);
@@ -256,7 +265,48 @@ public:
     // KTextEditor::SelectionInterface stuff
     //
 public Q_SLOTS:
+    /**
+     * @brief Get the primary selection.
+     *
+     * The primary selection is the selection range containing the primary
+     * cursor. If no such selection exists, as might be the case
+     * in "persistent selection" mode, this is the first selection
+     * which was created since the selection was last empty.
+     */
+    KTextEditor::Range primarySelection() const {
+        return selections()->primarySelection();
+    };
+    /**
+     * @brief Set the primary selection.
+     */
     bool setSelection(const KTextEditor::Range &selection) Q_DECL_OVERRIDE;
+    bool setPrimarySelection(const KTextEditor::Range &selection) {
+        return setSelection(selection);
+    };
+
+//     /**
+//      * @brief Add a new range to the selection
+//      *
+//      * If there is no selection so far, this range becomes the primary
+//      * selection. If the range is not disjoint or adjacent to an existing
+//      * selection range, it is joined with that selection range.
+//      *
+//      * @param newSelection Range to add.
+//      * @return bool true if selection was modified
+//      */
+//     bool addToSelection(const KTextEditor::Range &newSelection);
+//     /**
+//      * @brief Subtract the given range from the selection
+//      *
+//      * @param remove Range to remove. If this range encompasses a
+//      * range in the selection, it is removed entirely. If it touches
+//      * one edge of a range in the selection, that range is shortened
+//      * to the difference of the old and new range. If this range
+//      * is completely contained in an existing range, nothing happens
+//      * and false is returned.
+//      * @return bool true if selection was modified
+//      */
+//     bool removeFromSelection(const KTextEditor::Range &remove);
 
     bool removeSelection() Q_DECL_OVERRIDE
     {
@@ -310,7 +360,7 @@ public:
 
     void ensureCursorColumnValid();
 
-    void tagSelection(const KTextEditor::Range &oldSelection);
+    void tagSelection(const Selection &oldSelection);
 
     void selectWord(const KTextEditor::Cursor &cursor);
     void selectLine(const KTextEditor::Cursor &cursor);
@@ -537,6 +587,10 @@ public Q_SLOTS:
     void toggleDynWordWrap();
     void setDynWrapIndicators(int mode);
 
+public Q_SLOTS:
+    void setSecondaryCursorsFrozen(bool freeze);
+    void placeSecondaryCursor();
+
 public:
     int getEol() const;
 
@@ -700,9 +754,6 @@ private Q_SLOTS:
 private:
     bool m_startingUp;
     bool m_updatingDocumentConfig;
-
-    // stores the current selection
-    Kate::TextRange m_selection;
 
     // do we select normal or blockwise ?
     bool blockSelect;

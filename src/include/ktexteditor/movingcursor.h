@@ -87,6 +87,8 @@ public:
         NoWrap = 0x1 ///< do not wrap at end of line
     };
 
+    typedef QSharedPointer<MovingCursor> Ptr;
+
     //
     // stuff that needs to be implemented by editor part cusors
     //

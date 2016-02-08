@@ -44,6 +44,8 @@
 #include <QSet>
 #include <QPointer>
 
+#include <functional>
+
 namespace KTextEditor
 {
 class MovingRange;
@@ -69,6 +71,7 @@ class KateViewInternal : public QWidget
     friend class BoundedCursor;
     friend class WrappingCursor;
     friend class KateAbstractInputMode;
+    friend class KateMultiCursor;
 
 public:
     enum Bias {
@@ -175,6 +178,7 @@ public:
     void doDeletePrevWord();
     void doDeleteNextWord();
 
+    void clearSelectionUnless(bool sel);
     void cursorPrevChar(bool sel = false);
     void cursorNextChar(bool sel = false);
     void wordPrev(bool sel = false);
@@ -195,9 +199,9 @@ public:
     void top_home(bool sel = false);
     void bottom_end(bool sel = false);
 
-    KTextEditor::Cursor getCursor() const
+    KTextEditor::Cursor primaryCursor() const
     {
-        return m_cursor;
+        return m_cursors.primaryCursor();
     }
     KTextEditor::Cursor getMouse() const
     {
@@ -267,6 +271,7 @@ private:
     void setSelection(const KTextEditor::Range &);
     void moveCursorToSelectionEdge();
     void updateCursor(const KTextEditor::Cursor &newCursor, bool force = false, bool center = false, bool calledExternally = false);
+    void updateCursorFlashTimer();
     void updateBracketMarks();
 
     KTextEditor::Cursor pointToCursor(const QPoint& p) const;
@@ -289,7 +294,25 @@ private:
 
     Qt::CursorShape m_mouseCursor;
 
-    Kate::TextCursor m_cursor;
+    KateMultiCursor m_cursors;
+    KateMultiSelection m_selections;
+
+public:
+    const KateMultiCursor* cursors() const {
+        return &m_cursors;
+    };
+    const KateMultiSelection* selections() const {
+        return &m_selections;
+    };
+    KateMultiCursor* cursors() {
+        return &m_cursors;
+    };
+    KateMultiSelection* selections() {
+        return &m_selections;
+    };
+
+private:
+
     KTextEditor::Cursor m_mouse;
     KTextEditor::Cursor m_displayCursor;
 
@@ -369,9 +392,9 @@ private:
     KateLayoutCache *m_layoutCache;
 
     // convenience methods
-    KateTextLayout currentLayout() const;
-    KateTextLayout previousLayout() const;
-    KateTextLayout nextLayout() const;
+    KateTextLayout currentLayout(const KTextEditor::Cursor& cursor) const;
+    KateTextLayout previousLayout(const KTextEditor::Cursor& cursor) const;
+    KateTextLayout nextLayout(const KTextEditor::Cursor& cursor) const;
 
     // find the cursor offset by (offset) view lines from a cursor.
     // when keepX is true, the column position will be calculated based on the x
@@ -439,6 +462,9 @@ private:
     //
 public:
     QVariant inputMethodQuery(Qt::InputMethodQuery query) const Q_DECL_OVERRIDE;
+
+public:
+    void notifyLinesUpdated(const QVector<KTextEditor::Cursor>& changed);
 
 private:
     KTextEditor::MovingRange *m_imPreeditRange;

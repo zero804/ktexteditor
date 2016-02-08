@@ -1,0 +1,194 @@
+/* This file is part of the KDE and the Kate project
+*
+*   Copyright (C) 2016 Sven Brauch <mail@svenbrauch.de>
+*
+*  This library is free software; you can redistribute it and/or
+*  modify it under the terms of the GNU Library General Public
+*  License as published by the Free Software Foundation; either
+*  version 2 of the License, or (at your option) any later version.
+*
+*  This library is distributed in the hope that it will be useful,
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+*  Library General Public License for more details.
+*
+*  You should have received a copy of the GNU Library General Public License
+*  along with this library; see the file COPYING.LIB.  If not, write to
+*  the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+*  Boston, MA 02110-1301, USA.
+*/
+
+#ifndef KATEMULTICURSOR_H
+#define KATEMULTICURSOR_H
+
+#include "ktexteditor/movingrange.h"
+
+namespace KTextEditor {
+    class DocumentPrivate;
+    class ViewPrivate;
+}
+
+class KateMultiSelection;
+class KateViewInternal;
+
+using KTextEditor::MovingCursor;
+using KTextEditor::MovingRange;
+using KTextEditor::Cursor;
+
+using Cursors = QVector<Cursor>;
+using Selections = QVector<KTextEditor::Range>;
+
+class KTEXTEDITOR_EXPORT KateMultiCursor {
+public:
+    friend class KateMultiSelection;
+
+    KateMultiCursor(KateViewInternal* view);
+
+    Cursors cursors() const;
+    const QVector<KTextEditor::MovingCursor::Ptr> movingCursors() const;
+    Cursor primaryCursor() const;
+    Cursors secondaryCursors() const;
+    bool hasSecondaryCursors() const;
+    size_t cursorsCount() const;
+
+    void setPrimaryCursor(const Cursor& cursor);
+
+    bool toggleSecondaryCursorAt(const Cursor& cursor, bool ensureExists=false);
+    void clearSecondaryCursors();
+
+    void moveCursorsLeft(bool select=false, int32_t chars=1);
+    void moveCursorsRight(bool select=false, int32_t chars=1);
+    void moveCursorsUp(bool select=false, int32_t chars=1);
+    void moveCursorsDown(bool select=false, int32_t chars=1);
+    void moveCursorsEndOfLine(bool select=false);
+    void moveCursorsStartOfLine(bool select=false);
+    void moveCursorsWordPrevious(bool select=false);
+    void moveCursorsWordNext(bool select=false);
+
+    bool secondaryFrozen() const {
+        return m_secondaryFrozen;
+    };
+
+    void toggleSecondaryFrozen() {
+        return setSecondaryFrozen(!m_secondaryFrozen);
+    };
+    /**
+     * @brief Freeze secondary cursors.
+     *
+     * This means they will not move when the user navigates the
+     * primary cursor. Typing or removing chars automatically unfreezes
+     * cursors.
+     *
+     * @param frozen true to freeze, false to unfreeze.
+     */
+    void setSecondaryFrozen(bool frozen) {
+        m_secondaryFrozen = frozen;
+    };
+
+protected:
+    enum Direction {
+        Left = -1,
+        None = 0,
+        Right = +1
+    };
+
+    /// Cursor transformations. Functions to calculate where
+    /// a given cursor moves under a certain operation.
+    Cursor moveLeftRight(const Cursor& c, int32_t chars) const;
+    Cursor moveUpDown(const Cursor& c, int32_t direction, int32_t& xpos) const;
+    Cursor moveWord(const Cursor& c, Direction dir) const;
+    Cursor moveHome(const Cursor& c) const;
+    Cursor moveEnd(const Cursor& c) const;
+
+protected:
+    KTextEditor::ViewPrivate* view() const;
+    KateViewInternal* viewInternal() const;
+    KTextEditor::DocumentPrivate* doc() const;
+    const KateMultiSelection* selections() const;
+    KateMultiSelection* selections();
+
+    size_t indexOfCursor(const KTextEditor::Cursor& cursor) const;
+
+private:
+    KateViewInternal* m_viewInternal = nullptr;
+    QVector<MovingCursor::Ptr> m_cursors;
+    // It is guaranteed that this always contains exactly one selection
+    // for each cursor, and in the same order.
+    QVector<KTextEditor::MovingRange::Ptr> m_selections;
+    QMap<MovingCursor*, int32_t> m_savedHorizontalPositions;
+
+    bool m_secondaryFrozen = false;
+
+private:
+    QVector<MovingCursor::Ptr> allCursors() const;
+    void appendCursorInternal(const Cursor& cursor);
+    void removeCursorInternal(const MovingCursor::Ptr& cursor);
+    void removeEncompassedSecondaryCursors();
+    void removeDuplicateCursors();
+
+public:
+    class CursorRepainter {
+    public:
+        CursorRepainter(KateMultiCursor* cursors);
+        ~CursorRepainter();
+
+    private:
+        QVector<KTextEditor::Cursor> m_initialAffectedLines;
+        KateMultiCursor* m_cursors;
+    };
+    friend class CursorRepainter;
+};
+
+class KTEXTEDITOR_EXPORT KateMultiSelection {
+public:
+    KateMultiSelection(KateViewInternal* view);
+
+    KTextEditor::Range primarySelection() const;
+    bool hasMultipleSelections() const;
+    bool hasSelections() const;
+    Selections selections() const;
+
+    void setSelection(const KTextEditor::Range& selection, const Cursor& cursor=Cursor::invalid());
+    void setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& cursors);
+    void clearSelection();
+    void clearSelectionIfNotPersistent();
+
+public:
+    bool positionSelected(const Cursor& cursor) const;
+    bool lineSelected(int line) const;
+    bool lineEndSelected(const Cursor& lineEnd) const;
+    bool lineHasSelection(int line) const;
+    bool overlapsLine(int line) const;
+
+protected:
+    const KateMultiCursor* cursors() const;
+    KateMultiCursor* cursors();
+    KTextEditor::ViewPrivate* view() const;
+    KateViewInternal* viewInternal() const;
+    KTextEditor::DocumentPrivate* doc() const;
+
+    KTextEditor::MovingRange::Ptr selectionForCursor(const KTextEditor::Cursor& cursor) const;
+    KTextEditor::MovingRange::Ptr addSelectionInternal(const KTextEditor::Range& range, const Cursor& cursor);
+    void doSelectWithCursorInternal(const KTextEditor::Range& range, size_t cursorIndex);
+
+private:
+    KateViewInternal* m_viewInternal = nullptr;
+
+public:
+    class SelectingCursorMovement {
+    public:
+        SelectingCursorMovement(KateMultiSelection* selections, bool isSelecting=true);
+        ~SelectingCursorMovement();
+
+    private:
+        using PositionMap = QMap<KTextEditor::MovingCursor::Ptr, KTextEditor::Cursor>;
+        KateMultiSelection* m_selections;
+        bool m_isSelecting;
+        PositionMap m_oldPositions;
+        PositionMap currentPositions() const;
+    };
+    friend class SelectingCursorMovement;
+    friend class CursorRepainter;
+};
+
+#endif // KATEMULTICURSOR_H

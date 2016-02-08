@@ -374,6 +374,8 @@ QList<QTextLayout::FormatRange> KateRenderer::decorationsForLine(const Kate::Tex
 {
     QList<QTextLayout::FormatRange> newHighlight;
 
+//     qDebug() << "paint line:" << line << "selection ranges:" << m_view->selections()->selections();
+
     // Don't compute the highlighting if there isn't going to be any highlighting
     QList<Kate::TextRange *> rangesWithAttributes = m_doc->buffer().rangesForLine(line, m_printerFriendly ? 0 : m_view, true);
     if (selectionsOnly || textLine->attributesList().count() || rangesWithAttributes.count()) {
@@ -446,10 +448,16 @@ QList<QTextLayout::FormatRange> KateRenderer::decorationsForLine(const Kate::Tex
             // Create a range for the current selection
             if (completionHighlight && completionSelected) {
                 selectionHighlight->addRange(new KTextEditor::Range(line, 0, line + 1, 0), backgroundAttribute);
-            } else if (m_view->blockSelection() && m_view->selectionRange().overlapsLine(line)) {
+            } else if (m_view->blockSelection() && m_view->selections()->overlapsLine(line)) {
                 selectionHighlight->addRange(new KTextEditor::Range(m_doc->rangeOnLine(m_view->selectionRange(), line)), backgroundAttribute);
             } else {
-                selectionHighlight->addRange(new KTextEditor::Range(m_view->selectionRange()), backgroundAttribute);
+                Q_FOREACH ( const auto& range, m_view->selections()->selections() ) {
+                    if ( range.start().line() != line && range.end().line() != line ) {
+                        continue;
+                    }
+//                     qDebug() << "adding selection highlight:" << range << line;
+                    selectionHighlight->addRange(new KTextEditor::Range(range), backgroundAttribute);
+                }
             }
 
             renderRanges.append(selectionHighlight);
@@ -465,10 +473,10 @@ QList<QTextLayout::FormatRange> KateRenderer::decorationsForLine(const Kate::Tex
                 currentPosition = subRange.start();
                 endPosition = subRange.end();
             } else {
-                KTextEditor::Range rangeNeeded = m_view->selectionRange() & KTextEditor::Range(line, 0, line + 1, 0);
+                KTextEditor::Range rangeNeeded = KTextEditor::Range(line, 0, line + 1, 0);
 
-                currentPosition = qMax(KTextEditor::Cursor(line, 0), rangeNeeded.start());
-                endPosition = qMin(KTextEditor::Cursor(line + 1, 0), rangeNeeded.end());
+                currentPosition = rangeNeeded.start();
+                endPosition = rangeNeeded.end();
             }
         } else {
             currentPosition = KTextEditor::Cursor(line, 0);
@@ -558,10 +566,9 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
     paintTextLineBackground(paint, range, currentViewLine, xStart, xEnd);
 
     if (range->layout()) {
-        bool drawSelection = m_view && m_view->selection() && showSelections() && m_view->selectionRange().overlapsLine(range->line());
-        // Draw selection in block selecton mode. We need 2 kinds of selections that QTextLayout::draw can't render:
-        //   - past-end-of-line selection and
-        //   - 0-column-wide selection (used to indicate where text will be typed)
+        bool drawSelection = m_view && m_view->selection() && showSelections() && m_view->selections()->overlapsLine(range->line());
+//         qDebug() << "draw selection:" << drawSelection << range->line();
+        // Draw selection in block selecton mode. We need past-end-of-line selection which QTextLayout::draw can't render
         if (drawSelection && m_view->blockSelection()) {
             int selectionStartColumn = m_doc->fromVirtualColumn(range->line(), m_doc->toVirtualColumn(m_view->selectionRange().start()));
             int selectionEndColumn   = m_doc->fromVirtualColumn(range->line(), m_doc->toVirtualColumn(m_view->selectionRange().end()));
@@ -573,11 +580,6 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
                     int selectionEndX = cursorToX(lastLine, selectionEndColumn, true);
                     paint.fillRect(QRect(selectionStartX - xStart, (int)lastLine.lineLayout().y(), selectionEndX - selectionStartX, lineHeight()), selectionBrush);
                 }
-            } else {
-                const int selectStickWidth = 2;
-                KateTextLayout selectionLine = range->viewLine(range->viewLineForColumn(selectionStartColumn));
-                int selectionX = cursorToX(selectionLine, selectionStartColumn, true);
-                paint.fillRect(QRect(selectionX - xStart, (int)selectionLine.lineLayout().y(), selectStickWidth, lineHeight()), selectionBrush);
             }
         }
 
@@ -591,6 +593,7 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
             if (drawSelection) {
                 // FIXME toVector() may be a performance issue
                 additionalFormats = decorationsForLine(range->textLine(), range->line(), true).toVector();
+//                 qDebug() << "selection formats:" << additionalFormats.size();
                 range->layout()->draw(&paint, QPoint(-xStart, 0), additionalFormats);
 
             } else {
@@ -759,10 +762,8 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
         }
 
         // Draw caret
-        auto drawCaretAt = [this, &range, &paint, &xEnd, &xStart](const KTextEditor::Cursor* cursor) {
-            qDebug() << "draw caret:" << *cursor;
+        auto drawCaretAt = [this, &range, &paint, &xEnd, &xStart](const KTextEditor::Cursor* cursor, int alpha=255) {
             if (drawCaret() && cursor && range->includesCursor(*cursor)) {
-                qDebug() << "  caret in range, painting";
                 int caretWidth, lineWidth = 2;
                 QColor color;
                 QTextLine line = range->layout()->lineForTextPosition(qMin(cursor->column(), range->length()));
@@ -810,18 +811,20 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
                 paint.setClipRect(0, line.lineNumber() * lineHeight(), xEnd - xStart, lineHeight());
                 switch (style) {
                 case Line :
+                    color.setAlpha(alpha);
                     paint.setPen(QPen(color, caretWidth));
                     break;
                 case Block :
                     // use a gray caret so it's possible to see the character
-                    color.setAlpha(128);
+                    color.setAlpha(alpha/2);
                     paint.setPen(QPen(color, caretWidth));
                     break;
                 case Underline :
+                    color.setAlpha(alpha);
                     paint.setClipRect(0, lineHeight() - lineWidth, xEnd - xStart, lineWidth);
                     break;
                 case Half :
-                    color.setAlpha(128);
+                    color.setAlpha(alpha/2);
                     paint.setPen(QPen(color, caretWidth));
                     paint.setClipRect(0, lineHeight() / 2, xEnd - xStart, lineHeight() / 2);
                     break;
@@ -842,8 +845,8 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
             }
         };
         drawCaretAt(cursor);
-        foreach ( const auto& secondary, view()->secondaryCursors() ) {
-            drawCaretAt(&secondary);
+        foreach ( const auto& secondary, view()->cursors()->secondaryCursors() ) {
+            drawCaretAt(&secondary, 128);
         }
     }
 

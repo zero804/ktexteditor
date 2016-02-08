@@ -178,6 +178,8 @@ public:
         InvalidateIfEmpty = 0x1  ///< invalidate range, if it becomes empty
     };
 
+    typedef QSharedPointer<MovingRange> Ptr;
+
     //
     // stuff that needs to be implemented by editor part cursors
     //

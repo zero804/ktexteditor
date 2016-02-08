@@ -127,7 +127,7 @@ public:
     }
     int cursorPosition() const Q_DECL_OVERRIDE
     {
-        KTextEditor::Cursor c = view()->getCursor();
+        KTextEditor::Cursor c = view()->primaryCursor();
         return positionFromCursor(view(), c);
     }
     int offsetAtPoint(const QPoint & /*point*/) const Q_DECL_OVERRIDE
