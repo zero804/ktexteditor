@@ -412,6 +412,7 @@ bool KateMultiCursor::toggleSecondaryCursorAt(const KTextEditor::Cursor& cursor,
 
     if ( selections()->positionSelected(cursor) ) {
         // cannot place secondary cursors inside a selection
+        qDebug() << "will not place cursor inside a selection";
         return false;
     }
 
@@ -773,9 +774,10 @@ void KateMultiCursor::removeEncompassedSecondaryCursors()
 void KateMultiCursor::removeDuplicateCursors()
 {
     qDebug() << "called";
-    // remove duplicate cursors
-    for ( size_t i = 0; i < m_cursors.size(); i++ ) {
-        for ( size_t j = 0; j < i; j++ ) {
+    // do not consider primary cursors in frozen mode
+    auto start = secondaryFrozen() ? 1 : 0;
+    for ( size_t i = start; i < m_cursors.size(); i++ ) {
+        for ( size_t j = start; j < i; j++ ) {
             if ( m_cursors.at(i)->toCursor() == m_cursors.at(j)->toCursor() ) {
                 qDebug() << "removing duplicate cursor" << *m_cursors.at(j),
                 removeCursorInternal(m_cursors.at(j));
@@ -931,7 +933,7 @@ bool KateMultiSelection::positionSelected(const KTextEditor::Cursor &cursor) con
 
     auto s = cursors()->m_selections;
     return std::any_of(s.begin(), s.end(), [&cursor](const KTextEditor::MovingRange::Ptr r) {
-        return r->toRange().contains(cursor) || r->end().toCursor() == cursor;
+        return r->toRange().contains(cursor);
     });
 }
 

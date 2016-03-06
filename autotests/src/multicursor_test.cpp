@@ -22,6 +22,7 @@
 
 #include <katedocument.h>
 #include <kateview.h>
+#include <kateconfig.h>
 
 #include <QtTestWidgets>
 
@@ -33,6 +34,7 @@ QTEST_MAIN(MulticursorTest)
 
 #define STOP view->show(); QEventLoop loop; loop.exec();
 
+// Implementation of the multicursor test DSL
 struct MulticursorScriptRunner {
     MulticursorScriptRunner(QString script, QString states) {
         m_script = script;
@@ -47,7 +49,7 @@ struct MulticursorScriptRunner {
     }
 
     bool execNextPart(KateMultiCursor* s) {
-        bool select = false;
+        qDebug() << "exec" << part << pos;
         Q_FOREACH ( const QChar& c, m_script.mid(pos) ) {
             pos++;
             switch ( c.unicode() ) {
@@ -81,6 +83,7 @@ struct MulticursorScriptRunner {
                     break;
                 case '+':
                     s->toggleSecondaryCursorAt(s->primaryCursor());
+                    s->setSecondaryFrozen(true);
                     break;
                 case 'N':
                     s->moveCursorsWordNext(select);
@@ -98,6 +101,7 @@ struct MulticursorScriptRunner {
                     qWarning() << "unhandled character" << c << "in script:" << m_script;
             }
         }
+        part++;
         return false;
     }
 
@@ -106,7 +110,6 @@ struct MulticursorScriptRunner {
     }
 
     bool compareState(KateMultiCursor* c, const QString& state) {
-        qDebug() << "comapre:" << state;
         auto parseCursor = [](const QString& s) {
             auto parts = s.split(',');
             Q_ASSERT(parts.size() == 2);
@@ -116,6 +119,7 @@ struct MulticursorScriptRunner {
         auto cursors = c->cursors();
         auto selections = c->selections()->selections();
         auto items = state.split(';');
+        qDebug() << "compare:" << state << cursors << selections;
         Q_FOREACH ( const auto& item, items ) {
             if ( item.contains("->") ) {
                 auto parts = item.split("->");
@@ -154,6 +158,7 @@ struct MulticursorScriptRunner {
     QStringList m_states;
     size_t pos = 0;
     size_t part = 0;
+    bool select = false;
 };
 
 void MulticursorTest::testCursorMovement()
@@ -174,10 +179,17 @@ void MulticursorTest::testCursorMovement()
     doc.setText(playground);
 
     auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(nullptr, nullptr));
+    // much easier to test like this, doesn't require the view to show
+    // should have a separate test for dynwrap
+    view->config()->setDynWordWrap(false);
 
     MulticursorScriptRunner runner(script, states);
-    while ( runner.execNextPart(view->cursors()) ) {
+    forever {
+        auto cont = runner.execNextPart(view->cursors());
         QVERIFY(runner.compareState(view->cursors(), runner.currentState()));
+        if ( ! cont ) {
+            break;
+        }
     }
 }
 
@@ -187,6 +199,23 @@ void MulticursorTest::testCursorMovement_data()
     QTest::addColumn<QString>("states");
 
     QTest::newRow("move_around") << "RRR|LL" << "0,3 | 0,1";
+    QTest::newRow("move_word") << "N|P" << "0,5 | 0,0";
+    QTest::newRow("select_word") << "[N|P]" << "0,5 ; 0,0->0,5 | 0,0";
+    QTest::newRow("select_two_words") << "[NN|P|P]" << "0,8 ; 0,0->0,8 | 0,5 ; 0,0->0,5 | 0,0";
+
+    QTest::newRow("move_up_down") << "RRRDRR|ULL" << "1,5 | 0,3";
+    QTest::newRow("remember_x") << ">D|>|DDD|U" << "1,23 | 1,43 | 4,16 | 3,43";
+
+    QTest::newRow("select_down") << "RRR[D]" << "1,3 ; 0,0->1,3";
+    QTest::newRow("select_up") << "RRRD[U]" << "0,3 ; 0,0->1,3";
+
+    QTest::newRow("reduce_selection_left") << "RRRRR[LLL]|[R]" << "0,2 ; 0,2->0,5 | 0,3 ; 0,3->0,5";
+    QTest::newRow("reduce_selection_right") << "RRRRR[RRR]|[L]" << "0,8 ; 0,5->0,8 | 0,7 ; 0,5->0,7";
+    QTest::newRow("umklapp") << ">LLL[P]|[N]|[P]" << "0,15 ; 0,15->0,20 | 0,23 ; 0,20->0,23 | 0,15 ; 0,15->0,20";
+
+    QTest::newRow("two_cursors") << "+RRR|#RR" << "0,0 ; 0,3 | 0,2 ; 0,5";
+    QTest::newRow("join_right") << "+RR#RR [RR] | [R]" << "0,4 ; 0,6 ; 0,2->0,4 ; 0,4->0,6 | 0,7 ; 0,4->0,7";
+    QTest::newRow("join_left") << "+RR#RRR [LL] | [L]" << "0,1 ; 0,3 ; 0,1->0,3 ; 0,3->0,5 | 0,0 ; 0,0->0,5";
 }
 
 char* toString(const QVector<KTextEditor::Cursor>& t) {
