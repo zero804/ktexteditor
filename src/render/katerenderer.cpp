@@ -901,43 +901,6 @@ int KateRenderer::lineHeight() const
     return fontHeight();
 }
 
-bool KateRenderer::getSelectionBounds(int line, int lineLength, int &start, int &end) const
-{
-    bool hasSel = false;
-
-    if (m_view->selection() && !m_view->blockSelection()) {
-        if (m_view->lineIsSelection(line)) {
-            start = m_view->selectionRange().start().column();
-            end = m_view->selectionRange().end().column();
-            hasSel = true;
-        } else if (line == m_view->selectionRange().start().line()) {
-            start = m_view->selectionRange().start().column();
-            end = lineLength;
-            hasSel = true;
-        } else if (m_view->selectionRange().containsLine(line)) {
-            start = 0;
-            end = lineLength;
-            hasSel = true;
-        } else if (line == m_view->selectionRange().end().line()) {
-            start = 0;
-            end = m_view->selectionRange().end().column();
-            hasSel = true;
-        }
-    } else if (m_view->lineHasSelected(line)) {
-        start = m_view->selectionRange().start().column();
-        end = m_view->selectionRange().end().column();
-        hasSel = true;
-    }
-
-    if (start > end) {
-        int temp = end;
-        end = start;
-        start = temp;
-    }
-
-    return hasSel;
-}
-
 void KateRenderer::updateConfig()
 {
     // update the attibute list pointer

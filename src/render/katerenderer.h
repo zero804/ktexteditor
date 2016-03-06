@@ -305,9 +305,6 @@ public:
     // Document height
     uint documentHeight() const;
 
-    // Selection boundaries
-    bool getSelectionBounds(int line, int lineLength, int &start, int &end) const;
-
     /**
      * This is the ultimate function to perform painting of a text line.
      *
