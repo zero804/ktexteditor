@@ -85,6 +85,9 @@ public:
         m_secondaryFrozen = frozen;
     };
 
+    const KateMultiSelection* selections() const;
+    KateMultiSelection* selections();
+
 protected:
     enum Direction {
         Left = -1,
@@ -104,8 +107,6 @@ protected:
     KTextEditor::ViewPrivate* view() const;
     KateViewInternal* viewInternal() const;
     KTextEditor::DocumentPrivate* doc() const;
-    const KateMultiSelection* selections() const;
-    KateMultiSelection* selections();
 
     size_t indexOfCursor(const KTextEditor::Cursor& cursor) const;
 

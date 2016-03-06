@@ -448,6 +448,7 @@ QVector<MovingCursor::Ptr> KateMultiCursor::allCursors() const {
 }
 
 void KateMultiCursor::moveCursorsLeft(bool sel, int32_t chars) {
+    qDebug() << "called" << sel << chars;
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
     m_savedHorizontalPositions.clear();
@@ -900,7 +901,9 @@ Selections KateMultiSelection::selections() const {
     Selections ret;
     ret.reserve(cursors()->m_selections.size());
     Q_FOREACH ( const auto& r, cursors()->m_selections ) {
-        ret.append(r->toRange());
+        if ( ! r->isEmpty() ) {
+            ret.append(r->toRange());
+        }
     }
     return ret;
 }
