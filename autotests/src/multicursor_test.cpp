@@ -206,15 +206,15 @@ void MulticursorTest::testCursorMovement_data()
     QTest::newRow("move_up_down") << "RRRDRR|ULL" << "1,5 | 0,3";
     QTest::newRow("remember_x") << ">D|>|DDD|U" << "1,23 | 1,43 | 4,16 | 3,43";
 
-    QTest::newRow("select_down") << "RRR[D]" << "1,3 ; 0,0->1,3";
-    QTest::newRow("select_up") << "RRRD[U]" << "0,3 ; 0,0->1,3";
+    QTest::newRow("select_down") << "RRR[D]" << "1,3 ; 0,3->1,3";
+    QTest::newRow("select_up") << "RRRD[U]" << "0,3 ; 0,3->1,3";
 
     QTest::newRow("reduce_selection_left") << "RRRRR[LLL]|[R]" << "0,2 ; 0,2->0,5 | 0,3 ; 0,3->0,5";
     QTest::newRow("reduce_selection_right") << "RRRRR[RRR]|[L]" << "0,8 ; 0,5->0,8 | 0,7 ; 0,5->0,7";
     QTest::newRow("umklapp") << ">LLL[P]|[N]|[P]" << "0,15 ; 0,15->0,20 | 0,23 ; 0,20->0,23 | 0,15 ; 0,15->0,20";
 
     QTest::newRow("two_cursors") << "+RRR|#RR" << "0,0 ; 0,3 | 0,2 ; 0,5";
-    QTest::newRow("join_right") << "+RR#RR [RR] | [R]" << "0,4 ; 0,6 ; 0,2->0,4 ; 0,4->0,6 | 0,7 ; 0,4->0,7";
+    QTest::newRow("join_right") << "+RR#RR [RR] | [R]" << "0,4 ; 0,6 ; 0,2->0,4 ; 0,4->0,6 | 0,7 ; 0,2->0,7";
     QTest::newRow("join_left") << "+RR#RRR [LL] | [L]" << "0,1 ; 0,3 ; 0,1->0,3 ; 0,3->0,5 | 0,0 ; 0,0->0,5";
 }
 

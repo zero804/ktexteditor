@@ -759,7 +759,7 @@ void KateMultiCursor::removeEncompassedSecondaryCursors()
                     m_selections[i]->setRange({qMin(sel.start(), next.start()),
                                                qMax(sel.end(), next.end())});
                     // decide which cursor to keep: the one at the edge
-                    if ( m_selections.at(i)->contains(m_cursors.at(i)->toCursor()) ) {
+                    if ( m_selections.at(i)->toRange().boundaryAtCursor(m_cursors.at(j)->toCursor()) ) {
                         m_cursors.at(i)->setPosition(m_cursors.at(j)->toCursor());
                     }
                     removeCursorInternal(m_cursors.at(j));
