@@ -452,11 +452,13 @@ QList<QTextLayout::FormatRange> KateRenderer::decorationsForLine(const Kate::Tex
                 selectionHighlight->addRange(new KTextEditor::Range(m_doc->rangeOnLine(m_view->selectionRange(), line)), backgroundAttribute);
             } else {
                 Q_FOREACH ( const auto& range, m_view->selections()->selections() ) {
-                    if ( range.start().line() != line && range.end().line() != line ) {
+                    if ( !range.overlapsLine(line) ) {
                         continue;
                     }
-//                     qDebug() << "adding selection highlight:" << range << line;
-                    selectionHighlight->addRange(new KTextEditor::Range(range), backgroundAttribute);
+
+                    auto start = qMax(range.start(), KTextEditor::Cursor(line, 0));
+                    auto end = qMin(range.end(), KTextEditor::Cursor(line, textLine->length()));
+                    selectionHighlight->addRange(new KTextEditor::Range(start, end), backgroundAttribute);
                 }
             }
 
