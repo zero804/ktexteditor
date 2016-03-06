@@ -27,11 +27,11 @@ class MulticursorTest : public QObject
 Q_OBJECT
 
 private Q_SLOTS:
-    void testMultiSelectionBasic();
-    void testMultiSelectionBasic_data();
+    void testCursorMovement();
+    void testCursorMovement_data();
 
-    void testNavigationKeys();
-    void testBlockMode();
+    void testNavigationKeysView();
+    void testBlockModeView();
 //     void testCharacterInsertion();
 };
 
