@@ -171,6 +171,8 @@ protected:
     KTextEditor::MovingRange::Ptr addSelectionInternal(const KTextEditor::Range& range, const Cursor& cursor);
     void doSelectWithCursorInternal(const KTextEditor::Range& range, size_t cursorIndex);
 
+    void clearSelectionInternal();
+
 private:
     KateViewInternal* m_viewInternal = nullptr;
 

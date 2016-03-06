@@ -826,7 +826,7 @@ void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selecti
     Q_ASSERT(selection.size() == newCursors.size());
 
     KateMultiCursor::CursorRepainter rep(cursors());
-    clearSelection();
+    clearSelectionInternal();
     for ( size_t i = 0; i < selection.size(); i++ ) {
         auto cursor = newCursors.at(i).isValid() ? newCursors.at(i) : selection.at(i).end();
         addSelectionInternal(selection.at(i), cursor);
@@ -943,6 +943,12 @@ bool KateMultiSelection::lineSelected(int line) const
 }
 
 void KateMultiSelection::clearSelection() {
+    KateMultiCursor::CursorRepainter rep(cursors());
+    clearSelectionInternal();
+}
+
+void KateMultiSelection::clearSelectionInternal()
+{
     qDebug() << " *** clearing selections";
     Q_FOREACH ( auto& s, cursors()->m_selections ) {
         s->setRange(KTextEditor::Range::invalid());
