@@ -119,7 +119,7 @@ struct MulticursorScriptRunner {
         auto cursors = c->cursors();
         auto selections = c->selections()->selections();
         auto items = state.split(';');
-        qDebug() << "compare:" << state << cursors << selections;
+        qDebug() << QString("[State %1]").arg(part) << "compare:" << state << cursors << selections;
         Q_FOREACH ( const auto& item, items ) {
             if ( item.contains("->") ) {
                 auto parts = item.split("->");
@@ -219,6 +219,8 @@ void MulticursorTest::testCursorMovement_data()
 
     QTest::newRow("multi_select_up") << "RRRD +D +D + [U] | [U]" << "0,3 ; 1,3 ; 2,3 ; 0,3->1,3 ; 1,3->2,3 ; 2,3->3,3 | 0,0 ; 0,0->3,3";
     QTest::newRow("multi_select_up2") << "RRRD +D +D [U] | [U]" << "0,3 ; 1,3 ; 2,3 ; 0,3->1,3 ; 1,3->2,3 ; 2,3->3,3 | 0,0 ; 0,0->3,3";
+    QTest::newRow("multi_select_down_right") << "RRR +D +D [D] | [R]" << "1,3 ; 2,3 ; 3,3 ; 0,3->1,3 ; 1,3->2,3 ; 2,3->3,3 | 3,4 ; 0,3->3,4";
+    QTest::newRow("multi_select_up_intersect") << "RRRD +DL +DL [U] | [U]" << "0,3; 0,3->3,1 | 0,0 ; 0,0->3,1";
 }
 
 char* toString(const QVector<KTextEditor::Cursor>& t) {
