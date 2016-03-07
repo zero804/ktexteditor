@@ -3095,7 +3095,6 @@ void KateViewInternal::notifyLinesUpdated(const QVector<KTextEditor::Cursor>& ch
         tagLine(toVirtualCursor(cursor));
     }
     updateCursorFlashTimer();
-    notifyPrimaryCursorChanged(primaryCursor());
     updateDirty();
 }
 
