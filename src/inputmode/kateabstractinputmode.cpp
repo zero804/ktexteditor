@@ -36,7 +36,7 @@ KateLayoutCache *KateAbstractInputMode::layoutCache() const
 
 void KateAbstractInputMode::updateCursor(const KTextEditor::Cursor &c)
 {
-    m_viewInternal->updateCursor(c);
+    m_viewInternal->cursors()->setPrimaryCursor(c);
 }
 
 int KateAbstractInputMode::linesDisplayed() const

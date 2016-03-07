@@ -270,7 +270,7 @@ private:
     void updateSelection(const KTextEditor::Cursor &, bool keepSel);
     void setSelection(const KTextEditor::Range &);
     void moveCursorToSelectionEdge();
-    void updateCursor(const KTextEditor::Cursor &newCursor, bool force = false, bool center = false, bool calledExternally = false);
+    void notifyPrimaryCursorChanged(const KTextEditor::Cursor &newCursor, bool force = false, bool center = false, bool calledExternally = false);
     void updateCursorFlashTimer();
     void updateBracketMarks();
 
@@ -296,6 +296,7 @@ private:
 
     KateMultiCursor m_cursors;
     KateMultiSelection m_selections;
+    KTextEditor::Cursor m_lastUpdatedPrimary;
 
 public:
     const KateMultiCursor* cursors() const {

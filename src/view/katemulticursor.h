@@ -51,7 +51,7 @@ public:
     bool hasSecondaryCursors() const;
     size_t cursorsCount() const;
 
-    void setPrimaryCursor(const Cursor& cursor);
+    void setPrimaryCursor(const Cursor& cursor, bool repaint=true);
 
     bool toggleSecondaryCursorAt(const Cursor& cursor, bool ensureExists=false);
     void clearSecondaryCursors();
@@ -127,15 +127,20 @@ private:
     void removeEncompassedSecondaryCursors();
     void removeDuplicateCursors();
 
+private:
+    KTextEditor::Cursor toVirtualCursor(const KTextEditor::Cursor& c) const;
+
 public:
     class CursorRepainter {
     public:
-        CursorRepainter(KateMultiCursor* cursors);
+        CursorRepainter(KateMultiCursor* cursors, bool repaint=true);
         ~CursorRepainter();
 
     private:
         QVector<KTextEditor::Cursor> m_initialAffectedLines;
         KateMultiCursor* m_cursors;
+        const bool m_repaint;
+        Cursor m_primary;
     };
     friend class CursorRepainter;
 };
@@ -172,7 +177,16 @@ protected:
     KTextEditor::MovingRange::Ptr addSelectionInternal(const KTextEditor::Range& range, const Cursor& cursor);
     void doSelectWithCursorInternal(const KTextEditor::Range& range, size_t cursorIndex);
 
+    /**
+     * @brief Clear the selection, i.e. set all selection ranges to empty.
+     */
     void clearSelectionInternal();
+
+    /**
+     * @brief Removes *all* cursors and selections, including the primary cursor.
+     * Make sure to add at least one new cursor after calling this.
+     */
+    void clearCursorsInternal();
 
 private:
     KateViewInternal* m_viewInternal = nullptr;

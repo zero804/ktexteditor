@@ -342,10 +342,16 @@ KateMultiSelection* KateMultiCursor::selections()
     return view()->selections();
 }
 
-void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor) {
+void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool repaint) {
     qDebug() << "called" << cursor;
+    Q_ASSERT(cursor.isValid());
+    if ( cursor == primaryCursor() ) {
+        return;
+    }
+    CursorRepainter rep(this, repaint);
     m_cursors.first()->setPosition(cursor);
 }
+
 
 Cursors KateMultiCursor::cursors() const {
     auto cursors = secondaryCursors();
@@ -802,13 +808,24 @@ void KateMultiCursor::removeCursorInternal(const MovingCursor::Ptr& cursor)
     qDebug() << "removed cursor" << *cursor << "remaining:" << m_cursors;
 }
 
+KTextEditor::Cursor KateMultiCursor::toVirtualCursor(const KTextEditor::Cursor& c) const {
+    return viewInternal()->toVirtualCursor(c);
+}
+
 void KateMultiSelection::clearSelectionIfNotPersistent() {
     if ( ! view()->config()->persistentSelection() ) {
         clearSelection();
     }
 }
 
+void KateMultiSelection::clearCursorsInternal()
+{
+    cursors()->m_cursors.clear();
+    cursors()->m_selections.clear();
+}
+
 KTextEditor::MovingRange::Ptr KateMultiSelection::addSelectionInternal(const KTextEditor::Range& newSelection, const Cursor& newCursor) {
+    qDebug() << "called" << newSelection << newCursor;
     Q_ASSERT(newCursor.isValid());
     if ( newSelection.isEmpty() ) {
         return {};
@@ -820,6 +837,10 @@ KTextEditor::MovingRange::Ptr KateMultiSelection::addSelectionInternal(const KTe
 }
 
 void KateMultiSelection::setSelection(const KTextEditor::Range& selection, const KTextEditor::Cursor& cursor) {
+    if ( selection.isEmpty() ) {
+        clearSelectionInternal();
+        return;
+    }
     auto newCursor = cursor.isValid() ? cursor : selection.end();
     setSelection(QVector<KTextEditor::Range>{selection}, QVector<Cursor>{newCursor});
 };
@@ -828,11 +849,13 @@ void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selecti
     Q_ASSERT(selection.size() == newCursors.size());
 
     KateMultiCursor::CursorRepainter rep(cursors());
-    clearSelectionInternal();
+    clearCursorsInternal();
     for ( size_t i = 0; i < selection.size(); i++ ) {
         auto cursor = newCursors.at(i).isValid() ? newCursors.at(i) : selection.at(i).end();
         addSelectionInternal(selection.at(i), cursor);
     }
+
+    qDebug() << "new selections:" << selections();
 };
 
 KateMultiCursor* KateMultiSelection::cursors() {
@@ -1039,10 +1062,19 @@ KateMultiSelection::SelectingCursorMovement::~SelectingCursorMovement()
     qDebug() << "** selections after cursor movement:" << m_selections->selections();
 }
 
-KateMultiCursor::CursorRepainter::CursorRepainter(KateMultiCursor* cursors)
-    : m_initialAffectedLines(cursors->cursors())
+KateMultiCursor::CursorRepainter::CursorRepainter(KateMultiCursor* cursors, bool repaint)
+    : m_initialAffectedLines()
     , m_cursors(cursors)
+    , m_repaint(repaint)
+    , m_primary(cursors->primaryCursor())
 {
+    if ( ! m_repaint ) {
+        return;
+    }
+    Q_FOREACH ( const auto& c, cursors->cursors() ) {
+        m_initialAffectedLines.append(cursors->toVirtualCursor(c));
+    }
+
     Q_FOREACH ( auto range, cursors->selections()->selections() ) {
         if ( ! range.isValid() ) {
             continue;
@@ -1057,11 +1089,20 @@ KateMultiCursor::CursorRepainter::CursorRepainter(KateMultiCursor* cursors)
 
 KateMultiCursor::CursorRepainter::~CursorRepainter()
 {
+    if ( m_cursors->primaryCursor() != m_primary ) {
+        m_cursors->viewInternal()->notifyPrimaryCursorChanged(m_cursors->primaryCursor());
+    }
+
+    if ( ! m_repaint ) {
+        return;
+    }
+
     QVector<KTextEditor::Cursor> resulting = m_initialAffectedLines;
     Q_FOREACH ( const auto& cursor, m_cursors->cursors() ) {
         Q_ASSERT(cursor.isValid());
-        if ( !resulting.contains(cursor) ) {
-            resulting.append(cursor);
+        auto viewCursor = m_cursors->toVirtualCursor(cursor);
+        if ( !resulting.contains(viewCursor) ) {
+            resulting.append(viewCursor);
         }
     }
     Q_FOREACH ( auto range, m_cursors->selections()->selections() ) {

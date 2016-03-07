@@ -360,8 +360,6 @@ public:
 
     void ensureCursorColumnValid();
 
-    void tagSelection(const Selection &oldSelection);
-
     void selectWord(const KTextEditor::Cursor &cursor);
     void selectLine(const KTextEditor::Cursor &cursor);
 

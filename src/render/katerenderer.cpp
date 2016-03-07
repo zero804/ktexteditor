@@ -462,7 +462,7 @@ QList<QTextLayout::FormatRange> KateRenderer::decorationsForLine(const Kate::Tex
 
                     auto start = qMax(range.start(), KTextEditor::Cursor(line, 0));
                     auto end = qMin(range.end(), KTextEditor::Cursor(line, textLine->length()));
-                    qDebug() << "adding highlight range:" << start << end << "for line" << line;
+//                     qDebug() << "adding highlight range:" << start << end << "for line" << line;
                     auto selectionHighlight = new NormalRenderRange();
                     selectionHighlight->addRange(new KTextEditor::Range(start, end), backgroundAttribute);
                     renderRanges.append(selectionHighlight);
@@ -493,7 +493,7 @@ QList<QTextLayout::FormatRange> KateRenderer::decorationsForLine(const Kate::Tex
         // time the highlighting changes.  It then creates the corresponding QTextLayout::FormatRanges.
         while (currentPosition < endPosition) {
             renderRanges.advanceTo(currentPosition);
-            qDebug() << "advanced to:" << currentPosition << renderRanges.hasAttribute();
+//             qDebug() << "advanced to:" << currentPosition << renderRanges.hasAttribute();
 
             if (!renderRanges.hasAttribute()) {
                 // No attribute, don't need to create a FormatRange for this text range
@@ -600,10 +600,10 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
             if (drawSelection) {
                 // FIXME toVector() may be a performance issue
                 additionalFormats = decorationsForLine(range->textLine(), range->line(), true).toVector();
-                qDebug() << "selection formats:" << additionalFormats.size();
-                Q_FOREACH ( const auto& fmt, additionalFormats ) {
-                    qDebug() << fmt.start << fmt.length << fmt.format;
-                }
+//                 qDebug() << "selection formats:" << additionalFormats.size();
+//                 Q_FOREACH ( const auto& fmt, additionalFormats ) {
+//                     qDebug() << fmt.start << fmt.length << fmt.format;
+//                 }
                 range->layout()->draw(&paint, QPoint(-xStart, 0), additionalFormats);
 
             } else {

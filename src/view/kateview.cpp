@@ -1502,12 +1502,15 @@ bool KTextEditor::ViewPrivate::setCursorPositionInternal(const KTextEditor::Curs
         }
     }
 
-    if (blockSelection())
+    if (blockSelection()) {
         if (z < position.column()) {
             x += position.column() - z;
         }
+    }
 
-    m_viewInternal->updateCursor(KTextEditor::Cursor(position.line(), x), false, true, calledExternally);
+    auto cur = KTextEditor::Cursor(position.line(), x);
+    m_viewInternal->cursors()->setPrimaryCursor(cur, false);
+    m_viewInternal->notifyPrimaryCursorChanged(cur, false, true, calledExternally);
 
     return true;
 }
@@ -2128,48 +2131,18 @@ void KTextEditor::ViewPrivate::notifyMousePositionChanged(const KTextEditor::Cur
 
 bool KTextEditor::ViewPrivate::setSelection(const KTextEditor::Range &selection)
 {
+    qDebug() << "called" << selection;
     /**
      * anything to do?
      */
-    if (! selections()->hasMultipleSelections() && selection == primarySelection()) {
-        return true;
+    if ( !selections()->hasMultipleSelections() && selection == primarySelection()) {
+        return false;
     }
 
     /**
-     * backup old range
+     * set new range; repainting is done by the selection manager
      */
-    auto oldSelection = *selections();
-
-    /**
-     * set new range
-     */
-    selections()->clearSelection();
     selections()->setSelection(selection);
-//     if ( primarySelection() != selection ) {
-//         cursors()->toggleSecondaryCursorAt(selection.end());
-//     }
-//
-//     if ( ! selections()->hasSelections() ) {
-//         /**
-//         * if in block selection, add secondary cursors to allow typing
-//         * otherwise, just clear all secondary cursors
-//         */
-//         if ( blockSelection() ) {
-//             cursors()->clearSecondaryCursors();
-//             cursors()->setSecondaryFrozen(true);
-//             for ( int j = selection.start().line(); j < selection.end().line(); j++ ) {
-//                 // add new secondary cursor, make sure it is actually placed
-//                 cursors()->toggleSecondaryCursorAt({j, selection.end().column()}, true);
-//             }
-//         }
-//     }
-
-    /**
-     * trigger update of correct area
-     */
-#warning TODO repaint
-//     tagSelection(oldSelection);
-    repaintText(true);
 
     /**
      * emit holy signal
@@ -2189,49 +2162,29 @@ bool KTextEditor::ViewPrivate::clearSelection()
 
 bool KTextEditor::ViewPrivate::clearSelection(bool redraw, bool finishedChangingSelection)
 {
-#warning TODO
-    return false;
-//     /**
-//      * no selection, nothing to do...
-//      */
-//     if (!selection()) {
-//         return false;
-//     }
-//
-//     /**
-//      * backup old range
-//      */
-//     auto oldSelection = m_selection;
-//
-//     /**
-//      * invalidate current selection
-//      */
-//     m_selection.clear();
-//
-//     /**
-//      * trigger update of correct area
-//      */
-//     tagSelection(oldSelection);
-//     if (redraw) {
-//         repaintText(true);
-//     }
-//
-//     /**
-//      * invalidate old ranges
-//      */
-//     qDeleteAll(m_selection);
-//
-//     /**
-//      * emit holy signal
-//      */
-//     if (finishedChangingSelection) {
-//         emit selectionChanged(this);
-//     }
-//
-//     /**
-//      * be done
-//      */
-//     return true;
+    /**
+     * no selection, nothing to do...
+     */
+    if (!selection()) {
+        return false;
+    }
+
+    /**
+     * do clear
+     */
+    selections()->clearSelection();
+
+    /**
+     * emit holy signal
+     */
+    if (finishedChangingSelection) {
+        emit selectionChanged(this);
+    }
+
+    /**
+     * be done
+     */
+    return true;
 }
 
 bool KTextEditor::ViewPrivate::selection() const
@@ -2319,15 +2272,6 @@ KTextEditor::Selection KTextEditor::Selection::differenceTo(const Selection& pre
         }
     }
     return result;
-}
-
-void KTextEditor::ViewPrivate::tagSelection(const Selection &oldSelection)
-{
-#warning TODO: tagSelection
-//     Q_FOREACH ( const auto& range, m_selection.differenceTo(oldSelection) ) {
-//         qDebug() << "update range:" << *range;
-//         tagLines(*range, true);
-//     }
 }
 
 void KTextEditor::ViewPrivate::selectWord(const KTextEditor::Cursor &cursor)
@@ -2945,7 +2889,7 @@ void KTextEditor::ViewPrivate::toPrevModifiedLine()
     if (line >= 0) {
         KTextEditor::Cursor c(line, 0);
         m_viewInternal->updateSelection(c, false);
-        m_viewInternal->updateCursor(c);
+        m_viewInternal->cursors()->setPrimaryCursor(c);
     }
 }
 
@@ -2956,7 +2900,7 @@ void KTextEditor::ViewPrivate::toNextModifiedLine()
     if (line >= 0) {
         KTextEditor::Cursor c(line, 0);
         m_viewInternal->updateSelection(c, false);
-        m_viewInternal->updateCursor(c);
+        m_viewInternal->cursors()->setPrimaryCursor(c);
     }
 }
 
