@@ -216,6 +216,9 @@ void MulticursorTest::testCursorMovement_data()
     QTest::newRow("two_cursors") << "+RRR|#RR" << "0,0 ; 0,3 | 0,2 ; 0,5";
     QTest::newRow("join_right") << "+RR#RR [RR] | [R]" << "0,4 ; 0,6 ; 0,2->0,4 ; 0,4->0,6 | 0,7 ; 0,2->0,7";
     QTest::newRow("join_left") << "+RR#RRR [LL] | [L]" << "0,1 ; 0,3 ; 0,1->0,3 ; 0,3->0,5 | 0,0 ; 0,0->0,5";
+
+    QTest::newRow("multi_select_up") << "RRRD +D +D + [U] | [U]" << "0,3 ; 1,3 ; 2,3 ; 0,3->1,3 ; 1,3->2,3 ; 2,3->3,3 | 0,0 ; 0,0->3,3";
+    QTest::newRow("multi_select_up2") << "RRRD +D +D [U] | [U]" << "0,3 ; 1,3 ; 2,3 ; 0,3->1,3 ; 1,3->2,3 ; 2,3->3,3 | 0,0 ; 0,0->3,3";
 }
 
 char* toString(const QVector<KTextEditor::Cursor>& t) {

@@ -749,13 +749,13 @@ void KateMultiCursor::removeEncompassedSecondaryCursors()
             if ( sel.isEmpty() ) {
                 continue;
             }
-            for ( int32_t j = 0; j < i; j++ ) {
+            for ( int32_t j = i+1; j < m_selections.size(); j++ ) {
                 auto next = m_selections.at(j)->toRange();
                 KTextEditor::Range intersect;
                 if ( ! (intersect = sel.intersect(next)).isEmpty() ) {
                     did_remove = true;
                     // update first to encompass both, then remove the second
-                    qDebug() << "joining ranges:" << sel << next;
+                    qDebug() << "joining ranges:" << sel << next << i << j;
                     m_selections[i]->setRange({qMin(sel.start(), next.start()),
                                                qMax(sel.end(), next.end())});
                     // decide which cursor to keep: the one at the edge
@@ -764,7 +764,6 @@ void KateMultiCursor::removeEncompassedSecondaryCursors()
                     }
                     removeCursorInternal(m_cursors.at(j));
                     j--;
-                    i--;
                 }
             }
         }
