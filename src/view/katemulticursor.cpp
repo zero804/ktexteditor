@@ -804,14 +804,14 @@ void KateMultiCursor::removeDuplicateCursors()
 
 void KateMultiCursor::removeCursorInternal(const MovingCursor::Ptr& cursor)
 {
+    qDebug() << "removing cursor" << *cursor;
+
     Q_ASSERT(m_cursors.contains(cursor));
     auto index = m_cursors.indexOf(cursor);
     m_cursors.remove(index);
     m_selections.remove(index);
     Q_ASSERT(m_cursors.size() == m_selections.size());
     Q_ASSERT(m_cursors.size() >= 1);
-
-    qDebug() << "removed cursor" << *cursor << "remaining:" << m_cursors;
 }
 
 KTextEditor::Cursor KateMultiCursor::toVirtualCursor(const KTextEditor::Cursor& c) const {
