@@ -725,6 +725,12 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
     return c;
 }
 
+bool KateMultiCursor::cursorAtWordBoundary(const KTextEditor::Cursor& c) const
+{
+    KateHighlighting *h = doc()->highlight();
+    auto character = doc()->line(c.line()).at(c.column());
+    return !h->isInWord(character);
+}
 
 const KateMultiCursor* KateMultiSelection::cursors() const {
     return view()->cursors();
@@ -1012,7 +1018,68 @@ bool KateMultiSelection::overlapsLine(int line) const {
         [line](const KTextEditor::MovingRange::Ptr r) {
             return r->toRange().overlapsLine(line);
         });
-};
+}
+
+void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor,
+                                           KateMultiSelection::SelectionMode mode,
+                                           KateMultiSelection::SelectionFlags flags)
+{
+    qDebug() << "called" << fromCursor << mode << flags;
+    KateMultiCursor::CursorRepainter rep(cursors());
+    m_activeSelectionMode = mode;
+    if ( flags & AddNewCursor ) {
+        addSelectionInternal({fromCursor, fromCursor}, fromCursor);
+    }
+    else {
+        cursors()->m_cursors.last()->setPosition(fromCursor);
+        cursors()->m_selections.last()->setRange({fromCursor, fromCursor});
+    }
+    m_activeSelectingCursor = cursors()->m_cursors.last();
+}
+
+void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
+{
+    qDebug() << "called" << cursor;
+    auto selection = cursors()->m_selections.last();
+
+    Q_ASSERT(m_activeSelectionMode != None);
+    Q_ASSERT(!m_activeSelectingCursor.isNull());
+    Q_ASSERT(m_activeSelectingCursor->isValid());
+    Q_ASSERT(selection->isEmpty() || selection->toRange().boundaryAtCursor(*m_activeSelectingCursor));
+
+    auto oldPos = m_activeSelectingCursor->toCursor();
+    if ( oldPos == cursor ) {
+        return;
+    }
+
+    KateMultiCursor::CursorRepainter rep(cursors());
+    SelectingCursorMovement sel(this, true);
+    m_activeSelectingCursor->setPosition(cursor);
+    if ( m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(cursor) ) {
+        auto moved = cursors()->moveWord(cursor, oldPos < cursor ? KateMultiCursor::Left : KateMultiCursor::Right);
+        m_activeSelectingCursor->setPosition(moved);
+    }
+    else if ( m_activeSelectionMode == Line ) {
+        m_activeSelectingCursor->setColumn(oldPos < cursor ? 0 : doc()->lineLength(cursor.line()));
+    }
+}
+
+bool KateMultiSelection::currentlySelecting() const
+{
+    return m_activeSelectionMode != None;
+}
+
+KateMultiSelection::SelectionMode KateMultiSelection::activeSelectionMode() const
+{
+    return m_activeSelectionMode;
+}
+
+void KateMultiSelection::finishNewSelection()
+{
+    qDebug() << "called";
+    m_activeSelectionMode = None;
+    m_activeSelectingCursor.clear();
+}
 
 KateMultiSelection::SelectingCursorMovement::SelectingCursorMovement(KateMultiSelection* selections, bool isSelecting)
     : m_selections(selections)

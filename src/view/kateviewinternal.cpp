@@ -89,7 +89,6 @@ KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
     , m_minLinesVisible(0)
     , m_selChangedByUser(false)
     , m_selectAnchor(-1, -1)
-    , m_selectionMode(Default)
     , m_layoutCache(new KateLayoutCache(renderer(), this))
     , m_preserveX(false)
     , m_preservedX(0)
@@ -112,9 +111,6 @@ KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
     setMinimumSize(0, 0);
     setAttribute(Qt::WA_OpaquePaintEvent);
     setAttribute(Qt::WA_InputMethodEnabled);
-
-    // invalidate m_selectionCached.start(), or keyb selection is screwed initially
-    m_selectionCached = KTextEditor::Range::invalid();
 
     // bracket markers are only for this view and should not be printed
     m_bm->setView(m_view);
@@ -1356,6 +1352,7 @@ void KateViewInternal::bottom_end(bool sel)
 
 void KateViewInternal::updateSelection(const KTextEditor::Cursor &_newCursor, bool keepSel)
 {
+    /**
     KTextEditor::Cursor newCursor = _newCursor;
     if (keepSel) {
         if (!m_view->selection() || (m_selectAnchor.line() == -1)
@@ -1459,7 +1456,7 @@ void KateViewInternal::updateSelection(const KTextEditor::Cursor &_newCursor, bo
                 }
             }
             break;
-            default: /* nothing special to do */;
+            default:;
             }
 
             if (doSelect) {
@@ -1477,6 +1474,7 @@ void KateViewInternal::updateSelection(const KTextEditor::Cursor &_newCursor, bo
         m_selectAnchor = KTextEditor::Cursor::invalid();
     }
 
+    **/
 #ifndef QT_NO_ACCESSIBILITY
 //    FIXME KF5
 //    QAccessibleTextSelectionEvent ev(this, /* selection start, selection end*/);
@@ -2086,71 +2084,73 @@ void KateViewInternal::contextMenuEvent(QContextMenuEvent *e)
 
 void KateViewInternal::mousePressEvent(QMouseEvent *e)
 {
-    switch (e->button()) {
-    case Qt::LeftButton:
-        m_selChangedByUser = false;
-
-        if (e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
-            auto newCursor = pointToCursor(e->pos());
-            view()->cursors()->toggleSecondaryCursorAt(newCursor);
-            updateCursorFlashTimer();
-            e->accept();
-            return;
+    if ( e->button() == Qt::LeftButton ) {
+        auto newCursor = pointToCursor(e->pos());
+        KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
+        KateMultiSelection::SelectionFlags flags = KateMultiSelection::UsePrimaryCursor;
+        if ( m_possibleTripleClick ) {
+            m_possibleTripleClick = false;
+            selectionMode = KateMultiSelection::Line;
+        }
+        if ( e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
+            flags = KateMultiSelection::AddNewCursor;
         }
         else {
             view()->cursors()->clearSecondaryCursors();
         }
+        selections()->beginNewSelection(newCursor, selectionMode);
+        updateCursorFlashTimer();
+        e->accept();
+    }
+    else {
+        e->ignore();
+    }
 
-        if (m_possibleTripleClick) {
-            m_possibleTripleClick = false;
-
-            m_selectionMode = Line;
-
-            if (e->modifiers() & Qt::ShiftModifier) {
-                updateSelection(primaryCursor(), true);
-            } else {
-                m_view->selectLine(primaryCursor());
-                if (m_view->selection()) {
-                    m_selectAnchor = m_view->selectionRange().start();
-                }
-            }
-
-            if (m_view->selection()) {
-                QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
-            }
-
-            // Keep the line at the select anchor selected during further
-            // mouse selection
-            if (m_selectAnchor.line() > m_view->selectionRange().start().line()) {
-                // Preserve the last selected line
-                if (m_selectAnchor == m_view->selectionRange().end() && m_selectAnchor.column() == 0) {
-                    m_selectionCached.setStart(KTextEditor::Cursor(m_selectAnchor.line() - 1, 0));
-                } else {
-                    m_selectionCached.setStart(KTextEditor::Cursor(m_selectAnchor.line(), 0));
-                }
-                m_selectionCached.setEnd(m_view->selectionRange().end());
-            } else {
-                // Preserve the first selected line
-                m_selectionCached.setStart(m_view->selectionRange().start());
-                if (m_view->selectionRange().end().line() > m_view->selectionRange().start().line()) {
-                    m_selectionCached.setEnd(KTextEditor::Cursor(m_view->selectionRange().start().line() + 1, 0));
-                } else {
-                    m_selectionCached.setEnd(m_view->selectionRange().end());
-                }
-            }
-
-            moveCursorToSelectionEdge();
-
-            m_scrollX = 0;
-            m_scrollY = 0;
-            m_scrollTimer.start(50);
-
-            e->accept();
-            return;
-        } else if (m_selectionMode == Default) {
-            m_selectionMode = Mouse;
-        }
-
+//             if (e->modifiers() & Qt::ShiftModifier) {
+//                 updateSelection(primaryCursor(), true);
+//             } else {
+//                 m_view->selectLine(primaryCursor());
+//                 if (m_view->selection()) {
+//                     m_selectAnchor = m_view->selectionRange().start();
+//                 }
+//             }
+//
+//             if (m_view->selection()) {
+//                 QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
+//             }
+//
+//             // Keep the line at the select anchor selected during further
+//             // mouse selection
+//             if (m_selectAnchor.line() > m_view->selectionRange().start().line()) {
+//                 // Preserve the last selected line
+//                 if (m_selectAnchor == m_view->selectionRange().end() && m_selectAnchor.column() == 0) {
+//                     m_selectionCached.setStart(KTextEditor::Cursor(m_selectAnchor.line() - 1, 0));
+//                 } else {
+//                     m_selectionCached.setStart(KTextEditor::Cursor(m_selectAnchor.line(), 0));
+//                 }
+//                 m_selectionCached.setEnd(m_view->selectionRange().end());
+//             } else {
+//                 // Preserve the first selected line
+//                 m_selectionCached.setStart(m_view->selectionRange().start());
+//                 if (m_view->selectionRange().end().line() > m_view->selectionRange().start().line()) {
+//                     m_selectionCached.setEnd(KTextEditor::Cursor(m_view->selectionRange().start().line() + 1, 0));
+//                 } else {
+//                     m_selectionCached.setEnd(m_view->selectionRange().end());
+//                 }
+//             }
+//
+//             moveCursorToSelectionEdge();
+//
+//             m_scrollX = 0;
+//             m_scrollY = 0;
+//             m_scrollTimer.start(50);
+//
+//             e->accept();
+//             return;
+//         } else if (m_selectionMode == Default) {
+//             m_selectionMode = Mouse;
+//         }
+/*
         // request the software keyboard, if any
         if (e->button() == Qt::LeftButton && qApp->autoSipEnabled()) {
             QStyle::RequestSoftwareInputPanel behavior = QStyle::RequestSoftwareInputPanel(style()->styleHint(QStyle::SH_RequestSoftwareInputPanel));
@@ -2200,11 +2200,12 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
     default:
         e->ignore();
         break;
-    }
+    }*/
 }
 
 void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
 {
+    /**
     if (e->modifiers() == (Qt::MetaModifier | Qt::ControlModifier)) {
         // for secondary cursors
         mousePressEvent(e);
@@ -2287,7 +2288,7 @@ void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
     default:
         e->ignore();
         break;
-    }
+    } **/
 }
 
 void KateViewInternal::tripleClickTimeout()
@@ -2299,28 +2300,30 @@ void KateViewInternal::mouseReleaseEvent(QMouseEvent *e)
 {
     switch (e->button()) {
     case Qt::LeftButton:
-        m_selectionMode = Default;
-//       m_selectionCached.start().setLine( -1 );
-
-        if (m_selChangedByUser) {
-            if (m_view->selection()) {
-                QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
-            }
-            moveCursorToSelectionEdge();
-
-            m_selChangedByUser = false;
+        if ( selections()->currentlySelecting() ) {
+            selections()->finishNewSelection();
         }
-
-        if (m_dragInfo.state == diPending) {
-            placeCursor(e->pos(), e->modifiers() & Qt::ShiftModifier);
-        } else if (m_dragInfo.state == diNone) {
-            m_scrollTimer.stop();
-        }
-
         m_dragInfo.state = diNone;
-
         e->accept();
         break;
+
+//         m_selectionMode = Default;
+//       m_selectionCached.start().setLine( -1 );
+
+//         if (m_selChangedByUser) {
+//             if (m_view->selection()) {
+//                 QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
+//             }
+//             moveCursorToSelectionEdge();
+//
+//             m_selChangedByUser = false;
+//         }
+//
+//         if (m_dragInfo.state == diPending) {
+//             placeCursor(e->pos(), e->modifiers() & Qt::ShiftModifier);
+//         } else if (m_dragInfo.state == diNone) {
+//             m_scrollTimer.stop();
+//         }
 
     case Qt::MidButton:
         placeCursor(e->pos());
@@ -2426,7 +2429,8 @@ void KateViewInternal::mouseMoveEvent(QMouseEvent *e)
             m_scrollY = d;
         }
 
-        placeCursor(QPoint(m_mouseX, m_mouseY), true);
+        auto c = pointToCursor(QPoint(m_mouseX, m_mouseY));
+        selections()->updateNewSelection(c);
 
     } else {
         if (isTargetSelected(e->pos())) {
@@ -3071,6 +3075,9 @@ void KateViewInternal::editSetCursor(const KTextEditor::Cursor &_cursor)
 
 void KateViewInternal::viewSelectionChanged()
 {
+#warning TODO this is not what we want to do
+    selections()->finishNewSelection();
+    /*
     if (!m_view->selection()) {
         m_selectAnchor = KTextEditor::Cursor::invalid();
     } else {
@@ -3081,7 +3088,7 @@ void KateViewInternal::viewSelectionChanged()
     // subsequent dragging might shrink the selection into non-existence. When
     // this happens, we use the cached end to restore the cached start so that
     // updateSelection is not confused. See also comments in updateSelection.
-    m_selectionCached.setStart(KTextEditor::Cursor::invalid());
+    m_selectionCached.setStart(KTextEditor::Cursor::invalid());*/
 }
 
 KateLayoutCache *KateViewInternal::cache() const

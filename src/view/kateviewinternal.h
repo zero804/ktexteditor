@@ -369,12 +369,12 @@ private:
     bool m_selChangedByUser;
     KTextEditor::Cursor m_selectAnchor;
 
-    enum SelectionMode { Default = 0, Mouse, Word, Line }; ///< for drag selection.
-    uint m_selectionMode;
-    // when drag selecting after double/triple click, keep the initial selected
-    // word/line independent of direction.
-    // They get set in the event of a double click, and is used with mouse move + leftbutton
-    KTextEditor::Range m_selectionCached;
+
+//     uint m_selectionMode;
+//     // when drag selecting after double/triple click, keep the initial selected
+//     // word/line independent of direction.
+//     // They get set in the event of a double click, and is used with mouse move + leftbutton
+//     KTextEditor::Range m_selectionCached;
 
     // maximal length of textlines visible from given startLine
     int maxLen(int startLine);

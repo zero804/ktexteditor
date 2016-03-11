@@ -100,6 +100,7 @@ protected:
     Cursor moveLeftRight(const Cursor& c, int32_t chars) const;
     Cursor moveUpDown(const Cursor& c, int32_t direction, int32_t& xpos) const;
     Cursor moveWord(const Cursor& c, Direction dir) const;
+    bool cursorAtWordBoundary(const Cursor& c) const;
     Cursor moveHome(const Cursor& c) const;
     Cursor moveEnd(const Cursor& c) const;
 
@@ -159,6 +160,23 @@ public:
     void clearSelection();
     void clearSelectionIfNotPersistent();
 
+    // Mouse selection
+    enum SelectionMode {
+        None,
+        Mouse,
+        Word,
+        Line,
+    };
+    enum SelectionFlags {
+        UsePrimaryCursor,
+        AddNewCursor
+    };
+    void beginNewSelection(const Cursor& fromCursor, SelectionMode mode=Mouse, SelectionFlags flags=UsePrimaryCursor);
+    void updateNewSelection(const Cursor& cursor);
+    void finishNewSelection();
+    bool currentlySelecting() const;
+    SelectionMode activeSelectionMode() const;
+
 public:
     bool positionSelected(const Cursor& cursor) const;
     bool lineSelected(int line) const;
@@ -190,6 +208,11 @@ protected:
 
 private:
     KateViewInternal* m_viewInternal = nullptr;
+
+private:
+    // members for mouse selection
+    SelectionMode m_activeSelectionMode = None;
+    KTextEditor::MovingCursor::Ptr m_activeSelectingCursor;
 
 public:
     class SelectingCursorMovement {
