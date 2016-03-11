@@ -35,7 +35,24 @@ QTEST_MAIN(MulticursorTest)
 #define STOP view->show(); QEventLoop loop; loop.exec();
 
 // Implementation of the multicursor test DSL
+
+KTextEditor::Cursor parseCursor(const QString& s) {
+    auto parts = s.split(',');
+    Q_ASSERT(parts.size() == 2);
+    bool ok1, ok2;
+    auto cur = KTextEditor::Cursor(parts[0].toInt(&ok1), parts[1].toInt(&ok2));
+    Q_ASSERT(ok1);
+    Q_ASSERT(ok2);
+    Q_ASSERT(cur.isValid());
+    return cur;
+};
+
 struct MulticursorScriptRunner {
+    enum Mode {
+        Move,
+        MouseSelect
+    };
+
     MulticursorScriptRunner(QString script, QString states) {
         m_script = script;
         m_script.remove(" ");
@@ -50,72 +67,114 @@ struct MulticursorScriptRunner {
 
     bool execNextPart(KateMultiCursor* s) {
         qDebug() << "exec" << part << pos;
-        Q_FOREACH ( const QChar& c, m_script.mid(pos) ) {
+
+        auto nextCursor = [this]() {
+            auto start = pos;
+            auto end1 = m_script.indexOf(')', pos);
+            auto end2 = m_script.indexOf(';', pos);
+            auto end = end1 == -1 && end2 != -1 ? end2 : end1 != -1 && end2 == -1 ? end1 : qMin(end1, end2); // sigh
+            Q_ASSERT(end != -1);
+            pos = end;
+            return parseCursor(m_script.mid(start, end-start));
+        };
+
+        for ( ; pos < m_script.size(); ) {
+            QChar c = m_script.at(pos);
             pos++;
-            switch ( c.unicode() ) {
-                case '|':
-                    // next part
-                    part++;
-                    return true;
-                case '[':
-                    select = true;
-                    break;
-                case ']':
-                    select = false;
-                    break;
-                case 'L':
-                    s->moveCursorsLeft(select, 1);
-                    break;
-                case 'R':
-                    s->moveCursorsRight(select, 1);
-                    break;
-                case '>':
-                    s->moveCursorsEndOfLine(select);
-                    break;
-                case '<':
-                    s->moveCursorsStartOfLine(select);
-                    break;
-                case 'U':
-                    s->moveCursorsUp(select, 1);
-                    break;
-                case 'D':
-                    s->moveCursorsDown(select, 1);
-                    break;
-                case '+':
-                    s->toggleSecondaryCursorAt(s->primaryCursor());
-                    s->setSecondaryFrozen(true);
-                    break;
-                case 'N':
-                    s->moveCursorsWordNext(select);
-                    break;
-                case 'P':
-                    s->moveCursorsWordPrevious(select);
-                    break;
-                case '$':
-                    s->clearSecondaryCursors();
-                    break;
-                case '#':
-                    s->toggleSecondaryFrozen();
-                    break;
-                default:
-                    qWarning() << "unhandled character" << c << "in script:" << m_script;
+            if ( mode == Move ) {
+                switch ( c.unicode() ) {
+                    case '|':
+                        // next part
+                        part++;
+                        return true;
+                    case '[':
+                        select = true;
+                        break;
+                    case ']':
+                        select = false;
+                        break;
+                    case 'L':
+                        s->moveCursorsLeft(select, 1);
+                        break;
+                    case 'R':
+                        s->moveCursorsRight(select, 1);
+                        break;
+                    case '>':
+                        s->moveCursorsEndOfLine(select);
+                        break;
+                    case '<':
+                        s->moveCursorsStartOfLine(select);
+                        break;
+                    case 'U':
+                        s->moveCursorsUp(select, 1);
+                        break;
+                    case 'D':
+                        s->moveCursorsDown(select, 1);
+                        break;
+                    case '+':
+                        s->toggleSecondaryCursorAt(s->primaryCursor());
+                        s->setSecondaryFrozen(true);
+                        break;
+                    case 'N':
+                        s->moveCursorsWordNext(select);
+                        break;
+                    case 'P':
+                        s->moveCursorsWordPrevious(select);
+                        break;
+                    case '$':
+                        s->clearSecondaryCursors();
+                        break;
+                    case '#':
+                        s->toggleSecondaryFrozen();
+                        break;
+                    case '(': {
+                        KateMultiSelection::SelectionFlags flags = KateMultiSelection::UsePrimaryCursor;
+                        if ( m_script.at(pos) == '+' ) {
+                            pos++;
+                            flags = KateMultiSelection::AddNewCursor;
+                        }
+                        KateMultiSelection::SelectionMode smode = KateMultiSelection::None;
+                        auto modeChar = m_script.at(pos);
+                        pos++;
+                        if ( modeChar == 'C' ) {
+                            smode = KateMultiSelection::Mouse;
+                        }
+                        else if ( modeChar == 'W' ) {
+                            smode = KateMultiSelection::Word;
+                        }
+                        else if ( modeChar == 'L' ) {
+                            smode = KateMultiSelection::Line;
+                        }
+                        else {
+                            qWarning() << "invalid mode char" << modeChar << "in script" << m_script << "pos";
+                        }
+                        auto anchor = nextCursor();
+                        mode = MouseSelect;
+                        s->selections()->beginNewSelection(anchor, smode, flags);
+                        break;
+                    }
+                    default:
+                        qWarning() << "unhandled character" << c << "in script:" << m_script;
+                }
+            }
+            else if ( mode == MouseSelect ) {
+                switch ( c.unicode() ) {
+                    case ')':
+                        s->selections()->finishNewSelection();
+                        mode = Move;
+                        break;
+                    default:
+                        auto next = nextCursor();
+                        s->selections()->updateNewSelection(next);
+                        break;
+                }
             }
         }
         part++;
         return false;
     }
 
-    void exec(KateMultiCursor* c) {
-        while ( execNextPart(c) ) { };
-    }
-
     bool compareState(KateMultiCursor* c, const QString& state) {
-        auto parseCursor = [](const QString& s) {
-            auto parts = s.split(',');
-            Q_ASSERT(parts.size() == 2);
-            return KTextEditor::Cursor(parts[0].toInt(), parts[1].toInt());
-        };
-
         auto cursors = c->cursors();
         auto selections = c->selections()->selections();
         auto items = state.split(';');
@@ -159,6 +218,7 @@ struct MulticursorScriptRunner {
     size_t pos = 0;
     size_t part = 0;
     bool select = false;
+    Mode mode = Move;
 };
 
 void MulticursorTest::testCursorMovement()
@@ -221,6 +281,13 @@ void MulticursorTest::testCursorMovement_data()
     QTest::newRow("multi_select_up2") << "RRRD +D +D [U] | [U]" << "0,3 ; 1,3 ; 2,3 ; 0,3->1,3 ; 1,3->2,3 ; 2,3->3,3 | 0,0 ; 0,0->3,3";
     QTest::newRow("multi_select_down_right") << "RRR +D +D [D] | [R]" << "1,3 ; 2,3 ; 3,3 ; 0,3->1,3 ; 1,3->2,3 ; 2,3->3,3 | 3,4 ; 0,3->3,4";
     QTest::newRow("multi_select_up_intersect") << "RRRD +DL +DL [U] | [U]" << "0,3; 0,3->3,1 | 0,0 ; 0,0->3,1";
+
+    QTest::newRow("simple_mouse") << "RRR(C 0,5;0,7)" << "0,7; 0,5->0,7";
+    QTest::newRow("simple_mouse_add") << "RRR(+C 0,5;0,7)" << "0,3; 0,7; 0,5->0,7";
+    QTest::newRow("two_selections") << "RRR(+C 0,5;0,7) (+C 1,10;1,13)" << "0,3; 0,7; 1,13; 0,5->0,7; 1,10->1,13";
+    QTest::newRow("multiselect_clear") << "RRR(+C 0,5;0,7) (C 1,10;1,13)" << "1,13; 1,10->1,13";
+    QTest::newRow("multiselect_reverse_range") << "RRR(+C 0,5;0,7) (+C 1,13;1,10)" << "0,3; 0,7; 1,10; 0,5->0,7; 1,10->1,13";
+    QTest::newRow("multiselect_stepwise") << "RRR(+C 0,5;0,6;0,6;0,7) (+C 1,10;1,11;1,13)" << "0,3; 0,7; 1,13; 0,5->0,7; 1,10->1,13";
 }
 
 char* toString(const QVector<KTextEditor::Cursor>& t) {

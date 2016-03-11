@@ -814,11 +814,13 @@ void KateMultiCursor::removeCursorInternal(const MovingCursor::Ptr& cursor)
     Q_ASSERT(m_cursors.size() >= 1);
 }
 
-KTextEditor::Cursor KateMultiCursor::toVirtualCursor(const KTextEditor::Cursor& c) const {
+KTextEditor::Cursor KateMultiCursor::toVirtualCursor(const KTextEditor::Cursor& c) const
+{
     return viewInternal()->toVirtualCursor(c);
 }
 
-void KateMultiSelection::clearSelectionIfNotPersistent() {
+void KateMultiSelection::clearSelectionIfNotPersistent()
+{
     if ( ! view()->config()->persistentSelection() ) {
         clearSelection();
     }
@@ -830,7 +832,9 @@ void KateMultiSelection::clearCursorsInternal()
     cursors()->m_selections.clear();
 }
 
-KTextEditor::MovingRange::Ptr KateMultiSelection::addSelectionInternal(const KTextEditor::Range& newSelection, const Cursor& newCursor) {
+KTextEditor::MovingRange::Ptr KateMultiSelection::addSelectionInternal(const KTextEditor::Range& newSelection,
+                                                                       const Cursor& newCursor)
+{
     qDebug() << "called" << newSelection << newCursor;
     Q_ASSERT(newCursor.isValid());
     if ( newSelection.isEmpty() ) {
@@ -1028,9 +1032,10 @@ void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor
     KateMultiCursor::CursorRepainter rep(cursors());
     m_activeSelectionMode = mode;
     if ( flags & AddNewCursor ) {
-        addSelectionInternal({fromCursor, fromCursor}, fromCursor);
+        cursors()->appendCursorInternal(fromCursor);
     }
     else {
+        cursors()->clearSecondaryCursors();
         cursors()->m_cursors.last()->setPosition(fromCursor);
         cursors()->m_selections.last()->setRange({fromCursor, fromCursor});
     }
@@ -1053,7 +1058,7 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
     }
 
     KateMultiCursor::CursorRepainter rep(cursors());
-    SelectingCursorMovement sel(this, true);
+    SelectingCursorMovement sel(this, true, true);
     m_activeSelectingCursor->setPosition(cursor);
     if ( m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(cursor) ) {
         auto moved = cursors()->moveWord(cursor, oldPos < cursor ? KateMultiCursor::Left : KateMultiCursor::Right);
@@ -1079,11 +1084,15 @@ void KateMultiSelection::finishNewSelection()
     qDebug() << "called";
     m_activeSelectionMode = None;
     m_activeSelectingCursor.clear();
+    cursors()->removeEncompassedSecondaryCursors();
 }
 
-KateMultiSelection::SelectingCursorMovement::SelectingCursorMovement(KateMultiSelection* selections, bool isSelecting)
+KateMultiSelection::SelectingCursorMovement::SelectingCursorMovement(KateMultiSelection* selections,
+                                                                     bool isSelecting,
+                                                                     bool allowDuplicates)
     : m_selections(selections)
     , m_isSelecting(isSelecting)
+    , m_allowDuplicates(allowDuplicates)
 {
     Q_ASSERT(selections);
     if ( m_isSelecting ) {
@@ -1125,7 +1134,9 @@ KateMultiSelection::SelectingCursorMovement::~SelectingCursorMovement()
         auto range = KTextEditor::Range(qMin(old, current), qMax(old, current));
         m_selections->doSelectWithCursorInternal(range, m_selections->cursors()->m_cursors.indexOf(cursor));
     }
-    m_selections->cursors()->removeEncompassedSecondaryCursors();
+    if ( ! m_allowDuplicates ) {
+        m_selections->cursors()->removeEncompassedSecondaryCursors();
+    }
     qDebug() << "** selections after cursor movement:" << m_selections->selections();
 }
 

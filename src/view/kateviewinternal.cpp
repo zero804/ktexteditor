@@ -2098,7 +2098,7 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
         else {
             view()->cursors()->clearSecondaryCursors();
         }
-        selections()->beginNewSelection(newCursor, selectionMode);
+        selections()->beginNewSelection(newCursor, selectionMode, flags);
         updateCursorFlashTimer();
         e->accept();
     }

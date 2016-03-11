@@ -217,7 +217,7 @@ private:
 public:
     class SelectingCursorMovement {
     public:
-        SelectingCursorMovement(KateMultiSelection* selections, bool isSelecting=true);
+        SelectingCursorMovement(KateMultiSelection* selections, bool isSelecting=true, bool allowDuplicates=false);
         ~SelectingCursorMovement();
 
     private:
@@ -226,6 +226,7 @@ public:
         bool m_isSelecting;
         PositionMap m_oldPositions;
         PositionMap currentPositions() const;
+        bool m_allowDuplicates;
     };
     friend class SelectingCursorMovement;
     friend class CursorRepainter;
