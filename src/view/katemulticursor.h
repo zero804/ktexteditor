@@ -172,8 +172,9 @@ public:
         Line,
     };
     enum SelectionFlags {
-        UsePrimaryCursor,
-        AddNewCursor
+        UsePrimaryCursor = 0x1,
+        AddNewCursor = 0x2,
+        KeepSelectionRange = 0x4
     };
     void beginNewSelection(const Cursor& fromCursor, SelectionMode mode=Mouse, SelectionFlags flags=UsePrimaryCursor);
     void updateNewSelection(const Cursor& cursor);

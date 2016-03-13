@@ -2086,19 +2086,28 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
 {
     if ( e->button() == Qt::LeftButton ) {
         auto newCursor = pointToCursor(e->pos());
-        KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
-        KateMultiSelection::SelectionFlags flags = KateMultiSelection::UsePrimaryCursor;
-        if ( m_possibleTripleClick ) {
-            m_possibleTripleClick = false;
-            selectionMode = KateMultiSelection::Line;
-        }
-        if ( e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
-            flags = KateMultiSelection::AddNewCursor;
+        if (e->modifiers() & Qt::ShiftModifier) {
+            auto flags = (KateMultiSelection::SelectionFlags) (KateMultiSelection::UsePrimaryCursor | KateMultiSelection::KeepSelectionRange);
+            selections()->beginNewSelection(primaryCursor(),
+                                            KateMultiSelection::Mouse,
+                                            flags);
+            selections()->updateNewSelection(newCursor);
         }
         else {
-            view()->cursors()->clearSecondaryCursors();
+            KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
+            KateMultiSelection::SelectionFlags flags = KateMultiSelection::UsePrimaryCursor;
+            if ( m_possibleTripleClick ) {
+                m_possibleTripleClick = false;
+                selectionMode = KateMultiSelection::Line;
+            }
+            if ( e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
+                flags = KateMultiSelection::AddNewCursor;
+            }
+            else {
+                view()->cursors()->clearSecondaryCursors();
+            }
+            selections()->beginNewSelection(newCursor, selectionMode, flags);
         }
-        selections()->beginNewSelection(newCursor, selectionMode, flags);
         updateCursorFlashTimer();
         e->accept();
     }
