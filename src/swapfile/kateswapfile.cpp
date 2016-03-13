@@ -263,8 +263,7 @@ bool SwapFile::recover(QDataStream &stream, bool checkDigest)
 
     // needed to set undo/redo cursors in a sane way
     bool firstEditInGroup = false;
-    KTextEditor::Cursor undoCursor = KTextEditor::Cursor::invalid();
-    KTextEditor::Cursor redoCursor = KTextEditor::Cursor::invalid();
+    QVector<KTextEditor::Cursor> undoCursor, redoCursor;
 
     // replay swapfile
     bool editRunning = false;
@@ -281,8 +280,8 @@ bool SwapFile::recover(QDataStream &stream, bool checkDigest)
             m_document->editStart();
             editRunning = true;
             firstEditInGroup = true;
-            undoCursor = KTextEditor::Cursor::invalid();
-            redoCursor = KTextEditor::Cursor::invalid();
+            undoCursor.clear();
+            redoCursor.clear();
             break;
         }
         case EA_FinishEditing: {
@@ -313,9 +312,12 @@ bool SwapFile::recover(QDataStream &stream, bool checkDigest)
             // track undo/redo cursor
             if (firstEditInGroup) {
                 firstEditInGroup = false;
-                undoCursor = KTextEditor::Cursor(line, column);
+#warning TODO: multicursor
+                undoCursor.clear();
+                undoCursor.append(KTextEditor::Cursor(line, column));
             }
-            redoCursor = KTextEditor::Cursor(line + 1, 0);
+            redoCursor.clear();
+            redoCursor.append(KTextEditor::Cursor(line + 1, 0));
 
             break;
         }
@@ -339,9 +341,11 @@ bool SwapFile::recover(QDataStream &stream, bool checkDigest)
             // track undo/redo cursor
             if (firstEditInGroup) {
                 firstEditInGroup = false;
-                undoCursor = KTextEditor::Cursor(line, 0);
+                undoCursor.clear();
+                undoCursor.append(KTextEditor::Cursor(line, 0));
             }
-            redoCursor = KTextEditor::Cursor(line - 1, undoColumn);
+            redoCursor.clear();
+            redoCursor.append(KTextEditor::Cursor(line - 1, undoColumn));
 
             break;
         }
@@ -359,9 +363,11 @@ bool SwapFile::recover(QDataStream &stream, bool checkDigest)
             // track undo/redo cursor
             if (firstEditInGroup) {
                 firstEditInGroup = false;
-                undoCursor = KTextEditor::Cursor(line, column);
+                undoCursor.clear();
+                undoCursor.append(KTextEditor::Cursor(line, column));
             }
-            redoCursor = KTextEditor::Cursor(line, column + text.size());
+            redoCursor.clear();
+            redoCursor.append(KTextEditor::Cursor(line, column + text.size()));
 
             break;
         }
@@ -378,9 +384,11 @@ bool SwapFile::recover(QDataStream &stream, bool checkDigest)
             // track undo/redo cursor
             if (firstEditInGroup) {
                 firstEditInGroup = false;
-                undoCursor = KTextEditor::Cursor(line, endColumn);
+                undoCursor.clear();
+                undoCursor.append(KTextEditor::Cursor(line, endColumn));
             }
-            redoCursor = KTextEditor::Cursor(line, startColumn);
+            redoCursor.clear();
+            redoCursor.append(KTextEditor::Cursor(line, startColumn));
 
             break;
         }
@@ -403,8 +411,8 @@ bool SwapFile::recover(QDataStream &stream, bool checkDigest)
         // set sane final cursor, if possible
         KTextEditor::View *view = m_document->activeView();
         redoCursor = m_document->undoManager()->lastRedoCursor();
-        if (view && redoCursor.isValid()) {
-            view->setCursorPosition(redoCursor);
+        if (view && ! redoCursor.isEmpty()) {
+            view->setCursorPositions(redoCursor);
         }
     }
 

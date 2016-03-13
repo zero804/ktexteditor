@@ -2526,9 +2526,52 @@ const KateMultiSelection* KTextEditor::ViewPrivate::selections() const {
     return m_viewInternal->selections();
 }
 
+bool KTextEditor::ViewPrivate::setSelections(const QVector<KTextEditor::Range>& newSelections,
+                                             const QVector<KTextEditor::Cursor> &newCursors)
+{
+    if ( !newCursors.isEmpty() && (newSelections.size() != newCursors.size()) ) {
+        qWarning() << "mismatching cursor/selection size";
+        return false;
+    }
+    if ( std::any_of(newCursors.begin(), newCursors.end(), [](const KTextEditor::Cursor& c) { return !c.isValid(); }) ) {
+        return false;
+    }
+    if ( newSelections.isEmpty() ) {
+        bool ret = selections()->hasSelections();
+        selections()->clearSelection();
+        return ret;
+    }
+    selections()->setSelection(newSelections, newCursors);
+    return true;
+}
+
+bool KTextEditor::ViewPrivate::setCursorPositions(const QVector<KTextEditor::Cursor>& positions)
+{
+    if ( std::any_of(positions.begin(), positions.end(), [](const KTextEditor::Cursor& c) { return !c.isValid(); }) ) {
+        return false;
+    }
+    if ( positions.isEmpty() ) {
+        return false;
+    }
+    auto s = QVector<KTextEditor::Range>();
+    s.resize(positions.size());
+    selections()->setSelection(s, positions);
+    return true;
+}
+
 KTextEditor::Cursor KTextEditor::ViewPrivate::cursorPosition() const
 {
     return m_viewInternal->primaryCursor();
+}
+
+QVector<KTextEditor::Cursor> KTextEditor::ViewPrivate::cursorPositions() const
+{
+    return cursors()->cursors();
+}
+
+const KateMultiCursor* KTextEditor::ViewPrivate::cursors() const
+{
+    return m_viewInternal->cursors();
 }
 
 KTextEditor::Cursor KTextEditor::ViewPrivate::cursorPositionVirtual() const
@@ -2907,6 +2950,11 @@ void KTextEditor::ViewPrivate::toNextModifiedLine()
 KTextEditor::Range KTextEditor::ViewPrivate::selectionRange() const
 {
     return primarySelection();
+}
+
+QVector<KTextEditor::Range> KTextEditor::ViewPrivate::selectionRanges() const
+{
+    return selections()->selections();
 }
 
 KTextEditor::Document *KTextEditor::ViewPrivate::document() const

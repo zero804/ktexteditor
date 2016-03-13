@@ -4,6 +4,7 @@
    Copyright (C) 2002 Joseph Wenninger <jowenn@kde.org>
    Copyright (C) 2002 Christoph Cullmann <cullmann@kde.org>
    Copyright (C) 2007 Mirko Stocker <me@misto.ch>
+   Copyright (C) 2016 Sven Brauch <mail@svenbrauch.de>
 
    Based on:
      KWriteView : Copyright (C) 1999 Jochen Wilhelmy <digisnap@cs.tu-berlin.de>

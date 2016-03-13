@@ -164,8 +164,10 @@ private:
     //
 public:
     bool setCursorPosition(KTextEditor::Cursor position) Q_DECL_OVERRIDE;
+    bool setCursorPositions(const QVector<KTextEditor::Cursor> &positions) Q_DECL_OVERRIDE;
 
     KTextEditor::Cursor cursorPosition() const Q_DECL_OVERRIDE;
+    QVector<KTextEditor::Cursor> cursorPositions() const Q_DECL_OVERRIDE;
 
     KTextEditor::Cursor cursorPositionVirtual() const Q_DECL_OVERRIDE;
 
@@ -270,8 +272,7 @@ public Q_SLOTS:
      *
      * The primary selection is the selection range containing the primary
      * cursor. If no such selection exists, as might be the case
-     * in "persistent selection" mode, this is the first selection
-     * which was created since the selection was last empty.
+     * in "persistent selection" mode, the persistent selection is returned instead.
      */
     KTextEditor::Range primarySelection() const {
         return selections()->primarySelection();
@@ -283,30 +284,8 @@ public Q_SLOTS:
     bool setPrimarySelection(const KTextEditor::Range &selection) {
         return setSelection(selection);
     };
-
-//     /**
-//      * @brief Add a new range to the selection
-//      *
-//      * If there is no selection so far, this range becomes the primary
-//      * selection. If the range is not disjoint or adjacent to an existing
-//      * selection range, it is joined with that selection range.
-//      *
-//      * @param newSelection Range to add.
-//      * @return bool true if selection was modified
-//      */
-//     bool addToSelection(const KTextEditor::Range &newSelection);
-//     /**
-//      * @brief Subtract the given range from the selection
-//      *
-//      * @param remove Range to remove. If this range encompasses a
-//      * range in the selection, it is removed entirely. If it touches
-//      * one edge of a range in the selection, that range is shortened
-//      * to the difference of the old and new range. If this range
-//      * is completely contained in an existing range, nothing happens
-//      * and false is returned.
-//      * @return bool true if selection was modified
-//      */
-//     bool removeFromSelection(const KTextEditor::Range &remove);
+    bool setSelections(const QVector<KTextEditor::Range> &selections,
+                       const QVector<KTextEditor::Cursor> &cursors) Q_DECL_OVERRIDE;
 
     bool removeSelection() Q_DECL_OVERRIDE
     {
@@ -333,6 +312,7 @@ public:
     QString selectionText() const Q_DECL_OVERRIDE;
     bool blockSelection() const Q_DECL_OVERRIDE;
     KTextEditor::Range selectionRange() const Q_DECL_OVERRIDE;
+    QVector<KTextEditor::Range> selectionRanges() const Q_DECL_OVERRIDE;
 
     static void blockFix(KTextEditor::Range &range);
 

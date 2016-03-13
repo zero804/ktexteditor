@@ -384,13 +384,22 @@ Q_SIGNALS:
      */
 public:
     /**
-     * Set the view's new cursor to \p position. A \e TAB character
-     * is handeled as only on character.
+     * Set the view's primary cursor to \p position. A \e TAB character
+     * is handeled as only on character. All previous cursors are cleared.
      * \param position new cursor position
      * \return \e true on success, otherwise \e false
      * \see cursorPosition()
      */
     virtual bool setCursorPosition(Cursor position) = 0;
+
+    /**
+     * Set the view's cursors to \p position. A \e TAB character
+     * is handeled as only on character. All previous cursors are cleared.
+     * \param position new cursor positions
+     * \return \e true on success, otherwise \e false
+     * \see cursorPosition(), setCursorPosition()
+     */
+    virtual bool setCursorPositions(const QVector<Cursor> &positions) = 0;
 
     /**
      * Get the view's current cursor position. A \e TAB character is
@@ -399,6 +408,14 @@ public:
      * \see setCursorPosition()
      */
     virtual Cursor cursorPosition() const = 0;
+
+    /**
+     * Get the view's current cursor positions. A \e TAB character is
+     * handeled as only one character.
+     * \return current cursor position
+     * \see setCursorPosition()
+     */
+    virtual QVector<Cursor> cursorPositions() const = 0;
 
     /**
      * Get the current \e virtual cursor position, \e virtual means the
@@ -546,6 +563,17 @@ public:
     virtual bool setSelection(const Range &range) = 0;
 
     /**
+     * Set the view's selections to the given \p ranges.
+     * The old selection will be discarded.
+     * \param ranges ranges of the new selections
+     * \param cursors cursors for the ranges, must be start or end of the corresponding range
+     * \return \e true on success, otherwise \e false (e.g. when the cursor
+     *         range is invalid)
+     * \see selectionRange(), selection(), setSelection()
+     */
+    virtual bool setSelections(const QVector<Range> &ranges, const QVector<Cursor> &cursors) = 0;
+
+    /**
      * Query the view whether it has selected text, i.e. whether a selection
      * exists.
      * \return \e true if a text selection exists, otherwise \e false
@@ -554,11 +582,18 @@ public:
     virtual bool selection() const = 0;
 
     /**
-     * Get the range occupied by the current selection.
+     * Get the range occupied by the current primary selection.
      * \return selection range, valid only if a selection currently exists.
      * \see setSelection()
      */
     virtual Range selectionRange() const = 0;
+
+    /**
+     * Get the ranges occupied by the current selections.
+     * \return selection ranges, valid only if a selection currently exists.
+     * \see setSelection()
+     */
+    virtual QVector<Range> selectionRanges() const = 0;
 
     /**
      * Get the view's selected text.

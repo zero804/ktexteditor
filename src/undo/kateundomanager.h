@@ -105,14 +105,14 @@ public:
      * @param undoCursor the undo cursor
      * @param redoCursor the redo cursor
      */
-    void setUndoRedoCursorsOfLastGroup(const KTextEditor::Cursor undoCursor,
-                                       const KTextEditor::Cursor redoCursor);
+    void setUndoRedoCursorsOfLastGroup(const QVector<KTextEditor::Cursor>& undoCursor,
+                                       const QVector<KTextEditor::Cursor>& redoCursor);
 
     /**
      * Returns the redo cursor of the last undo group.
      * Needed for the swap file recovery.
      */
-    KTextEditor::Cursor lastRedoCursor() const;
+    QVector<KTextEditor::Cursor> lastRedoCursor() const;
 
 public Q_SLOTS:
     /**

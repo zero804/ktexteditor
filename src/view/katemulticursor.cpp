@@ -861,9 +861,6 @@ KTextEditor::MovingRange::Ptr KateMultiSelection::addSelectionInternal(const KTe
 {
     qDebug() << "called" << newSelection << newCursor;
     Q_ASSERT(newCursor.isValid());
-    if ( newSelection.isEmpty() ) {
-        return {};
-    }
     cursors()->appendCursorInternal(newCursor);
     auto sel = cursors()->m_selections.last();
     sel->setRange(newSelection);
@@ -881,6 +878,7 @@ void KateMultiSelection::setSelection(const KTextEditor::Range& selection, const
 
 void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& newCursors) {
     Q_ASSERT(selection.size() == newCursors.size());
+    Q_ASSERT(!selection.isEmpty());
 
     KateMultiCursor::CursorRepainter rep(cursors());
     clearCursorsInternal();

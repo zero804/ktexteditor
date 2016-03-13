@@ -74,8 +74,8 @@ void KateUndoManager::editStart()
     // editStart() and editEnd() must be called in alternating fashion
     Q_ASSERT(m_editCurrentUndo == 0); // make sure to enter a clean state
 
-    const KTextEditor::Cursor cursorPosition = activeView() ? activeView()->cursorPosition() : KTextEditor::Cursor::invalid();
-    const KTextEditor::Range selectionRange = activeView() ? activeView()->selectionRange() : KTextEditor::Range::invalid();
+    const auto cursorPosition = activeView() ? activeView()->cursorPositions() : QVector<KTextEditor::Cursor>();
+    const auto selectionRange = activeView() ? activeView()->selectionRanges() : QVector<KTextEditor::Range>();
 
     // new current undo item
     m_editCurrentUndo = new KateUndoGroup(this, cursorPosition, selectionRange);
@@ -92,8 +92,8 @@ void KateUndoManager::editEnd()
     // editStart() and editEnd() must be called in alternating fashion
     Q_ASSERT(m_editCurrentUndo != 0); // an undo group must have been created by editStart()
 
-    const KTextEditor::Cursor cursorPosition = activeView() ? activeView()->cursorPosition() : KTextEditor::Cursor::invalid();
-    const KTextEditor::Range selectionRange = activeView() ? activeView()->selectionRange() : KTextEditor::Range::invalid();
+    const auto cursorPosition = activeView() ? activeView()->cursorPositions() : QVector<KTextEditor::Cursor>();
+    const auto selectionRange = activeView() ? activeView()->selectionRanges() : QVector<KTextEditor::Range>();
 
     m_editCurrentUndo->editEnd(cursorPosition, selectionRange);
 
@@ -420,8 +420,8 @@ void KateUndoManager::updateLineModifications()
     }
 }
 
-void KateUndoManager::setUndoRedoCursorsOfLastGroup(const KTextEditor::Cursor undoCursor,
-        const KTextEditor::Cursor redoCursor)
+void KateUndoManager::setUndoRedoCursorsOfLastGroup(const QVector<KTextEditor::Cursor>& undoCursor,
+        const QVector<KTextEditor::Cursor>& redoCursor)
 {
     Q_ASSERT(m_editCurrentUndo == 0);
     if (undoItems.size()) {
@@ -431,14 +431,14 @@ void KateUndoManager::setUndoRedoCursorsOfLastGroup(const KTextEditor::Cursor un
     }
 }
 
-KTextEditor::Cursor KateUndoManager::lastRedoCursor() const
+QVector<KTextEditor::Cursor> KateUndoManager::lastRedoCursor() const
 {
     Q_ASSERT(m_editCurrentUndo == 0);
     if (undoItems.size()) {
         KateUndoGroup *last = undoItems.last();
         return last->redoCursor();
     }
-    return KTextEditor::Cursor::invalid();
+    return {};
 }
 
 void KateUndoManager::updateConfig()

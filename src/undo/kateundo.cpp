@@ -233,13 +233,15 @@ void KateEditMarkLineAutoWrappedUndo::redo()
     doc->editMarkLineAutoWrapped(m_line, m_autowrapped);
 }
 
-KateUndoGroup::KateUndoGroup(KateUndoManager *manager, const KTextEditor::Cursor &cursorPosition, const KTextEditor::Range &selectionRange)
+KateUndoGroup::KateUndoGroup(KateUndoManager *manager,
+                             const QVector<KTextEditor::Cursor> &cursorPosition,
+                             const QVector<KTextEditor::Range> &selectionRange)
     : m_manager(manager)
     , m_safePoint(false)
     , m_undoSelection(selectionRange)
-    , m_redoSelection(-1, -1, -1, -1)
+    , m_redoSelection()
     , m_undoCursor(cursorPosition)
-    , m_redoCursor(-1, -1)
+    , m_redoCursor()
 {
 }
 
@@ -261,15 +263,7 @@ void KateUndoGroup::undo(KTextEditor::View *view)
     }
 
     if (view != 0) {
-        if (m_undoSelection.isValid()) {
-            view->setSelection(m_undoSelection);
-        } else {
-            view->removeSelection();
-        }
-
-        if (m_undoCursor.isValid()) {
-            view->setCursorPosition(m_undoCursor);
-        }
+        view->setSelections(m_undoSelection, m_undoCursor);
     }
 
     m_manager->endUndo();
@@ -288,21 +282,13 @@ void KateUndoGroup::redo(KTextEditor::View *view)
     }
 
     if (view != 0) {
-        if (m_redoSelection.isValid()) {
-            view->setSelection(m_redoSelection);
-        } else {
-            view->removeSelection();
-        }
-
-        if (m_redoCursor.isValid()) {
-            view->setCursorPosition(m_redoCursor);
-        }
+        view->setSelections(m_redoSelection, m_redoCursor);
     }
 
     m_manager->endUndo();
 }
 
-void KateUndoGroup::editEnd(const KTextEditor::Cursor &cursorPosition, const KTextEditor::Range selectionRange)
+void KateUndoGroup::editEnd(const QVector<KTextEditor::Cursor> &cursorPosition, const QVector<KTextEditor::Range> &selectionRange)
 {
     m_redoCursor = cursorPosition;
     m_redoSelection = selectionRange;

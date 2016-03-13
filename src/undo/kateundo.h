@@ -4,6 +4,7 @@
    Copyright (C) 2002 John Firebaugh <jfirebaugh@kde.org>
    Copyright (C) 2001 Christoph Cullmann <cullmann@kde.org>
    Copyright (C) 2001 Joseph Wenninger <jowenn@kde.org>
+   Copyright (C) 2016 Sven Brauch <mail@svenbrauch.de>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -440,7 +441,8 @@ public:
      * Constructor
      * @param manager KateUndoManager this undo group will belong to
      */
-    explicit KateUndoGroup(KateUndoManager *manager, const KTextEditor::Cursor &cursorPosition, const KTextEditor::Range &selectionRange);
+    explicit KateUndoGroup(KateUndoManager *manager, const QVector<KTextEditor::Cursor> &cursorPosition,
+                           const QVector<KTextEditor::Range> &selectionRange);
 
     /**
      * Destructor
@@ -458,7 +460,7 @@ public:
      */
     void redo(KTextEditor::View *view);
 
-    void editEnd(const KTextEditor::Cursor &cursorPosition, const KTextEditor::Range selectionRange);
+    void editEnd(const QVector<KTextEditor::Cursor> &cursorPosition, const QVector<KTextEditor::Range> &selectionRange);
 
     /**
      * merge this group with an other
@@ -492,7 +494,7 @@ public:
     /**
      * Set the undo cursor to @p cursor.
      */
-    inline void setUndoCursor(const KTextEditor::Cursor &cursor)
+    inline void setUndoCursor(const QVector<KTextEditor::Cursor> &cursor)
     {
         m_undoCursor = cursor;
     }
@@ -500,12 +502,12 @@ public:
     /**
      * Set the redo cursor to @p cursor.
      */
-    inline void setRedoCursor(const KTextEditor::Cursor &cursor)
+    inline void setRedoCursor(const QVector<KTextEditor::Cursor> &cursor)
     {
         m_redoCursor = cursor;
     }
 
-    inline const KTextEditor::Cursor &redoCursor() const
+    inline const QVector<KTextEditor::Cursor> &redoCursor() const
     {
         return m_redoCursor;
     }
@@ -549,22 +551,22 @@ private:
     /**
      * the text selection of the active view before the edit step
      */
-    const KTextEditor::Range m_undoSelection;
+    const QVector<KTextEditor::Range> m_undoSelection;
 
     /**
      * the text selection of the active view after the edit step
      */
-    KTextEditor::Range m_redoSelection;
+    QVector<KTextEditor::Range> m_redoSelection;
 
     /**
      * the cursor position of the active view before the edit step
      */
-    KTextEditor::Cursor m_undoCursor;
+    QVector<KTextEditor::Cursor> m_undoCursor;
 
     /**
      * the cursor position of the active view after the edit step
      */
-    KTextEditor::Cursor m_redoCursor;
+    QVector<KTextEditor::Cursor> m_redoCursor;
 };
 
 #endif

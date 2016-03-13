@@ -7,6 +7,7 @@
    Copyright (C) 2007 Mirko Stocker <me@misto.ch>
    Copyright (C) 2007 Matthew Woehlke <mw_triad@users.sourceforge.net>
    Copyright (C) 2008 Erlend Hamberg <ehamberg@gmail.com>
+   Copyright (C) 2016 Sven Brauch <mail@svenbrauch.de>
 
    Based on:
      KWriteView : Copyright (C) 1999 Jochen Wilhelmy <digisnap@cs.tu-berlin.de>
