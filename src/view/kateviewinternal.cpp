@@ -2302,6 +2302,7 @@ void KateViewInternal::mouseReleaseEvent(QMouseEvent *e)
     case Qt::LeftButton:
         if ( selections()->currentlySelecting() ) {
             selections()->finishNewSelection();
+            updateCursorFlashTimer();
         }
         m_dragInfo.state = diNone;
         e->accept();
@@ -2431,6 +2432,7 @@ void KateViewInternal::mouseMoveEvent(QMouseEvent *e)
 
         auto c = pointToCursor(QPoint(m_mouseX, m_mouseY));
         selections()->updateNewSelection(c);
+        updateCursorFlashTimer();
 
     } else {
         if (isTargetSelected(e->pos())) {
