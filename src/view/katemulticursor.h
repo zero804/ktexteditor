@@ -51,7 +51,7 @@ public:
     bool hasSecondaryCursors() const;
     size_t cursorsCount() const;
 
-    void setPrimaryCursor(const Cursor& cursor, bool repaint=true);
+    void setPrimaryCursor(const Cursor& cursor, bool repaint=true, bool select=false);
 
     bool toggleSecondaryCursorAt(const Cursor& cursor, bool ensureExists=false);
     void clearSecondaryCursors();
@@ -189,7 +189,7 @@ public:
     bool lineHasSelection(int line) const;
     bool overlapsLine(int line) const;
 
-protected:
+private:
     const KateMultiCursor* cursors() const;
     KateMultiCursor* cursors();
     KTextEditor::ViewPrivate* view() const;
@@ -199,6 +199,7 @@ protected:
     KTextEditor::MovingRange::Ptr selectionForCursor(const KTextEditor::Cursor& cursor) const;
     KTextEditor::MovingRange::Ptr addSelectionInternal(const KTextEditor::Range& range, const Cursor& cursor);
     void doSelectWithCursorInternal(const KTextEditor::Range& range, size_t cursorIndex);
+    void selectEntityAt(const Cursor& cursor, KTextEditor::MovingRange::Ptr update, SelectionMode kind);
 
     /**
      * @brief Clear the selection, i.e. set all selection ranges to empty.

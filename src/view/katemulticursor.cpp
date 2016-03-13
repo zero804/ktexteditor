@@ -342,13 +342,14 @@ KateMultiSelection* KateMultiCursor::selections()
     return view()->selections();
 }
 
-void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool repaint) {
+void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool repaint, bool select) {
     qDebug() << "called" << cursor;
     Q_ASSERT(cursor.isValid());
     if ( cursor == primaryCursor() ) {
         return;
     }
     CursorRepainter rep(this, repaint);
+    KateMultiSelection::SelectingCursorMovement sel(selections(), select);
     m_cursors.first()->setPosition(cursor);
 }
 
@@ -728,8 +729,12 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
 bool KateMultiCursor::cursorAtWordBoundary(const KTextEditor::Cursor& c) const
 {
     KateHighlighting *h = doc()->highlight();
-    auto character = doc()->line(c.line()).at(c.column());
-    return !h->isInWord(character);
+    auto line = doc()->line(c.line());
+    if ( line.length() < c.column() ) {
+        auto character = line.at(c.column());
+        return !h->isInWord(character);
+    }
+    return true;
 }
 
 const KateMultiCursor* KateMultiSelection::cursors() const {
@@ -1043,6 +1048,19 @@ bool KateMultiSelection::overlapsLine(int line) const {
         });
 }
 
+void KateMultiSelection::selectEntityAt(const KTextEditor::Cursor& cursor, KTextEditor::MovingRange::Ptr update, KateMultiSelection::SelectionMode kind)
+{
+    if ( kind == Mouse ) {
+        return;
+    }
+    if ( kind == Word ) {
+        update->setRange(view()->document()->wordRangeAt(cursor));
+    }
+    if ( kind == Line ) {
+        update->setRange({cursor.line(), 0, cursor.line()+1, 0});
+    }
+}
+
 void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor,
                                            KateMultiSelection::SelectionMode mode,
                                            KateMultiSelection::SelectionFlags flags)
@@ -1056,9 +1074,13 @@ void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor
     else {
         cursors()->clearSecondaryCursors();
         cursors()->m_cursors.last()->setPosition(fromCursor);
-        cursors()->m_selections.last()->setRange({fromCursor, fromCursor});
+        if ( ! (flags & KeepSelectionRange) ) {
+            cursors()->m_selections.last()->setRange({fromCursor, fromCursor});
+        }
     }
     m_activeSelectingCursor = cursors()->m_cursors.last();
+    selectEntityAt(fromCursor, cursors()->m_selections.last(), m_activeSelectionMode);
+    m_activeSelectingCursor->setPosition(cursors()->m_selections.last()->end());
 }
 
 void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)

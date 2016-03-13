@@ -2214,17 +2214,16 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
 
 void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
 {
-    /**
-    if (e->modifiers() == (Qt::MetaModifier | Qt::ControlModifier)) {
-        // for secondary cursors
-        mousePressEvent(e);
-        return;
-    }
+    auto secondary = (e->modifiers() == (Qt::MetaModifier | Qt::ControlModifier));
+    auto newCursor = pointToCursor(e->pos());
 
     switch (e->button()) {
     case Qt::LeftButton:
-        m_selectionMode = Word;
+        selections()->beginNewSelection(newCursor, KateMultiSelection::Word,
+                                        secondary ? KateMultiSelection::AddNewCursor : KateMultiSelection::UsePrimaryCursor);
 
+#warning fix me: this weird "shift double click" feature
+#if 0
         if (e->modifiers() & Qt::ShiftModifier) {
             // Now select the word under the select anchor
             int cs, ce;
@@ -2276,13 +2275,12 @@ void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
                 m_selectionCached = KTextEditor::Range(primaryCursor(), primaryCursor());
             }
         }
+#endif
 
         if (m_view->selection()) {
             QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
         }
 
-        // Move cursor to end (or beginning) of selected word
-        moveCursorToSelectionEdge();
         m_possibleTripleClick = true;
         QTimer::singleShot(QApplication::doubleClickInterval(), this, SLOT(tripleClickTimeout()));
 
@@ -2297,7 +2295,7 @@ void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
     default:
         e->ignore();
         break;
-    } **/
+    }
 }
 
 void KateViewInternal::tripleClickTimeout()
