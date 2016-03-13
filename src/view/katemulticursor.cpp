@@ -651,8 +651,10 @@ Cursor KateMultiCursor::moveUpDown(const Cursor& start, int32_t direction, int32
     }
 
     KateTextLayout thisLine = viewInternal()->currentLayout(start);
+    auto end = KTextEditor::Cursor(start.line() + direction, start.column());
     // This is not the first/last line because that is already simplified out above
-    KateTextLayout pRange = direction > 0 ? viewInternal()->nextLayout(start) : viewInternal()->previousLayout(start);
+#warning todo: dynwrap / folding
+    KateTextLayout pRange = direction > 0 ? viewInternal()->currentLayout(end) : viewInternal()->currentLayout(end);
 
     // Ensure we're in the right spot
     Q_ASSERT(start.line() == thisLine.line());

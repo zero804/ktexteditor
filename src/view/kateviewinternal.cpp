@@ -1181,99 +1181,60 @@ void KateViewInternal::setAutoCenterLines(int viewLines, bool updateView)
 
 void KateViewInternal::pageUp(bool sel, bool half)
 {
-    cursors()->moveCursorsUp(sel, 1);
+    if (m_view->isCompletionActive()) {
+        m_view->completionWidget()->pageUp();
+        return;
+    }
 
-//     if (m_view->isCompletionActive()) {
-//         m_view->completionWidget()->pageUp();
-//         return;
-//     }
-//
-//     // remember the view line and x pos
-//     int viewLine = cache()->displayViewLine(m_displayCursor);
-//     bool atTop = startPos().atStartOfDocument();
-//
-//     // Adjust for an auto-centering cursor
-//     int lineadj = m_minLinesVisible;
-//
-//     int linesToScroll;
-//     if (! half) {
-//         linesToScroll = -qMax((linesDisplayed() - 1) - lineadj, 0);
-//     } else {
-//         linesToScroll = -qMax((linesDisplayed() / 2 - 1) - lineadj, 0);
-//     }
-//
-//     m_preserveX = true;
-//
-//     if (!doc()->pageUpDownMovesCursor() && !atTop) {
-//         KTextEditor::Cursor newStartPos = viewLineOffset(startPos(), linesToScroll - 1);
-//         scrollPos(newStartPos);
-//
-//         // put the cursor back approximately where it was
-//         KTextEditor::Cursor newPos = toRealCursor(viewLineOffset(newStartPos, viewLine, true));
-//
-//         KateTextLayout newLine = cache()->textLayout(newPos);
-//
-//         newPos = renderer()->xToCursor(newLine, m_preservedX, !m_view->wrapCursor());
-//
-//         m_preserveX = true;
-//         updateSelection(newPos, sel);
-//         updateCursor(newPos);
-//
-//         transformAndRedrawCursors([this, linesToScroll]() {
-//             m_view->cursors()->moveSecondaryCursorsVertically(linesToScroll - 1);
-//         });
-//
-//     } else {
-//         scrollLines(linesToScroll, sel);
-//     }
+    bool atTop = startPos().atStartOfDocument();
+
+    // Adjust for an auto-centering cursor
+    int lineadj = m_minLinesVisible;
+
+    int linesToScroll;
+    if (! half) {
+        linesToScroll = -qMax((linesDisplayed() - 1) - lineadj, 0);
+    } else {
+        linesToScroll = -qMax((linesDisplayed() / 2 - 1) - lineadj, 0);
+    }
+
+    if (!doc()->pageUpDownMovesCursor() && !atTop) {
+        KTextEditor::Cursor newStartPos = viewLineOffset(startPos(), linesToScroll - 1);
+        scrollPos(newStartPos);
+
+        cursors()->moveCursorsUp(sel, linesToScroll - 1);
+    } else {
+        scrollLines(linesToScroll, sel);
+    }
 }
 
 void KateViewInternal::pageDown(bool sel, bool half)
 {
-    cursors()->moveCursorsDown(sel, 1);
-//     if (m_view->isCompletionActive()) {
-//         m_view->completionWidget()->pageDown();
-//         return;
-//     }
-//
-//     // remember the view line
-//     int viewLine = cache()->displayViewLine(m_displayCursor);
-//     bool atEnd = startPos() >= m_cachedMaxStartPos;
-//
-//     // Adjust for an auto-centering cursor
-//     int lineadj = m_minLinesVisible;
-//
-//     int linesToScroll;
-//     if (! half) {
-//         linesToScroll = qMax((linesDisplayed() - 1) - lineadj, 0);
-//     } else {
-//         linesToScroll = qMax((linesDisplayed() / 2 - 1) - lineadj, 0);
-//     }
-//
-//     m_preserveX = true;
-//
-//     if (!doc()->pageUpDownMovesCursor() && !atEnd) {
-//         KTextEditor::Cursor newStartPos = viewLineOffset(startPos(), linesToScroll + 1);
-//         scrollPos(newStartPos);
-//
-//         // put the cursor back approximately where it was
-//         KTextEditor::Cursor newPos = toRealCursor(viewLineOffset(newStartPos, viewLine, true));
-//
-//         KateTextLayout newLine = cache()->textLayout(newPos);
-//
-//         newPos = renderer()->xToCursor(newLine, m_preservedX, !m_view->wrapCursor());
-//
-//         m_preserveX = true;
-//         updateSelection(newPos, sel);
-//         updateCursor(newPos);
-//
-//         transformAndRedrawCursors([this, linesToScroll]() {
-//             m_view->moveCursorsVertically(linesToScroll + 1);
-//         });
-//
-//     } else {
-//         scrollLines(linesToScroll, sel);
-//     }
+    if (m_view->isCompletionActive()) {
+        m_view->completionWidget()->pageDown();
+        return;
+    }
+
+    bool atEnd = startPos() >= m_cachedMaxStartPos;
+
+    // Adjust for an auto-centering cursor
+    int lineadj = m_minLinesVisible;
+
+    int linesToScroll;
+    if (! half) {
+        linesToScroll = qMax((linesDisplayed() - 1) - lineadj, 0);
+    } else {
+        linesToScroll = qMax((linesDisplayed() / 2 - 1) - lineadj, 0);
+    }
+
+    if (!doc()->pageUpDownMovesCursor() && !atEnd) {
+        KTextEditor::Cursor newStartPos = viewLineOffset(startPos(), linesToScroll + 1);
+        scrollPos(newStartPos);
+
+        cursors()->moveCursorsDown(sel, linesToScroll + 1);
+    } else {
+        scrollLines(linesToScroll, sel);
+    }
 }
 
 int KateViewInternal::maxLen(int startLine)
