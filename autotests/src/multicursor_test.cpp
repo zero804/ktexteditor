@@ -288,6 +288,14 @@ void MulticursorTest::testCursorMovement_data()
     QTest::newRow("multiselect_clear") << "RRR(+C 0,5;0,7) (C 1,10;1,13)" << "1,13; 1,10->1,13";
     QTest::newRow("multiselect_reverse_range") << "RRR(+C 0,5;0,7) (+C 1,13;1,10)" << "0,3; 0,7; 1,10; 0,5->0,7; 1,10->1,13";
     QTest::newRow("multiselect_stepwise") << "RRR(+C 0,5;0,6;0,6;0,7) (+C 1,10;1,11;1,13)" << "0,3; 0,7; 1,13; 0,5->0,7; 1,10->1,13";
+
+    QTest::newRow("multiselect_overlap_undo") << "(C 0,5;0,7) (+C 0,9;0,8;0,7;0,2;0,8)" << "0,7; 0,8; 0,5->0,7; 0,8->0,9";
+    QTest::newRow("multiselect_overlap_join") << "(C 0,5;0,7) (+C 0,9;0,8;0,7;0,2)" << "0,2; 0,2->0,9";
+    QTest::newRow("multiselect_overlap_join_into") << "(C 0,5;0,7) (+C 0,9;0,8;0,7;0,6)" << "0,5; 0,5->0,9";
+    QTest::newRow("multiselect_overlap_join_into2") << "(C 0,5;0,10) (+C 0,2;0,4;0,5;0,6)" << "0,10; 0,2->0,10";
+    QTest::newRow("multiselect_overlap_join_into3") << "(C 0,10;0,5) (+C 0,2;0,4;0,5;0,6)" << "0,10; 0,2->0,10";
+    QTest::newRow("multiselect_overlap_full") << "(C 0,5;0,10) (+C 0,9;0,8;0,7;0,2)" << "0,2; 0,2->0,10";
+    QTest::newRow("multiselect_start_inside") << "(C 0,5;0,10) (+C 0,7;0,12)" << "0,12; 0,5->0,12";
 }
 
 char* toString(const QVector<KTextEditor::Cursor>& t) {

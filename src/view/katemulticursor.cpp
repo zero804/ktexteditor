@@ -750,7 +750,7 @@ KateMultiSelection::KateMultiSelection(KateViewInternal* view)
 
 }
 
-void KateMultiCursor::removeEncompassedSecondaryCursors()
+void KateMultiCursor::removeEncompassedSecondaryCursors(CursorSelectionFlags flags)
 {
     // join adjacent or partially-overlapping ranges
     bool did_remove = false;
@@ -768,11 +768,30 @@ void KateMultiCursor::removeEncompassedSecondaryCursors()
                     did_remove = true;
                     // update first to encompass both, then remove the second
                     qDebug() << "joining ranges:" << sel << next << i << j;
+                    auto curPos = m_cursors.at(i)->toCursor();
+                    auto newCurPos = m_cursors.at(j)->toCursor();
+
                     m_selections[i]->setRange({qMin(sel.start(), next.start()),
                                                qMax(sel.end(), next.end())});
-                    // decide which cursor to keep: the one at the edge
-                    if ( m_selections.at(i)->toRange().boundaryAtCursor(m_cursors.at(j)->toCursor()) ) {
-                        m_cursors.at(i)->setPosition(m_cursors.at(j)->toCursor());
+                    if ( ! (flags & UseMostRecentCursorFlag) ) {
+                        // decide which cursor to keep: the one at the edge
+                        if ( m_selections.at(i)->toRange().boundaryAtCursor(newCurPos) ) {
+                            m_cursors.at(i)->setPosition(newCurPos);
+                        }
+                    }
+                    else {
+                        auto resultingRange = m_selections.at(i)->toRange();
+                        qDebug() << "cursor not at boundary, adjusting" << resultingRange << curPos << newCurPos;
+                        auto newPos = KTextEditor::Cursor::invalid();
+                        if ( next.end() > sel.end() ) {
+                            // from the right
+                            newPos = newCurPos == next.end() ? resultingRange.end() : resultingRange.start();
+                        }
+                        else {
+                            // from the left
+                            newPos = newCurPos == next.start() ? resultingRange.start() : resultingRange.end();
+                        }
+                        m_cursors.at(i)->setPosition(newPos);
                     }
                     removeCursorInternal(m_cursors.at(j));
                     j--;
@@ -1084,7 +1103,8 @@ void KateMultiSelection::finishNewSelection()
     qDebug() << "called";
     m_activeSelectionMode = None;
     m_activeSelectingCursor.clear();
-    cursors()->removeEncompassedSecondaryCursors();
+    KateMultiCursor::CursorRepainter rep(cursors());
+    cursors()->removeEncompassedSecondaryCursors(KateMultiCursor::UseMostRecentCursorFlag);
 }
 
 KateMultiSelection::SelectingCursorMovement::SelectingCursorMovement(KateMultiSelection* selections,

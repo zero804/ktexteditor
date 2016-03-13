@@ -519,9 +519,10 @@ QList<QTextLayout::FormatRange> KateRenderer::decorationsForLine(const Kate::Tex
             if (a) {
                 fr.format = *a;
 
-                if (selectionsOnly) {
-                    assignSelectionBrushesFromAttribute(fr, *a);
-                }
+#warning fixme, no idea how this should work. halp
+//                 if (selectionsOnly) {
+//                     assignSelectionBrushesFromAttribute(fr, *a);
+//                 }
             }
 
             newHighlight.append(fr);
