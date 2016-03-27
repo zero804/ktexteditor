@@ -450,7 +450,7 @@ void KTextEditor::EditorPrivate::updateColorPalette()
     m_rendererConfig->updateConfig();
 }
 
-void KTextEditor::EditorPrivate::copyToClipboard(const QString &text)
+void KTextEditor::EditorPrivate::updateClipboardHistory(const QVector<QString> &text)
 {
     /**
      * empty => nop
@@ -458,11 +458,6 @@ void KTextEditor::EditorPrivate::copyToClipboard(const QString &text)
     if (text.isEmpty()) {
         return;
     }
-
-    /**
-     * move to clipboard
-     */
-    QApplication::clipboard()->setText(text, QClipboard::Clipboard);
 
     /**
      * remember in history

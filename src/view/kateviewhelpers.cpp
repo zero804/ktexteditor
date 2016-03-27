@@ -2550,10 +2550,20 @@ void KatePasteMenu::slotAboutToShow()
      * insert complete paste history
      */
     int i = 0;
-    Q_FOREACH (const QString &text, KTextEditor::EditorPrivate::self()->clipboardHistory()) {
+    Q_FOREACH (const auto &texts, KTextEditor::EditorPrivate::self()->clipboardHistory()) {
         /**
          * get text for the menu ;)
          */
+        QString text;
+        Q_FOREACH (const auto& t, texts) {
+            if ( !text.isEmpty() ) {
+                text.append(QLatin1String(" "));
+            }
+            text.append(t);
+        }
+        if ( texts.size() > 1 ) {
+            text.prepend(QLatin1String("[") + i18nc("%1 entries", "always plural", texts.size()) + QLatin1String("] "));
+        }
         QString leftPart = (text.size() > 48) ? (text.left(48) + QLatin1String("...")) : text;
         QAction *a = menu()->addAction(leftPart.replace(QLatin1String("\n"), QLatin1String(" ")), this, SLOT(paste()));
         a->setData(i++);
@@ -2578,5 +2588,5 @@ void KatePasteMenu::paste()
     }
 
     // paste
-    m_view->paste(&KTextEditor::EditorPrivate::self()->clipboardHistory()[i]);
+    m_view->pasteInternal(KTextEditor::EditorPrivate::self()->clipboardHistory().at(i));
 }

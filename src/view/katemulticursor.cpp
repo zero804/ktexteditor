@@ -359,7 +359,7 @@ Cursors KateMultiCursor::cursors() const {
     if ( cursors.contains(primaryCursor()) ) {
         return cursors;
     }
-    cursors.append(primaryCursor());
+    cursors.prepend(primaryCursor());
     std::sort(cursors.begin(), cursors.end(), [](const KTextEditor::Cursor c1, const KTextEditor::Cursor c2) {
         return c1 > c2;
     });
@@ -393,9 +393,6 @@ Cursors KateMultiCursor::secondaryCursors() const {
             cursors.append(cursor);
         }
     }
-    std::sort(cursors.begin(), cursors.end(), [](const KTextEditor::Cursor& c1, const KTextEditor::Cursor& c2) {
-        return c1 > c2;
-    });
     return cursors;
 }
 

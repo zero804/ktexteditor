@@ -41,6 +41,7 @@
 #include "katetextfolding.h"
 #include "katerenderer.h"
 #include "katemulticursor.h"
+#include "katemulticlipboard.h"
 
 namespace KTextEditor
 {
@@ -75,11 +76,6 @@ class QVBoxLayout;
 
 namespace KTextEditor
 {
-
-class Selection : public QVector<KTextEditor::MovingRange*> {
-public:
-    Selection differenceTo(const Selection& previous) const;
-};
 
 //
 // Kate KTextEditor::View class ;)
@@ -134,7 +130,8 @@ public:
     // KTextEditor::ClipboardInterface
     //
 public Q_SLOTS:
-    void paste(const QString *textToPaste = 0);
+    void paste();
+    void pasteInternal(const QVector<QString>& texts);
     void cut();
     void copy() const;
 
@@ -1002,6 +999,9 @@ private:
     // remember folding state to prevent refolding the first line if it was manually unfolded,
     // e.g. when saving a file or changing other config vars
     bool m_autoFoldedFirstLine;
+
+private:
+    KateMultiClipboard m_clipboard;
 };
 
 }

@@ -3218,6 +3218,8 @@ void KTextEditor::DocumentPrivate::del(KTextEditor::ViewPrivate *view, const KTe
 
 void KTextEditor::DocumentPrivate::paste(KTextEditor::ViewPrivate *view, const QString &text)
 {
+    Q_ASSERT(false); //  TODO this function should go away
+
     static const QChar newLineChar(QLatin1Char('\n'));
     QString s = text;
 
@@ -3230,6 +3232,8 @@ void KTextEditor::DocumentPrivate::paste(KTextEditor::ViewPrivate *view, const Q
     auto paste_text_at = [this, view, s, lines](const KTextEditor::Cursor& pos) {
         editStart();
 
+#warning TODO handle overwrite mode
+        /**
         if (config()->ovr()) {
             QStringList pasteLines = s.split(newLineChar);
 
@@ -3247,6 +3251,7 @@ void KTextEditor::DocumentPrivate::paste(KTextEditor::ViewPrivate *view, const Q
                 }
             }
         }
+        **/
 
         insertText(pos, s, view->blockSelection());
         editEnd();

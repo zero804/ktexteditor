@@ -366,16 +366,16 @@ public:
     QStringList commandList() const Q_DECL_OVERRIDE;
 
     /**
-     * Copy text to clipboard an remember it in the history
-     * @param text text to copy to clipboard, does nothing if empty!
+     * Remember text in the clipboard history
+     * @param text text to remember, does nothing if empty!
      */
-    void copyToClipboard(const QString &text);
+    void updateClipboardHistory(const QVector<QString> &text);
 
     /**
      * Clipboard history, filled with text we ever copied
-     * to clipboard via copyToClipboard.
+     * to clipboard via updateClipboardHistory.
      */
-    const QStringList &clipboardHistory() const
+    const QVector<QVector<QString>> &clipboardHistory() const
     {
         return m_clipboardHistory;
     }
@@ -528,7 +528,7 @@ private:
     /**
      * clipboard history
      */
-    QStringList m_clipboardHistory;
+    QVector<QVector<QString>> m_clipboardHistory;
 
     /**
      * Dummy application object to be null safe

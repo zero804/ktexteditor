@@ -141,6 +141,7 @@ KTextEditor::ViewPrivate::ViewPrivate(KTextEditor::DocumentPrivate *doc, QWidget
     , m_statusBar(Q_NULLPTR)
     , m_temporaryAutomaticInvocationDisabled(false)
     , m_autoFoldedFirstLine(false)
+    , m_clipboard(cursors())
 {
     // queued connect to collapse view updates for range changes, INIT THIS EARLY ENOUGH!
     connect(this, SIGNAL(delayedUpdateOfView()), this, SLOT(slotDelayedUpdateOfView()), Qt::QueuedConnection);
@@ -2251,29 +2252,6 @@ bool KTextEditor::ViewPrivate::lineIsSelection(int line)
     return ( line == primarySelection().start().line() && line == primarySelection().end().line());
 }
 
-KTextEditor::Selection KTextEditor::Selection::differenceTo(const Selection& previous) const {
-    if ( isEmpty() ) {
-        return previous;
-    }
-    if ( previous.isEmpty() ) {
-        return *this;
-    }
-
-    Selection result;
-    result.reserve(qMax(size(), previous.size()));
-    Q_FOREACH ( const auto& range, *this ) {
-        if ( ! previous.contains(range) ) {
-            result.append(range);
-        }
-    }
-    Q_FOREACH ( const auto& range, previous ) {
-        if ( ! contains(range) ) {
-            result.append(range);
-        }
-    }
-    return result;
-}
-
 void KTextEditor::ViewPrivate::selectWord(const KTextEditor::Cursor &cursor)
 {
     setSelection(m_doc->wordRangeAt(cursor));
@@ -2296,26 +2274,25 @@ void KTextEditor::ViewPrivate::cut()
     }
 
     copy();
-    if (!selection()) {
-        selectLine(m_viewInternal->primaryCursor());
-    }
+#warning fixme: smart copy cut
+//     if (!selection()) {
+//         selectLine(m_viewInternal->primaryCursor());
+//     }
     removeSelectedText();
 }
 
 void KTextEditor::ViewPrivate::copy() const
 {
-    QString text = selectionText();
+#warning fixme: smart copy cut
+//     if (!selection()) {
+//         if (!m_config->smartCopyCut()) {
+//             return;
+//         }
+//         text = m_doc->line(m_viewInternal->primaryCursor().line()) + QLatin1Char('\n');
+//         m_viewInternal->cursors()->moveCursorsStartOfLine();
+//     }
 
-    if (!selection()) {
-        if (!m_config->smartCopyCut()) {
-            return;
-        }
-        text = m_doc->line(m_viewInternal->primaryCursor().line()) + QLatin1Char('\n');
-        m_viewInternal->cursors()->moveCursorsStartOfLine();
-    }
-
-    // copy to clipboard and our history!
-    KTextEditor::EditorPrivate::self()->copyToClipboard(text);
+    m_clipboard.copyToClipboard();
 }
 
 void KTextEditor::ViewPrivate::applyWordWrap()
@@ -2506,11 +2483,15 @@ void KTextEditor::ViewPrivate::sendCompletionAborted()
     emit completionAborted(this);
 }
 
-void KTextEditor::ViewPrivate::paste(const QString *textToPaste)
+void KTextEditor::ViewPrivate::paste()
 {
     m_temporaryAutomaticInvocationDisabled = true;
-    m_doc->paste(this, textToPaste ? *textToPaste : QApplication::clipboard()->text(QClipboard::Clipboard));
+    m_clipboard.pasteFromClipboard(QClipboard::Clipboard);
     m_temporaryAutomaticInvocationDisabled = false;
+}
+
+void KTextEditor::ViewPrivate::pasteInternal(const QVector<QString>& texts) {
+    m_clipboard.pasteVector(texts);
 }
 
 bool KTextEditor::ViewPrivate::setCursorPosition(KTextEditor::Cursor position)

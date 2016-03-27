@@ -104,11 +104,12 @@ protected:
     Cursor moveHome(const Cursor& c) const;
     Cursor moveEnd(const Cursor& c) const;
 
-protected:
+public:
     KTextEditor::ViewPrivate* view() const;
     KateViewInternal* viewInternal() const;
     KTextEditor::DocumentPrivate* doc() const;
 
+private:
     size_t indexOfCursor(const KTextEditor::Cursor& cursor) const;
 
 private:

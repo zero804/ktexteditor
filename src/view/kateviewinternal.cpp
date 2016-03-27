@@ -2277,6 +2277,7 @@ void KateViewInternal::mouseReleaseEvent(QMouseEvent *e)
         e->accept();
         break;
 
+#warning fixme drag and drop
 //         m_selectionMode = Default;
 //       m_selectionCached.start().setLine( -1 );
 
@@ -2299,8 +2300,7 @@ void KateViewInternal::mouseReleaseEvent(QMouseEvent *e)
         placeCursor(e->pos());
 
         if (doc()->isReadWrite()) {
-            QString clipboard = QApplication::clipboard()->text(QClipboard::Selection);
-            m_view->paste(&clipboard);
+            view()->m_clipboard.pasteFromClipboard(QClipboard::Selection);
         }
 
         e->accept();

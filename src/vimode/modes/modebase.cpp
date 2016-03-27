@@ -64,7 +64,8 @@ void ModeBase::yankToClipBoard(QChar chosen_register, QString text)
     if ((chosen_register == QLatin1Char('0') || chosen_register == QLatin1Char('-'))
         && text.length() > 1 && !text.trimmed().isEmpty())
     {
-        KTextEditor::EditorPrivate::self()->copyToClipboard(text);
+#warning fixme: vimode copy to clipboard
+//         KTextEditor::EditorPrivate::self()->copyToClipboard(text);
     }
 }
 
