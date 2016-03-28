@@ -2046,6 +2046,7 @@ void KateViewInternal::contextMenuEvent(QContextMenuEvent *e)
 
 void KateViewInternal::mousePressEvent(QMouseEvent *e)
 {
+    qDebug() << "called";
     if ( e->button() == Qt::LeftButton ) {
         auto newCursor = pointToCursor(e->pos());
         if (e->modifiers() & Qt::ShiftModifier) {
@@ -2077,50 +2078,9 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
         e->ignore();
     }
 
-//             if (e->modifiers() & Qt::ShiftModifier) {
-//                 updateSelection(primaryCursor(), true);
-//             } else {
-//                 m_view->selectLine(primaryCursor());
-//                 if (m_view->selection()) {
-//                     m_selectAnchor = m_view->selectionRange().start();
-//                 }
-//             }
-//
-//             if (m_view->selection()) {
-//                 QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
-//             }
-//
-//             // Keep the line at the select anchor selected during further
-//             // mouse selection
-//             if (m_selectAnchor.line() > m_view->selectionRange().start().line()) {
-//                 // Preserve the last selected line
-//                 if (m_selectAnchor == m_view->selectionRange().end() && m_selectAnchor.column() == 0) {
-//                     m_selectionCached.setStart(KTextEditor::Cursor(m_selectAnchor.line() - 1, 0));
-//                 } else {
-//                     m_selectionCached.setStart(KTextEditor::Cursor(m_selectAnchor.line(), 0));
-//                 }
-//                 m_selectionCached.setEnd(m_view->selectionRange().end());
-//             } else {
-//                 // Preserve the first selected line
-//                 m_selectionCached.setStart(m_view->selectionRange().start());
-//                 if (m_view->selectionRange().end().line() > m_view->selectionRange().start().line()) {
-//                     m_selectionCached.setEnd(KTextEditor::Cursor(m_view->selectionRange().start().line() + 1, 0));
-//                 } else {
-//                     m_selectionCached.setEnd(m_view->selectionRange().end());
-//                 }
-//             }
-//
-//             moveCursorToSelectionEdge();
-//
-//             m_scrollX = 0;
-//             m_scrollY = 0;
-//             m_scrollTimer.start(50);
-//
-//             e->accept();
-//             return;
-//         } else if (m_selectionMode == Default) {
-//             m_selectionMode = Mouse;
-//         }
+#warning fixme: copy selection to selection clipboard
+#warning fixme: software keyboard (?!)
+#warning fixme: drag and drop
 /*
         // request the software keyboard, if any
         if (e->button() == Qt::LeftButton && qApp->autoSipEnabled()) {
@@ -2184,7 +2144,8 @@ void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
         selections()->beginNewSelection(newCursor, KateMultiSelection::Word,
                                         secondary ? KateMultiSelection::AddNewCursor : KateMultiSelection::UsePrimaryCursor);
 
-#warning fix me: this weird "shift double click" feature
+#warning fixme: this weird "shift double click" feature
+#warning fixme: select to matching bracket on dclick
 #if 0
         if (e->modifiers() & Qt::ShiftModifier) {
             // Now select the word under the select anchor
