@@ -1075,9 +1075,20 @@ void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor
             cursors()->m_selections.last()->setRange({fromCursor, fromCursor});
         }
     }
+
     m_activeSelectingCursor = cursors()->m_cursors.last();
     selectEntityAt(fromCursor, cursors()->m_selections.last(), m_activeSelectionMode);
     m_activeSelectingCursor->setPosition(cursors()->m_selections.last()->end());
+
+    auto newSelection = cursors()->m_selections.last()->toRange();
+    Q_FOREACH ( const auto& c, cursors()->m_cursors ) {
+        auto cur = c->toCursor();
+        if ( newSelection.contains(cur) && !newSelection.boundaryAtCursor(cur) ) {
+            // The new selection contains a cursor which existed previously.
+            // Remove that.
+            cursors()->removeCursorInternal(c);
+        }
+    }
 }
 
 void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
