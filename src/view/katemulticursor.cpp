@@ -356,9 +356,6 @@ void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool r
 
 Cursors KateMultiCursor::cursors() const {
     auto cursors = secondaryCursors();
-    if ( cursors.contains(primaryCursor()) ) {
-        return cursors;
-    }
     cursors.prepend(primaryCursor());
     std::sort(cursors.begin(), cursors.end(), [](const KTextEditor::Cursor c1, const KTextEditor::Cursor c2) {
         return c1 > c2;
@@ -389,9 +386,7 @@ Cursors KateMultiCursor::secondaryCursors() const {
     cursors.reserve(m_cursors.size() - 1);
     foreach ( const auto moving, m_cursors.mid(1) ) {
         auto cursor = moving->toCursor();
-        if ( ! cursors.contains(cursor) ) {
-            cursors.append(cursor);
-        }
+        cursors.append(cursor);
     }
     return cursors;
 }

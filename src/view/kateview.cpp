@@ -2508,9 +2508,10 @@ const KateMultiSelection* KTextEditor::ViewPrivate::selections() const {
 }
 
 bool KTextEditor::ViewPrivate::setSelections(const QVector<KTextEditor::Range>& newSelections,
-                                             const QVector<KTextEditor::Cursor> &newCursors)
+                                             const QVector<KTextEditor::Cursor>& newCursors)
 {
     if ( !newCursors.isEmpty() && (newSelections.size() != newCursors.size()) ) {
+        Q_ASSERT(false);
         qWarning() << "mismatching cursor/selection size";
         return false;
     }
