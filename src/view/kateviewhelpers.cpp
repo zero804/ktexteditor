@@ -347,6 +347,7 @@ void KateScrollBar::updatePixmap()
 
     const QColor backgroundColor = m_view->defaultStyleAttribute(KTextEditor::dsNormal)->background().color();
     const QColor defaultTextColor = m_view->defaultStyleAttribute(KTextEditor::dsNormal)->foreground().color();
+    const QColor selectionBgColor = m_view->renderer()->config()->selectionColor();
     QColor modifiedLineColor = m_view->renderer()->config()->modifiedLineColor();
     QColor savedLineColor = m_view->renderer()->config()->savedLineColor();
     // move the modified line color away from the background color
@@ -373,9 +374,6 @@ void KateScrollBar::updatePixmap()
             int realLineNumber = m_view->textFolding().visibleLineToLine(virtualLine);
             QString lineText = m_doc->line(realLineNumber);
 
-            // use this to control the offset of the text from the left
-            int pixelX = s_pixelMargin;
-
             if (!simpleMode) {
                 m_doc->buffer().ensureHighlighted(realLineNumber);
             }
@@ -385,13 +383,43 @@ void KateScrollBar::updatePixmap()
             QList< QTextLayout::FormatRange > decorations = m_view->renderer()->decorationsForLine(kateline, realLineNumber);
             int attributeIndex = 0;
 
-            // The color to draw the currently selected text in; change the alpha value to make it
-            // more or less intense
-            QColor selectionColor = palette().color(QPalette::HighlightedText);
-            selectionColor.setAlpha(180);
+            // Draw selection if it is on an empty line
+            if (selection.contains(KTextEditor::Cursor(realLineNumber, 0)) && lineText.size() == 0) {
+                painter.setPen(selectionBgColor);
+                painter.drawLine(s_pixelMargin, pixelY, s_pixelMargin + s_lineWidth - 1, pixelY);
+            }
 
-            painter.setPen(defaultTextColor);
+            // Iterate over the line to draw the background
+            int selStartX = -1;
+            int selEndX = -1;
+            int pixelX = s_pixelMargin; // use this to control the offset of the text from the left
+            for (int x = 0; (x < lineText.size() && x < s_lineWidth); x += charIncrement) {
+                if (pixelX >= s_lineWidth + s_pixelMargin) {
+                    break;
+                }
+                // Query the selection and draw it behind the character
+                if (selection.contains(KTextEditor::Cursor(realLineNumber, x))) {
+                    if (selStartX == -1) selStartX = pixelX;
+                    selEndX = pixelX;
+                    if (lineText.size() - 1 == x) {
+                        selEndX = s_lineWidth + s_pixelMargin-1;
+                    }
+                }
+
+                if (lineText[x] == QLatin1Char('\t')) {
+                    pixelX += qMax(4 / charIncrement, 1); // FIXME: tab width...
+                } else {
+                    pixelX++;
+                }
+            }
+
+            if (selStartX != -1) {
+                painter.setPen(selectionBgColor);
+                painter.drawLine(selStartX, pixelY, selEndX, pixelY);
+            }
+
             // Iterate over all the characters in the current line
+            pixelX = s_pixelMargin;
             for (int x = 0; (x < lineText.size() && x < s_lineWidth); x += charIncrement) {
                 if (pixelX >= s_lineWidth + s_pixelMargin) {
                     break;
@@ -411,17 +439,6 @@ void KateScrollBar::updatePixmap()
                     pixelX++;
                 }
 
-                // Query the selection and draw it above the character with an alpha channel
-                if (selection.contains(KTextEditor::Cursor(realLineNumber, x))) {
-                    painter.setPen(selectionColor);
-                    painter.drawPoint(s_pixelMargin, pixelY);
-                    // fill the line up in case the selection extends beyond it
-                    if (lineText.size() - 1 == x) {
-                        for (int xFill = s_pixelMargin; xFill < s_lineWidth; xFill++) {
-                            painter.drawPoint(xFill, pixelY);
-                        }
-                    }
-                }
             }
             drawnLines++;
             if (((drawnLines) % charIncrement) == 0) {
@@ -797,7 +814,7 @@ KateCommandLineBar::KateCommandLineBar(KTextEditor::ViewPrivate *view, QWidget *
 
     QToolButton *helpButton = new QToolButton(this);
     helpButton->setAutoRaise(true);
-    helpButton->setIcon(QIcon::fromTheme(QLatin1String("help-contextual")));
+    helpButton->setIcon(QIcon::fromTheme(QStringLiteral("help-contextual")));
     topLayout->addWidget(helpButton);
     connect(helpButton, SIGNAL(clicked()), this, SLOT(showHelpPage()));
 
@@ -806,7 +823,7 @@ KateCommandLineBar::KateCommandLineBar(KTextEditor::ViewPrivate *view, QWidget *
 
 void KateCommandLineBar::showHelpPage()
 {
-    KHelpClient::invokeHelp(QLatin1String("advanced-editing-tools-commandline"), QLatin1String("kate"));
+    KHelpClient::invokeHelp(QStringLiteral("advanced-editing-tools-commandline"), QStringLiteral("kate"));
 }
 
 KateCommandLineBar::~KateCommandLineBar()
@@ -861,9 +878,9 @@ void KateCmdLineEdit::hideEvent(QHideEvent *e)
 
 QString KateCmdLineEdit::helptext(const QPoint &) const
 {
-    QString beg = QString::fromLatin1("<qt background=\"white\"><div><table width=\"100%\"><tr><td bgcolor=\"brown\"><font color=\"white\"><b>Help: <big>");
-    QString mid = QString::fromLatin1("</big></b></font></td></tr><tr><td>");
-    QString end = QString::fromLatin1("</td></tr></table></div><qt>");
+    QString beg = QStringLiteral("<qt background=\"white\"><div><table width=\"100%\"><tr><td bgcolor=\"brown\"><font color=\"white\"><b>Help: <big>");
+    QString mid = QStringLiteral("</big></b></font></td></tr><tr><td>");
+    QString end = QStringLiteral("</td></tr></table></div><qt>");
 
     QString t = text();
     QRegExp re(QLatin1String("\\s*help\\s+(.*)"));
@@ -873,7 +890,7 @@ QString KateCmdLineEdit::helptext(const QPoint &) const
         QString name = re.cap(1);
         if (name == QLatin1String("list")) {
             return beg + i18n("Available Commands") + mid
-                   + KateCmd::self()->commandList().join(QLatin1String(" "))
+                   + KateCmd::self()->commandList().join(QLatin1Char(' '))
                    + i18n("<p>For help on individual commands, do <code>'help &lt;command&gt;'</code></p>")
                    + end;
         } else if (! name.isEmpty()) {
@@ -972,7 +989,7 @@ void KateCmdLineEdit::slotReturnPressed(const QString &text)
         m_msgMode = true;
 
         // the following commands changes the focus themselves, so bar should be hidden before execution.
-        if (QRegExp(QLatin1String("buffer|b|new|vnew|bp|bprev|bn|bnext|bf|bfirst|bl|blast|edit|e")).exactMatch(cmd.split(QLatin1String(" ")).at(0))) {
+        if (QRegExp(QLatin1String("buffer|b|new|vnew|bp|bprev|bn|bnext|bf|bfirst|bl|blast|edit|e")).exactMatch(cmd.split(QLatin1Char(' ')).at(0))) {
             emit hideRequested();
         }
 
@@ -1022,7 +1039,7 @@ void KateCmdLineEdit::slotReturnPressed(const QString &text)
     m_cmdend = 0;
 
     // the following commands change the focus themselves
-    if (!QRegExp(QLatin1String("buffer|b|new|vnew|bp|bprev|bn|bnext|bf|bfirst|bl|blast|edit|e")).exactMatch(cmd.split(QLatin1String(" ")).at(0))) {
+    if (!QRegExp(QLatin1String("buffer|b|new|vnew|bp|bprev|bn|bnext|bf|bfirst|bl|blast|edit|e")).exactMatch(cmd.split(QLatin1Char(' ')).at(0))) {
         m_view->setFocus();
     }
 
@@ -1069,7 +1086,7 @@ void KateCmdLineEdit::keyPressEvent(QKeyEvent *ev)
     if (! m_cmdend || cursorpos <= m_cmdend) {
         QChar c;
         if (! ev->text().isEmpty()) {
-            c = ev->text()[0];
+            c = ev->text().at(0);
         }
 
         if (! m_cmdend && ! c.isNull()) { // we have no command, so lets see if we got one
@@ -1201,7 +1218,7 @@ KateIconBorder::KateIconBorder(KateViewInternal *internalView, QWidget *parent)
     setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Minimum);
     setMouseTracking(true);
     m_doc->setMarkDescription(MarkInterface::markType01, i18n("Bookmark"));
-    m_doc->setMarkPixmap(MarkInterface::markType01, QIcon::fromTheme(QLatin1String("bookmarks")).pixmap(16, 16));
+    m_doc->setMarkPixmap(MarkInterface::markType01, QIcon::fromTheme(QStringLiteral("bookmarks")).pixmap(16, 16));
 
     updateFont();
 
@@ -1634,10 +1651,10 @@ void KateIconBorder::paintBorder(int /*x*/, int y, int /*width*/, int height)
                     if (m_relLineNumbersOn) {
                         if (distanceToCurrent == 0) {
                             p.drawText(lnX + m_maxCharWidth / 2, y, lnWidth - m_maxCharWidth, h,
-                                       Qt::TextDontClip|Qt::AlignLeft|Qt::AlignVCenter, QString::fromLatin1("%1").arg(realLine + 1));
+                                       Qt::TextDontClip|Qt::AlignLeft|Qt::AlignVCenter, QString::number(realLine + 1));
                         } else {
                             p.drawText(lnX + m_maxCharWidth / 2, y, lnWidth - m_maxCharWidth, h,
-                                       Qt::TextDontClip|Qt::AlignRight|Qt::AlignVCenter, QString::fromLatin1("%1").arg(distanceToCurrent));
+                                       Qt::TextDontClip|Qt::AlignRight|Qt::AlignVCenter, QString::number(distanceToCurrent));
                         }
                         if (m_updateRelLineNumbers) {
                             m_updateRelLineNumbers = false;
@@ -1645,7 +1662,7 @@ void KateIconBorder::paintBorder(int /*x*/, int y, int /*width*/, int height)
                         }
                     } else if (m_lineNumbersOn) {
                         p.drawText(lnX + m_maxCharWidth / 2, y, lnWidth - m_maxCharWidth, h,
-                                   Qt::TextDontClip | Qt::AlignRight | Qt::AlignVCenter, QString::fromLatin1("%1").arg(realLine + 1));
+                                   Qt::TextDontClip | Qt::AlignRight | Qt::AlignVCenter, QString::number(realLine + 1));
                     }
                 } else if (m_view->dynWordWrap() && m_dynWrapIndicatorsOn) {
                     p.drawPixmap(lnX + lnWidth - (m_arrow.width() / m_arrow.devicePixelRatio()) - 2, y, m_arrow);
@@ -2122,7 +2139,7 @@ void KateIconBorder::showAnnotationMenu(int line, const QPoint &pos)
 {
     QMenu menu;
     QAction a(i18n("Disable Annotation Bar"), &menu);
-    a.setIcon(QIcon::fromTheme(QLatin1String("dialog-close")));
+    a.setIcon(QIcon::fromTheme(QStringLiteral("dialog-close")));
     menu.addAction(&a);
     emit m_view->annotationContextMenuAboutToShow(m_view, &menu, line);
     if (menu.exec(pos) == &a) {
@@ -2364,7 +2381,7 @@ KateViewBarWidget::KateViewBarWidget(bool addCloseButton, QWidget *parent)
     if (addCloseButton) {
         QToolButton *hideButton = new QToolButton(this);
         hideButton->setAutoRaise(true);
-        hideButton->setIcon(QIcon::fromTheme(QLatin1String("dialog-close")));
+        hideButton->setIcon(QIcon::fromTheme(QStringLiteral("dialog-close")));
         connect(hideButton, SIGNAL(clicked()), SIGNAL(hideMe()));
         layout->addWidget(hideButton);
         layout->setAlignment(hideButton, Qt::AlignLeft | Qt::AlignTop);

@@ -45,6 +45,7 @@ BugTest::~BugTest()
 
 void BugTest::initTestCase()
 {
+    KTextEditor::EditorPrivate::enableUnitTestMode();
 }
 
 void BugTest::cleanupTestCase()
@@ -57,6 +58,7 @@ void BugTest::deleteSurrogates()
     KTextEditor::DocumentPrivate doc;
     KTextEditor::ViewPrivate *view = static_cast<KTextEditor::ViewPrivate *>(doc.createView(0));
     const QUrl url = QUrl::fromLocalFile(QLatin1String(TEST_DATA_DIR"bug205447.txt"));
+    doc.setEncoding(QStringLiteral("UTF-8"));
     QVERIFY(doc.openUrl(url));
 
     // test delete
@@ -85,6 +87,7 @@ void BugTest::backspaceSurrogates()
     KTextEditor::DocumentPrivate doc;
     KTextEditor::ViewPrivate *view = static_cast<KTextEditor::ViewPrivate *>(doc.createView(0));
     const QUrl url = QUrl::fromLocalFile(QLatin1String(TEST_DATA_DIR"bug205447.txt"));
+    doc.setEncoding(QStringLiteral("UTF-8"));
     QVERIFY(doc.openUrl(url));
 
     // test backspace

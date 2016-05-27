@@ -104,6 +104,10 @@ public:
     /**
      * Returns whether the current position of this cursor is a valid position
      * (line + column must both be >= 0).
+     *
+     * @note If you want to check, whether a cursor position is a valid
+     *       \e text-position, use DocumentCursor::isValidTextPosition(),
+     *       or Document::isValidTextPosition().
      */
     Q_DECL_CONSTEXPR inline bool isValid() const Q_DECL_NOEXCEPT {
         return m_line >= 0 && m_column >= 0;
@@ -124,6 +128,34 @@ public:
     Q_DECL_CONSTEXPR static Cursor start() Q_DECL_NOEXCEPT {
         return Cursor();
     }
+
+    /**
+     * Returns the cursor position as string in the format "(line, column)".
+     * \see fromString()
+     */
+    QString toString() const {
+        return QLatin1Char('(') + QString::number(m_line)
+             + QStringLiteral(", ") + QString::number(m_column)
+             + QLatin1Char(')');
+    }
+
+    /**
+     * Returns a Cursor created from the string \p str containing the format
+     * "(line, column)". In case the string cannot be parsed, Cursor::invalid()
+     * is returned.
+     * \see toString()
+     */
+    static Cursor fromString(const QString& str) Q_DECL_NOEXCEPT {
+        return fromString(str.leftRef(-1));
+    }
+
+    /**
+     * Returns a Cursor created from the string \p str containing the format
+     * "(line, column)". In case the string cannot be parsed, Cursor::invalid()
+     * is returned.
+     * \see toString()
+     */
+    static Cursor fromString(const QStringRef& str) Q_DECL_NOEXCEPT;
 
     /**
      * \name Position

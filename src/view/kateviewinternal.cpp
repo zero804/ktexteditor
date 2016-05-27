@@ -1957,7 +1957,7 @@ void KateViewInternal::keyPressEvent(QKeyEvent *e)
             }
 
             if (tabHandling == KateDocumentConfig::tabInsertsTab) {
-                doc()->typeChars(m_view, QLatin1String("\t"));
+                doc()->typeChars(m_view, QStringLiteral("\t"));
             } else {
                 Q_FOREACH ( const auto& cursor, m_view->allCursors() ) {
                     doc()->indent(m_view->selection() ? m_view->selectionRange() : KTextEditor::Range(cursor.line(), 0, cursor.line(), 0), 1);
@@ -2394,7 +2394,7 @@ void KateViewInternal::mouseMoveEvent(QMouseEvent *e)
 
 void KateViewInternal::updateDirty()
 {
-    uint h = renderer()->lineHeight();
+    const int h = renderer()->lineHeight();
 
     int currentRectStart = -1;
     int currentRectEnd = -1;

@@ -44,6 +44,7 @@ BugTest::~BugTest()
 
 void BugTest::initTestCase()
 {
+    KTextEditor::EditorPrivate::enableUnitTestMode();
 }
 
 void BugTest::cleanupTestCase()
@@ -67,7 +68,7 @@ void BugTest::tryCrash()
     QVERIFY(scriptFile.open(QFile::ReadOnly));
     QScriptValue result = env->engine()->evaluate(QString::fromLatin1(scriptFile.readAll()), scriptFile.fileName());
     QVERIFY2(!result.isError(), qPrintable(QString(result.toString() + QLatin1String("\nat ")
-                                           + env->engine()->uncaughtExceptionBacktrace().join(QLatin1String("\n")))));
+                                           + env->engine()->uncaughtExceptionBacktrace().join(QStringLiteral("\n")))));
 
     // enable on the fly spell checking
     doc->onTheFlySpellCheckingEnabled(true);

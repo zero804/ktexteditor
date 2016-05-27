@@ -100,7 +100,7 @@ static inline QChar matchingStartBracket(QChar c, bool withQuotes)
         case ']': return QLatin1Char('[');
         case ')': return QLatin1Char('(');
         case '\'': return withQuotes ? QLatin1Char('\'') : QChar();
-        case '\"': return withQuotes ? QLatin1Char('\"') : QChar();
+        case '"': return withQuotes ? QLatin1Char('"') : QChar();
     }
     return QChar();
 }
@@ -112,7 +112,7 @@ static inline QChar matchingEndBracket(QChar c, bool withQuotes)
         case '[': return QLatin1Char(']');
         case '(': return QLatin1Char(')');
         case '\'': return withQuotes ? QLatin1Char('\'') : QChar();
-        case '\"': return withQuotes ? QLatin1Char('\"') : QChar();
+        case '"': return withQuotes ? QLatin1Char('"') : QChar();
     }
     return QChar();
 }
@@ -194,9 +194,9 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
       m_userSetEncodingForNextReload(false),
       m_modOnHd(false),
       m_modOnHdReason(OnDiskUnmodified),
-      m_docName(QLatin1String("need init")),
+      m_docName(QStringLiteral("need init")),
       m_docNameNumber(0),
-      m_fileType(QLatin1String("Normal")),
+      m_fileType(QStringLiteral("Normal")),
       m_fileTypeSetByUser(false),
       m_reloading(false),
       m_config(new KateDocumentConfig(this)),
@@ -637,7 +637,7 @@ bool KTextEditor::DocumentPrivate::setText(const QString &s)
 
     editEnd();
 
-    foreach (const KTextEditor::Mark &mark, msave) {
+    foreach (KTextEditor::Mark mark, msave) {
         setMark(mark.line, mark.type);
     }
 
@@ -666,7 +666,7 @@ bool KTextEditor::DocumentPrivate::setText(const QStringList &text)
 
     editEnd();
 
-    foreach (const KTextEditor::Mark &mark, msave) {
+    foreach (KTextEditor::Mark mark, msave) {
         setMark(mark.line, mark.type);
     }
 
@@ -782,7 +782,7 @@ bool KTextEditor::DocumentPrivate::insertText(const KTextEditor::Cursor &positio
     }
 
     // just reuse normal function
-    return insertText(position, textLines.join(QLatin1String("\n")), block);
+    return insertText(position, textLines.join(QStringLiteral("\n")), block);
 }
 
 bool KTextEditor::DocumentPrivate::removeText(const KTextEditor::Range &_range, bool block)
@@ -1441,7 +1441,7 @@ bool KTextEditor::DocumentPrivate::editUnWrapLine(int line, bool removeLine, int
         emit marksChanged(this);
     }
 
-    emit textRemoved(this, KTextEditor::Range(line, col, line + 1, 0), QLatin1String("\n"));
+    emit textRemoved(this, KTextEditor::Range(line, col, line + 1, 0), QStringLiteral("\n"));
 
     editEnd();
 
@@ -1604,7 +1604,7 @@ bool KTextEditor::DocumentPrivate::editRemoveLines(int from, int to)
         }
     }
 
-    emit textRemoved(this, rangeRemoved, oldText.join(QLatin1String("\n")) + QLatin1Char('\n'));
+    emit textRemoved(this, rangeRemoved, oldText.join(QStringLiteral("\n")) + QLatin1Char('\n'));
 
     editEnd();
 
@@ -2161,13 +2161,13 @@ QMimeType KTextEditor::DocumentPrivate::mimeTypeForContent()
 void KTextEditor::DocumentPrivate::showAndSetOpeningErrorAccess()
 {
     QPointer<KTextEditor::Message> message
-        = new KTextEditor::Message(i18n("The file %1 could not be loaded, as it was not possible to read from it.<br />Check if you have read access to this file.", this->url().toString()),
+        = new KTextEditor::Message(i18n("The file %1 could not be loaded, as it was not possible to read from it.<br />Check if you have read access to this file.", this->url().toDisplayString(QUrl::PreferLocalFile)),
                                    KTextEditor::Message::Error);
     message->setWordWrap(true);
-    QAction *tryAgainAction = new QAction(QIcon::fromTheme(QLatin1String("view-refresh")), i18nc("translators: you can also translate 'Try Again' with 'Reload'", "Try Again"), 0);
+    QAction *tryAgainAction = new QAction(QIcon::fromTheme(QStringLiteral("view-refresh")), i18nc("translators: you can also translate 'Try Again' with 'Reload'", "Try Again"), 0);
     connect(tryAgainAction, SIGNAL(triggered()), SLOT(documentReload()), Qt::QueuedConnection);
 
-    QAction *closeAction = new QAction(QIcon::fromTheme(QLatin1String("window-close")), i18n("&Close"), 0);
+    QAction *closeAction = new QAction(QIcon::fromTheme(QStringLiteral("window-close")), i18n("&Close"), 0);
     closeAction->setToolTip(i18n("Close message"));
 
     // add try again and close actions
@@ -2179,7 +2179,7 @@ void KTextEditor::DocumentPrivate::showAndSetOpeningErrorAccess()
 
     // remember error
     m_openingError = true;
-    m_openingErrorMessage = i18n("The file %1 could not be loaded, as it was not possible to read from it.\n\nCheck if you have read access to this file.", this->url().toString());
+    m_openingErrorMessage = i18n("The file %1 could not be loaded, as it was not possible to read from it.\n\nCheck if you have read access to this file.", this->url().toDisplayString(QUrl::PreferLocalFile));
 
 }
 //END: error
@@ -2296,7 +2296,7 @@ bool KTextEditor::DocumentPrivate::openFile()
         QPointer<KTextEditor::Message> message
             = new KTextEditor::Message(i18n("The file %1 was opened with %2 encoding but contained invalid characters.<br />"
                                             "It is set to read-only mode, as saving might destroy its content.<br />"
-                                            "Either reopen the file with the correct encoding chosen or enable the read-write mode again in the tools menu to be able to edit it.", this->url().toString(),
+                                            "Either reopen the file with the correct encoding chosen or enable the read-write mode again in the tools menu to be able to edit it.", this->url().toDisplayString(QUrl::PreferLocalFile),
                                             QString::fromLatin1(m_buffer->textCodec()->name())),
                                        KTextEditor::Message::Warning);
         message->setWordWrap(true);
@@ -2306,7 +2306,7 @@ bool KTextEditor::DocumentPrivate::openFile()
         m_openingError = true;
         m_openingErrorMessage = i18n("The file %1 was opened with %2 encoding but contained invalid characters."
                                     " It is set to read-only mode, as saving might destroy its content."
-                                    " Either reopen the file with the correct encoding chosen or enable the read-write mode again in the tools menu to be able to edit it.", this->url().toString(), QString::fromLatin1(m_buffer->textCodec()->name()));
+                                    " Either reopen the file with the correct encoding chosen or enable the read-write mode again in the tools menu to be able to edit it.", this->url().toDisplayString(QUrl::PreferLocalFile), QString::fromLatin1(m_buffer->textCodec()->name()));
     }
 
     // warn: too long lines
@@ -2318,7 +2318,7 @@ bool KTextEditor::DocumentPrivate::openFile()
             = new KTextEditor::Message(i18n("The file %1 was opened and contained lines longer than the configured Line Length Limit (%2 characters).<br />"
                                             "The longest of those lines was %3 characters long<br/>"
                                             "Those lines were wrapped and the document is set to read-only mode, as saving will modify its content.",
-                                            this->url().toString(), config()->lineLengthLimit(),m_buffer->longestLineLoaded()),
+                                            this->url().toDisplayString(QUrl::PreferLocalFile), config()->lineLengthLimit(),m_buffer->longestLineLoaded()),
                                        KTextEditor::Message::Warning);
         QAction *increaseAndReload=new QAction(i18n("Temporarily raise limit and reload file"),message);
         connect(increaseAndReload,SIGNAL(triggered()),this,SLOT(openWithLineLengthLimitOverride()));
@@ -2331,7 +2331,7 @@ bool KTextEditor::DocumentPrivate::openFile()
         m_openingError = true;
         m_openingErrorMessage = i18n("The file %1 was opened and contained lines longer than the configured Line Length Limit (%2 characters).<br/>"
                                      "The longest of those lines was %3 characters long<br/>"
-                                     "Those lines were wrapped and the document is set to read-only mode, as saving will modify its content.", this->url().toString(), config()->lineLengthLimit(),m_buffer->longestLineLoaded());
+                                     "Those lines were wrapped and the document is set to read-only mode, as saving will modify its content.", this->url().toDisplayString(QUrl::PreferLocalFile), config()->lineLengthLimit(),m_buffer->longestLineLoaded());
     }
 
     //
@@ -2437,10 +2437,10 @@ bool KTextEditor::DocumentPrivate::saveFile()
         if (!backupSuccess && (KMessageBox::warningContinueCancel(parentWidget
                                , i18n("For file %1 no backup copy could be created before saving."
                                       " If an error occurs while saving, you might lose the data of this file."
-                                      " A reason could be that the media you write to is full or the directory of the file is read-only for you.", url().toString())
+                                      " A reason could be that the media you write to is full or the directory of the file is read-only for you.", url().toDisplayString(QUrl::PreferLocalFile))
                                , i18n("Failed to create backup copy.")
                                , KGuiItem(i18n("Try to Save Nevertheless"))
-                               , KStandardGuiItem::cancel(), QLatin1String("Backup Failed Warning")) != KMessageBox::Continue)) {
+                               , KStandardGuiItem::cancel(), QStringLiteral("Backup Failed Warning")) != KMessageBox::Continue)) {
             return false;
         }
     }
@@ -2478,7 +2478,7 @@ bool KTextEditor::DocumentPrivate::saveFile()
         // add m_file again to dirwatch
         activateDirWatch(oldPath);
 
-        KMessageBox::error(parentWidget, i18n("The document could not be saved, as it was not possible to write to %1.\n\nCheck that you have write access to this file or that enough disk space is available.", this->url().toString()));
+        KMessageBox::error(parentWidget, i18n("The document could not be saved, as it was not possible to write to %1.\n\nCheck that you have write access to this file or that enough disk space is available.", this->url().toDisplayString(QUrl::PreferLocalFile)));
 
         return false;
     }
@@ -2611,7 +2611,7 @@ bool KTextEditor::DocumentPrivate::closeUrl()
                         parentWidget,
                         reasonedMOHString() + QLatin1String("\n\n") + i18n("Do you really want to continue to close this file? Data loss may occur."),
                         i18n("Possible Data Loss"), KGuiItem(i18n("Close Nevertheless")), KStandardGuiItem::cancel(),
-                        QString::fromLatin1("kate_close_modonhd_%1").arg(m_modOnHdReason)) == KMessageBox::Continue)) {
+                        QStringLiteral("kate_close_modonhd_%1").arg(m_modOnHdReason)) == KMessageBox::Continue)) {
                 /**
                  * reset reloading
                  */
@@ -2640,7 +2640,7 @@ bool KTextEditor::DocumentPrivate::closeUrl()
     /**
      * delete all KTE::Messages
      */
-    if (m_messageHash.count()) {
+    if (!m_messageHash.isEmpty()) {
         QList<KTextEditor::Message *> keys = m_messageHash.keys();
         foreach (KTextEditor::Message *message, keys) {
             delete message;
@@ -2850,14 +2850,16 @@ int KTextEditor::DocumentPrivate::fromVirtualColumn(const KTextEditor::Cursor &c
 bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, const QString &realChars)
 {
     /**
-     * filter out non-printable
+     * filter out non-printable chars (convert to utf-32 to support surrogate pairs)
      */
-    QString chars;
-    Q_FOREACH (QChar c, realChars)
-        if (c.isPrint() || c == QChar::fromLatin1('\t')) {
-            chars.append(c);
+    const auto realUcs4Chars = realChars.toUcs4();
+    QVector<uint> ucs4Chars;
+    Q_FOREACH (auto c, realUcs4Chars)
+        if (QChar::isPrint(c) || c == QChar::fromLatin1('\t') || c == QChar::fromLatin1('\n') || c == QChar::fromLatin1('\r')) {
+            ucs4Chars.append(c);
         }
 
+    QString chars = QString::fromUcs4(ucs4Chars.data(), ucs4Chars.size());
     /**
      * no printable chars => nothing to insert!
      */
@@ -3112,14 +3114,9 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
     if (col > 0) {
         if (!(config()->backspaceIndents())) {
             // ordinary backspace
-            //c.cursor.col--;
-            KTextEditor::Cursor beginCursor(line, col - 1);
+            KTextEditor::Cursor beginCursor(line, view->textLayout(c)->previousCursorPosition(c.column()));
             KTextEditor::Cursor endCursor(line, col);
-            // move to left of surrogate pair
-            if (!isValidTextPosition(beginCursor)) {
-                Q_ASSERT(col >= 2);
-                beginCursor.setColumn(col - 2);
-            }
+
             removeText(KTextEditor::Range(beginCursor, endCursor));
             // in most cases cursor is moved by removeText, but we should do it manually
             // for past-end-of-line cursors in block mode
@@ -3150,13 +3147,9 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
                 // only spaces on left side of cursor
                 indent(KTextEditor::Range(line, 0, line, 0), -1);
             } else {
-                KTextEditor::Cursor beginCursor(line, col - 1);
+                KTextEditor::Cursor beginCursor(line, view->textLayout(c)->previousCursorPosition(c.column()));
                 KTextEditor::Cursor endCursor(line, col);
-                // move to left of surrogate pair
-                if (!isValidTextPosition(beginCursor)) {
-                    Q_ASSERT(col >= 2);
-                    beginCursor.setColumn(col - 2);
-                }
+
                 removeText(KTextEditor::Range(beginCursor, endCursor));
                 // in most cases cursor is moved by removeText, but we should do it manually
                 // for past-end-of-line cursors in block mode
@@ -3205,11 +3198,8 @@ void KTextEditor::DocumentPrivate::del(KTextEditor::ViewPrivate *view, const KTe
     }
 
     if (c.column() < (int) m_buffer->plainLine(c.line())->length()) {
-        KTextEditor::Cursor endCursor(c.line(), c.column() + 1);
-        // if the cursor is at the start of a surrogate pair then delete both code-points
-        if (!isValidTextPosition(endCursor)) {
-            endCursor.setColumn(c.column() + 2);
-        }
+        KTextEditor::Cursor endCursor(c.line(), view->textLayout(c)->nextCursorPosition(c.column()));
+
         removeText(KTextEditor::Range(c, endCursor));
     } else if (c.line() < lastLine()) {
         removeText(KTextEditor::Range(c.line(), c.column(), c.line() + 1, 0));
@@ -3337,7 +3327,7 @@ void KTextEditor::DocumentPrivate::insertTab(KTextEditor::ViewPrivate *view, con
             removeText(r);
         }
 
-        editInsertText(c.line(), c.column(), QLatin1String("\t"));
+        editInsertText(c.line(), c.column(), QStringLiteral("\t"));
     }
 
     editEnd();
@@ -4197,8 +4187,8 @@ bool KTextEditor::DocumentPrivate::documentReload()
         int i = KMessageBox::warningYesNoCancel
                 (parentWidget, reasonedMOHString() + QLatin1String("\n\n") + i18n("What do you want to do?"),
                     i18n("File Was Changed on Disk"),
-                    KGuiItem(i18n("&Reload File"), QLatin1String("view-refresh")),
-                    KGuiItem(i18n("&Ignore Changes"), QLatin1String("dialog-warning")));
+                    KGuiItem(i18n("&Reload File"), QStringLiteral("view-refresh")),
+                    KGuiItem(i18n("&Ignore Changes"), QStringLiteral("dialog-warning")));
 
         if (i != KMessageBox::Yes) {
             if (i == KMessageBox::No) {
@@ -4316,7 +4306,7 @@ bool KTextEditor::DocumentPrivate::documentSaveCopyAs()
     }
 
     if (!m_buffer->saveFile(file.fileName())) {
-        KMessageBox::error(dialogParent(), i18n("The document could not be saved, as it was not possible to write to %1.\n\nCheck that you have write access to this file or that enough disk space is available.", this->url().toString()));
+        KMessageBox::error(dialogParent(), i18n("The document could not be saved, as it was not possible to write to %1.\n\nCheck that you have write access to this file or that enough disk space is available.", this->url().toDisplayString(QUrl::PreferLocalFile)));
         return false;
     }
 
@@ -4486,15 +4476,15 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
     }
 
     QStringList vvl; // view variable names
-    vvl << QLatin1String("dynamic-word-wrap") << QLatin1String("dynamic-word-wrap-indicators")
-        << QLatin1String("line-numbers") << QLatin1String("icon-border") << QLatin1String("folding-markers")
-        << QLatin1String("bookmark-sorting") << QLatin1String("auto-center-lines")
-        << QLatin1String("icon-bar-color")
+    vvl << QStringLiteral("dynamic-word-wrap") << QStringLiteral("dynamic-word-wrap-indicators")
+        << QStringLiteral("line-numbers") << QStringLiteral("icon-border") << QStringLiteral("folding-markers")
+        << QStringLiteral("bookmark-sorting") << QStringLiteral("auto-center-lines")
+        << QStringLiteral("icon-bar-color")
         // renderer
-        << QLatin1String("background-color") << QLatin1String("selection-color")
-        << QLatin1String("current-line-color") << QLatin1String("bracket-highlight-color")
-        << QLatin1String("word-wrap-marker-color")
-        << QLatin1String("font") << QLatin1String("font-size") << QLatin1String("scheme");
+        << QStringLiteral("background-color") << QStringLiteral("selection-color")
+        << QStringLiteral("current-line-color") << QStringLiteral("bracket-highlight-color")
+        << QStringLiteral("word-wrap-marker-color")
+        << QStringLiteral("font") << QStringLiteral("font-size") << QStringLiteral("scheme");
     int spaceIndent = -1;  // for backward compatibility; see below
     bool replaceTabsSet = false;
     int p(0);
@@ -4569,7 +4559,7 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
             // STRING SETTINGS
             else if (var == QLatin1String("eol") || var == QLatin1String("end-of-line")) {
                 QStringList l;
-                l << QLatin1String("unix") << QLatin1String("dos") << QLatin1String("mac");
+                l << QStringLiteral("unix") << QStringLiteral("dos") << QStringLiteral("mac");
                 if ((n = l.indexOf(val.toLower())) != -1) {
                     m_config->setEol(n);
                 }
@@ -4711,7 +4701,7 @@ QString KTextEditor::DocumentPrivate::variable(const QString &name) const
 
 void KTextEditor::DocumentPrivate::setVariable(const QString &name, const QString &value)
 {
-    QString s = QLatin1String("kate: ");
+    QString s = QStringLiteral("kate: ");
     s.append(name);
     s.append(QLatin1Char(' '));
     s.append(value);
@@ -4837,7 +4827,7 @@ bool KTextEditor::DocumentPrivate::createDigest()
         if (f.open(QIODevice::ReadOnly)) {
             // init the hash with the git header
             QCryptographicHash crypto(QCryptographicHash::Sha1);
-            const QString header = QString(QLatin1String("blob %1")).arg(f.size());
+            const QString header = QStringLiteral("blob %1").arg(f.size());
             crypto.addData(header.toLatin1() + '\0');
 
             while (!f.atEnd()) {
@@ -4858,7 +4848,7 @@ bool KTextEditor::DocumentPrivate::createDigest()
 QString KTextEditor::DocumentPrivate::reasonedMOHString() const
 {
     // squeeze path
-    QString str = KStringHandler::csqueeze(url().toString());
+    const QString str = KStringHandler::csqueeze(url().toDisplayString(QUrl::PreferLocalFile));
 
     switch (m_modOnHdReason) {
     case OnDiskModified:
@@ -4873,6 +4863,7 @@ QString KTextEditor::DocumentPrivate::reasonedMOHString() const
     default:
         return QString();
     }
+    Q_UNREACHABLE();
     return QString();
 }
 
@@ -5354,7 +5345,7 @@ void KTextEditor::DocumentPrivate::slotTriggerLoadingMessage()
      * create message about file loading in progress
      */
     delete m_loadingMessage;
-    m_loadingMessage = new KTextEditor::Message(i18n("The file <a href=\"%1\">%2</a> is still loading.", url().toString(), url().fileName()));
+    m_loadingMessage = new KTextEditor::Message(i18n("The file <a href=\"%1\">%2</a> is still loading.", url().toDisplayString(QUrl::PreferLocalFile), url().fileName()));
     m_loadingMessage->setPosition(KTextEditor::Message::TopInView);
 
     /**
@@ -5915,7 +5906,7 @@ bool KTextEditor::DocumentPrivate::postMessage(KTextEditor::Message *message)
 
     // if there are no actions, add a close action by default if widget does not auto-hide
     if (message->actions().count() == 0 && message->autoHide() < 0) {
-        QAction *closeAction = new QAction(QIcon::fromTheme(QLatin1String("window-close")), i18n("&Close"), 0);
+        QAction *closeAction = new QAction(QIcon::fromTheme(QStringLiteral("window-close")), i18n("&Close"), 0);
         closeAction->setToolTip(i18n("Close message"));
         message->addAction(closeAction);
     }

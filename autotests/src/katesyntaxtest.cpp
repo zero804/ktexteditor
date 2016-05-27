@@ -36,6 +36,7 @@ QTEST_MAIN(KateSyntaxTest)
 
 void KateSyntaxTest::initTestCase()
 {
+    KTextEditor::EditorPrivate::enableUnitTestMode();
 }
 
 void KateSyntaxTest::cleanupTestCase()
@@ -57,7 +58,7 @@ void KateSyntaxTest::testSyntaxHighlighting_data()
         if (!info.isDir() || hlDir.contains(QLatin1Char('.'))) {
             continue;
         }
-        
+
         /**
          * now: get the tests per hl
          */
@@ -68,8 +69,8 @@ void KateSyntaxTest::testSyntaxHighlighting_data()
             if (!info.isFile()) {
                 continue;
             }
-            
-            QTest::newRow(info.absoluteFilePath().toLocal8Bit().constData()) << info.absoluteFilePath();        
+
+            QTest::newRow(info.absoluteFilePath().toLocal8Bit().constData()) << info.absoluteFilePath();
         }
     }
 }
@@ -81,7 +82,7 @@ void KateSyntaxTest::testSyntaxHighlighting()
      * get current test case
      */
     QFETCH(QString, hlTestCase);
-    
+
     /**
      * create a document with a view to be able to export stuff
      */
@@ -90,12 +91,14 @@ void KateSyntaxTest::testSyntaxHighlighting()
 
     /**
      * load the test case
+     * enforce UTF-8 to avoid locale problems
      */
     QUrl url;
     url.setScheme(QLatin1String("file"));
     url.setPath(hlTestCase);
+    doc.setEncoding(QStringLiteral("UTF-8"));
     QVERIFY(doc.openUrl(url));
-    
+
     /**
      * compute needed dirs
      */
@@ -103,24 +106,28 @@ void KateSyntaxTest::testSyntaxHighlighting()
     const QString resultDir(info.absolutePath() + QLatin1String("/results/"));
     const QString currentResult(resultDir + info.fileName() + QLatin1String(".current.html"));
     const QString referenceResult(resultDir + info.fileName() + QLatin1String(".reference.html"));
-    
+
     /**
      * export the result
      */
     view->exportHtmlToFile(currentResult);
-    
+
     /**
      * verify the result against reference
      */
     QProcess diff;
+    diff.setProcessChannelMode(QProcess::MergedChannels);
     QStringList args;
     args << QLatin1String("-u") << (referenceResult) << (currentResult);
     diff.start(QLatin1String("diff"), args);
     diff.waitForFinished();
     QByteArray out = diff.readAllStandardOutput();
-    QByteArray err = diff.readAllStandardError();
-    if (!err.isEmpty()) {
-        qWarning() << err;
+    if (!out.isEmpty()) {
+        printf("DIFF:\n");
+        QList<QByteArray> outLines = out.split('\n');
+        Q_FOREACH(const QByteArray &line, outLines) {
+            printf("%s\n", qPrintable(line));
+        }
     }
     QCOMPARE(QString::fromLocal8Bit(out), QString());
     QCOMPARE(diff.exitCode(), EXIT_SUCCESS);

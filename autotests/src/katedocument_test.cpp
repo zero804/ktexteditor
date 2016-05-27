@@ -413,4 +413,29 @@ void KateDocumentTest::testDefStyleNum()
     QCOMPARE(doc.defStyleNum(0, 0), 0);
 }
 
+void KateDocumentTest::testTypeCharsWithSurrogateAndNewLine()
+{
+    KTextEditor::DocumentPrivate doc;
+    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(Q_NULLPTR));
+    const uint surrogateUcs4String[] = { 0x1f346, '\n', 0x1f346, 0 };
+    const auto surrogateString = QString::fromUcs4(surrogateUcs4String);
+    doc.typeChars(view, surrogateString);
+
+    QCOMPARE(doc.text(), surrogateString);
+}
+
+void KateDocumentTest::testRemoveComposedCharacters()
+{
+    KTextEditor::DocumentPrivate doc;
+    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(Q_NULLPTR));
+    doc.setText(QString::fromUtf8("व्यक्तियों"));
+    doc.del(view, Cursor(0, 0));
+
+    QCOMPARE(doc.text(), QString::fromUtf8(("क्तियों")));
+
+    doc.backspace(view, Cursor(0, 7));
+
+    QCOMPARE(doc.text(), QString::fromUtf8(("क्ति")));
+}
+
 #include "katedocument_test.moc"
