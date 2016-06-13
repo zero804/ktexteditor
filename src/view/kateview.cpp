@@ -2206,7 +2206,9 @@ bool KTextEditor::ViewPrivate::removeSelectedText()
 
     m_doc->editStart();
 
-    Q_FOREACH ( const auto& range, selections()->selections() ) {
+    auto sels = selections()->selections();
+    std::sort(sels.begin(), sels.end(), [](const Range& a, const Range& b) { return a > b; });
+    Q_FOREACH ( const auto& range, sels ) {
         m_doc->removeText(range, blockSelect);
     }
 
