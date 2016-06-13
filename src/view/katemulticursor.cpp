@@ -951,9 +951,7 @@ Selections KateMultiSelection::selections() const {
     Selections ret;
     ret.reserve(cursors()->m_selections.size());
     Q_FOREACH ( const auto& r, cursors()->m_selections ) {
-        if ( ! r->isEmpty() ) {
-            ret.append(r->toRange());
-        }
+        ret.append(r->toRange());
     }
     return ret;
 }

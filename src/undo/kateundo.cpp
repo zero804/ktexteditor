@@ -243,6 +243,7 @@ KateUndoGroup::KateUndoGroup(KateUndoManager *manager,
     , m_undoCursor(cursorPosition)
     , m_redoCursor()
 {
+    Q_ASSERT(m_undoCursor.size() == m_undoSelection.size());
 }
 
 KateUndoGroup::~KateUndoGroup()
@@ -325,6 +326,7 @@ bool KateUndoGroup::merge(KateUndoGroup *newGroup, bool complex)
 
         m_redoCursor = newGroup->m_redoCursor;
         m_redoSelection = newGroup->m_redoSelection;
+        Q_ASSERT(m_redoCursor.size() == m_redoSelection.size());
 
         return true;
     }
