@@ -86,8 +86,10 @@ void KateMultiClipboard::pasteVector(const QVector<QString>& texts) {
 
     m_cursors->view()->removeSelectedText();
     if ( texts.size() == m_cursors->cursorsCount() ) {
+        auto cursors = m_cursors->cursors();
+        std::sort(cursors.begin(), cursors.end(), [](const Cursor& a, const Cursor& b) { return a>b; });
         int j = 0;
-        Q_FOREACH ( const auto& cursor, m_cursors->cursors() ) {
+        Q_FOREACH ( const auto& cursor, cursors ) {
             m_cursors->doc()->insertText(cursor, texts.at(j++));
         }
     }
