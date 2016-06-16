@@ -67,11 +67,11 @@ public:
 
     bool secondaryFrozen() const {
         return m_secondaryFrozen;
-    };
+    }
 
     void toggleSecondaryFrozen() {
         return setSecondaryFrozen(!m_secondaryFrozen);
-    };
+    }
     /**
      * @brief Freeze secondary cursors.
      *
@@ -170,7 +170,7 @@ public:
         None,
         Mouse,
         Word,
-        Line,
+        Line
     };
     enum SelectionFlags {
         UsePrimaryCursor = 0x1,

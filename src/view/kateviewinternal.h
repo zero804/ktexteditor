@@ -302,16 +302,16 @@ private:
 public:
     const KateMultiCursor* cursors() const {
         return &m_cursors;
-    };
+    }
     const KateMultiSelection* selections() const {
         return &m_selections;
-    };
+    }
     KateMultiCursor* cursors() {
         return &m_cursors;
-    };
+    }
     KateMultiSelection* selections() {
         return &m_selections;
-    };
+    }
 
 private:
 

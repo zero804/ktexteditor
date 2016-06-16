@@ -98,7 +98,7 @@ void KateMultiClipboard::pasteVector(const QVector<QString>& texts) {
         QString res;
         Q_FOREACH ( const auto& t, texts ) {
             if ( !res.isEmpty() ) {
-                res.prepend(QLatin1String("\n"));
+                res.prepend(QLatin1Char('\n'));
             }
             res.append(t);
         }
@@ -124,7 +124,7 @@ QMimeData* KateMultiClipboard::createMimeData() const
     auto sels = m_cursors->selections()->selections();
     s << (int32_t) sels.size();
     Q_FOREACH ( const auto& sel, sels ) {
-        textData += textData.isEmpty() ? QLatin1String("") : QLatin1String("\n");
+        textData += textData.isEmpty() ? QString() : QLatin1String("\n");
         auto text = m_cursors->doc()->text(sel, false);
         s << text;
         textData += text;
