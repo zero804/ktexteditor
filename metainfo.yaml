@@ -3,7 +3,9 @@ description: Advanced embeddable text editor
 tier: 3
 type: solution
 platforms:
-    - name: All
+    - name: Linux
+    - name: Windows
+    - name: MacOSX
 portingAid: false
 deprecated: false
 release: true
@@ -11,3 +13,7 @@ libraries:
  - qmake: KTextEditor
    cmake: "KF5::TextEditor"
 cmakename: KF5TextEditor
+
+public_lib: true
+group: Frameworks
+subgroup: Tier 3
