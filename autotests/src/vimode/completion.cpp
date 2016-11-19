@@ -22,15 +22,15 @@
 #include <katecompletionwidget.h>
 #include <kateconfig.h>
 #include <kateglobal.h>
-#include <vimode/emulatedcommandbar.h>
+#include <vimode/emulatedcommandbar/emulatedcommandbar.h>
 #include <katewordcompletion.h>
 #include "completion.h"
 #include "fakecodecompletiontestmodel.h"
 #include "vimode/mappings.h"
 #include "vimode/globalstate.h"
 
-using namespace KateVi;
 using namespace KTextEditor;
+using KateVi::Mappings;
 
 
 QTEST_MAIN(CompletionTest)

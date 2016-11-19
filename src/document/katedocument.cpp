@@ -66,6 +66,7 @@
 #include <KCodecs>
 #include <KStringHandler>
 #include <KConfigGroup>
+#include <KMountPoint>
 
 #include <QCryptographicHash>
 #include <QFile>
@@ -78,6 +79,8 @@
 #include <QFileDialog>
 #include <QMimeDatabase>
 #include <QTemporaryFile>
+
+#include <cmath>
 
 #ifdef LIBGIT2_FOUND
 #include <git2.h>
@@ -185,7 +188,6 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
       m_undoManager(new KateUndoManager(this)),
       m_editableMarks(markType01),
       m_annotationModel(0),
-      m_isasking(0),
       m_buffer(new KateBuffer(this)),
       m_indenter(new KateAutoIndent(this)),
       m_hlSetByUser(false),
@@ -194,6 +196,7 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
       m_userSetEncodingForNextReload(false),
       m_modOnHd(false),
       m_modOnHdReason(OnDiskUnmodified),
+      m_prevModOnHdReason(OnDiskUnmodified),
       m_docName(QStringLiteral("need init")),
       m_docNameNumber(0),
       m_fileType(QStringLiteral("Normal")),
@@ -205,8 +208,7 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
       m_documentState(DocumentIdle),
       m_readWriteStateBeforeLoading(false),
       m_isUntitled(true),
-      m_openingError(false),
-      m_lineLengthLimitOverride(0)
+      m_openingError(false)
 {
     /**
      * no plugins from kparts here
@@ -302,6 +304,9 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
 //
 KTextEditor::DocumentPrivate::~DocumentPrivate()
 {
+    // delete pending mod-on-hd message, if applicable
+    delete m_modOnHdHandler;
+
     /**
      * we are about to delete cursors/ranges/...
      */
@@ -709,18 +714,19 @@ bool KTextEditor::DocumentPrivate::insertText(const KTextEditor::Cursor &positio
 
     int currentLine = position.line();
     int currentLineStart = 0;
-    int totalLength = text.length();
+    const int totalLength = text.length();
     int insertColumn = position.column();
 
+    // pad with empty lines, if insert position is after last line
     if (position.line() > lines()) {
         int line = lines();
-        while (line != position.line() + totalLength + 1) {
+        while (line <= position.line()) {
             editInsertLine(line, QString());
             line++;
         }
     }
 
-    int tabWidth = config()->tabWidth();
+    const int tabWidth = config()->tabWidth();
 
     static const QChar newLineChar(QLatin1Char('\n'));
 
@@ -2117,43 +2123,23 @@ void KTextEditor::DocumentPrivate::printPreview()
 //BEGIN KTextEditor::DocumentInfoInterface (### unfinished)
 QString KTextEditor::DocumentPrivate::mimeType()
 {
-    QMimeType mt;
-
-    if (!this->url().isEmpty()) {
-        mt = QMimeDatabase().mimeTypeForUrl(this->url());
-    } else {
-        mt = mimeTypeForContent();
+    /**
+     * collect first 4k of text
+     * only heuristic
+     */
+    QByteArray buf;
+    for (int i = 0; (i < lines()) && (buf.size() <= 4096); ++i) {
+        buf.append(line(i).toUtf8());
+        buf.append('\n');
     }
 
-    return mt.name();
-}
-
-QMimeType KTextEditor::DocumentPrivate::mimeTypeForContent()
-{
-    QByteArray buf(1024, '\0');
-    uint bufpos = 0;
-
-    for (int i = 0; i < lines(); ++i) {
-        QString line = this->line(i);
-        uint len = line.length() + 1;
-
-        if (bufpos + len > 1024) {
-            len = 1024 - bufpos;
-        }
-
-        QString ld(line + QLatin1Char('\n'));
-        buf.replace(bufpos, len, ld.toLatin1()); //memcpy(buf.data() + bufpos, ld.toLatin1().constData(), len);
-
-        bufpos += len;
-
-        if (bufpos >= 1024) {
-            break;
-        }
+    // use path of url, too, if set
+    if (!url().path().isEmpty()) {
+        return QMimeDatabase().mimeTypeForFileNameAndData(url().path(), buf).name();
     }
-    buf.resize(bufpos);
 
-    QMimeDatabase db;
-    return db.mimeTypeForData(buf);
+    // else only use the content
+    return QMimeDatabase().mimeTypeForData(buf).name();
 }
 //END KTextEditor::DocumentInfoInterface
 
@@ -2187,27 +2173,28 @@ void KTextEditor::DocumentPrivate::showAndSetOpeningErrorAccess()
 
 void KTextEditor::DocumentPrivate::openWithLineLengthLimitOverride()
 {
-    m_lineLengthLimitOverride=m_buffer->longestLineLoaded()+1;
+    // raise line length limit to the next power of 2
+    const int longestLine = m_buffer->longestLineLoaded();
+    int newLimit = pow(2, ceil(log(longestLine) / log(2))); // TODO: C++11: use log2(x)
+    if (newLimit <= longestLine) {
+        newLimit *= 2;
+    }
+
+    // do the raise
+    config()->setLineLengthLimit(newLimit);
+
+    // just reload
     m_buffer->clear();
     openFile();
     if (!m_openingError) {
         setReadWrite(true);
-        m_readWriteStateBeforeLoading=true;
+        m_readWriteStateBeforeLoading = true;
     }
-    m_lineLengthLimitOverride=0;
-
 }
 
-int KTextEditor::DocumentPrivate::lineLengthLimit()
+int KTextEditor::DocumentPrivate::lineLengthLimit() const
 {
-    int result;
-    if (m_lineLengthLimitOverride>0) {
-       result=m_lineLengthLimitOverride;
-    } else {
-       result=config()->lineLengthLimit();
-    }
-
-    return result;
+    return config()->lineLengthLimit();
 }
 
 //BEGIN KParts::ReadWrite stuff
@@ -2278,6 +2265,7 @@ bool KTextEditor::DocumentPrivate::openFile()
     if (m_modOnHd) {
         m_modOnHd = false;
         m_modOnHdReason = OnDiskUnmodified;
+        m_prevModOnHdReason = OnDiskUnmodified;
         emit modifiedOnDisk(this, m_modOnHd, m_modOnHdReason);
     }
 
@@ -2313,17 +2301,17 @@ bool KTextEditor::DocumentPrivate::openFile()
     if (m_buffer->tooLongLinesWrapped()) {
         // this file can't be saved again without modifications
         setReadWrite(false);
-        m_readWriteStateBeforeLoading=false;
+        m_readWriteStateBeforeLoading = false;
         QPointer<KTextEditor::Message> message
             = new KTextEditor::Message(i18n("The file %1 was opened and contained lines longer than the configured Line Length Limit (%2 characters).<br />"
                                             "The longest of those lines was %3 characters long<br/>"
                                             "Those lines were wrapped and the document is set to read-only mode, as saving will modify its content.",
-                                            this->url().toDisplayString(QUrl::PreferLocalFile), config()->lineLengthLimit(),m_buffer->longestLineLoaded()),
+                                            this->url().toDisplayString(QUrl::PreferLocalFile), config()->lineLengthLimit(), m_buffer->longestLineLoaded()),
                                        KTextEditor::Message::Warning);
-        QAction *increaseAndReload=new QAction(i18n("Temporarily raise limit and reload file"),message);
-        connect(increaseAndReload,SIGNAL(triggered()),this,SLOT(openWithLineLengthLimitOverride()));
-	message->addAction(increaseAndReload,true);
-	message->addAction(new QAction(i18n("Close"),message),true);
+        QAction *increaseAndReload = new QAction(i18n("Temporarily raise limit and reload file"), message);
+        connect(increaseAndReload, SIGNAL(triggered()), this, SLOT(openWithLineLengthLimitOverride()));
+        message->addAction(increaseAndReload, true);
+        message->addAction(new QAction(i18n("Close"), message), true);
         message->setWordWrap(true);
         postMessage(message);
 
@@ -2342,7 +2330,8 @@ bool KTextEditor::DocumentPrivate::openFile()
 
 bool KTextEditor::DocumentPrivate::saveFile()
 {
-    QWidget *parentWidget(dialogParent());
+    // delete pending mod-on-hd message if applicable.
+    delete m_modOnHdHandler;
 
     // some warnings, if file was changed by the outside!
     if (!url().isEmpty()) {
@@ -2350,12 +2339,12 @@ bool KTextEditor::DocumentPrivate::saveFile()
             QString str = reasonedMOHString() + QLatin1String("\n\n");
 
             if (!isModified()) {
-                if (KMessageBox::warningContinueCancel(parentWidget,
+                if (KMessageBox::warningContinueCancel(dialogParent(),
                                                        str + i18n("Do you really want to save this unmodified file? You could overwrite changed data in the file on disk."), i18n("Trying to Save Unmodified File"), KGuiItem(i18n("Save Nevertheless"))) != KMessageBox::Continue) {
                     return false;
                 }
             } else {
-                if (KMessageBox::warningContinueCancel(parentWidget,
+                if (KMessageBox::warningContinueCancel(dialogParent(),
                                                        str + i18n("Do you really want to save this file? Both your open file and the file on disk were changed. There could be some data lost."), i18n("Possible Data Loss"), KGuiItem(i18n("Save Nevertheless"))) != KMessageBox::Continue) {
                     return false;
                 }
@@ -2367,83 +2356,17 @@ bool KTextEditor::DocumentPrivate::saveFile()
     // can we encode it if we want to save it ?
     //
     if (!m_buffer->canEncode()
-            && (KMessageBox::warningContinueCancel(parentWidget,
+            && (KMessageBox::warningContinueCancel(dialogParent(),
                     i18n("The selected encoding cannot encode every unicode character in this document. Do you really want to save it? There could be some data lost."), i18n("Possible Data Loss"), KGuiItem(i18n("Save Nevertheless"))) != KMessageBox::Continue)) {
         return false;
     }
 
-    //
-    // try to create backup file..
-    //
-
-    // local file or not is here the question
-    bool l(url().isLocalFile());
-
-    // does the user want any backup, if not, not our problem?
-    if ((l && config()->backupFlags() & KateDocumentConfig::LocalFiles)
-            || (! l && config()->backupFlags() & KateDocumentConfig::RemoteFiles)) {
-        QUrl u(url());
-        if (config()->backupPrefix().contains(QDir::separator())) {
-            /**
-             * replace complete path, as prefix is a path!
-             */
-            u.setPath(config()->backupPrefix() + url().fileName() + config()->backupSuffix());
-        } else {
-            /**
-             * replace filename in url
-             */
-            const QString fileName = url().fileName();
-            u = u.adjusted(QUrl::RemoveFilename);
-            u.setPath(u.path() + config()->backupPrefix() + fileName + config()->backupSuffix());
-        }
-
-        qCDebug(LOG_KTE) << "backup src file name: " << url();
-        qCDebug(LOG_KTE) << "backup dst file name: " << u;
-
-        // handle the backup...
-        bool backupSuccess = false;
-
-        // local file mode, no kio
-        if (u.isLocalFile()) {
-            if (QFile::exists(url().toLocalFile())) {
-                // first: check if backupFile is already there, if true, unlink it
-                QFile backupFile(u.toLocalFile());
-                if (backupFile.exists()) {
-                    backupFile.remove();
-                }
-
-                backupSuccess = QFile::copy(url().toLocalFile(), u.toLocalFile());
-            } else {
-                backupSuccess = true;
-            }
-        } else { // remote file mode, kio
-            // get the right permissions, start with safe default
-            KIO::StatJob *statJob = KIO::stat(url(), KIO::StatJob::SourceSide, 2);
-            KJobWidgets::setWindow(statJob, QApplication::activeWindow());
-
-            if (!statJob->exec()) {
-                // do a evil copy which will overwrite target if possible
-                KFileItem item(statJob->statResult(), url());
-                KIO::FileCopyJob *job = KIO::file_copy(url(), u, item.permissions(), KIO::Overwrite);
-                KJobWidgets::setWindow(job, QApplication::activeWindow());
-                job->exec();
-                backupSuccess = !job->error();
-            } else {
-                backupSuccess = true;
-            }
-        }
-
-        // backup has failed, ask user how to proceed
-        if (!backupSuccess && (KMessageBox::warningContinueCancel(parentWidget
-                               , i18n("For file %1 no backup copy could be created before saving."
-                                      " If an error occurs while saving, you might lose the data of this file."
-                                      " A reason could be that the media you write to is full or the directory of the file is read-only for you.", url().toDisplayString(QUrl::PreferLocalFile))
-                               , i18n("Failed to create backup copy.")
-                               , KGuiItem(i18n("Try to Save Nevertheless"))
-                               , KStandardGuiItem::cancel(), QStringLiteral("Backup Failed Warning")) != KMessageBox::Continue)) {
-            return false;
-        }
-    }
+    /**
+     * create a backup file or abort if that fails!
+     * if no backup file wanted, this routine will just return true
+     */
+    if (!createBackupFile())
+        return false;
 
     // update file type, pass no file path, read file type content from this document
     updateFileType(KTextEditor::EditorPrivate::self()->modeManager()->fileType(this, QString()));
@@ -2477,9 +2400,7 @@ bool KTextEditor::DocumentPrivate::saveFile()
     if (!m_buffer->saveFile(localFilePath())) {
         // add m_file again to dirwatch
         activateDirWatch(oldPath);
-
-        KMessageBox::error(parentWidget, i18n("The document could not be saved, as it was not possible to write to %1.\n\nCheck that you have write access to this file or that enough disk space is available.", this->url().toDisplayString(QUrl::PreferLocalFile)));
-
+        KMessageBox::error(dialogParent(), i18n("The document could not be saved, as it was not possible to write to %1.\n\nCheck that you have write access to this file or that enough disk space is available.", this->url().toDisplayString(QUrl::PreferLocalFile)));
         return false;
     }
 
@@ -2495,6 +2416,7 @@ bool KTextEditor::DocumentPrivate::saveFile()
     if (m_modOnHd) {
         m_modOnHd = false;
         m_modOnHdReason = OnDiskUnmodified;
+        m_prevModOnHdReason = OnDiskUnmodified;
         emit modifiedOnDisk(this, m_modOnHd, m_modOnHdReason);
     }
 
@@ -2506,6 +2428,113 @@ bool KTextEditor::DocumentPrivate::saveFile()
     //
     // return success
     //
+    return true;
+}
+
+bool KTextEditor::DocumentPrivate::createBackupFile()
+{
+    /**
+     * backup for local or remote files wanted?
+     */
+    const bool backupLocalFiles = (config()->backupFlags() & KateDocumentConfig::LocalFiles);
+    const bool backupRemoteFiles = (config()->backupFlags() & KateDocumentConfig::RemoteFiles);
+
+    /**
+     * early out, before mount check: backup wanted at all?
+     * => if not, all fine, just return
+     */
+    if (!backupLocalFiles && !backupRemoteFiles) {
+        return true;
+    }
+
+    /**
+     * decide if we need backup based on locality
+     * skip that, if we always want backups, as currentMountPoints is not that fast
+     */
+    QUrl u(url());
+    bool needBackup = backupLocalFiles && backupRemoteFiles;
+    if (!needBackup) {
+        bool slowOrRemoteFile = !u.isLocalFile();
+        if (!slowOrRemoteFile) {
+            // could be a mounted remote filesystem (e.g. nfs, sshfs, cifs)
+            // we have the early out above to skip this, if we want no backup, which is the default
+            KMountPoint::Ptr mountPoint = KMountPoint::currentMountPoints().findByDevice(u.toLocalFile());
+            slowOrRemoteFile = (mountPoint && mountPoint->probablySlow());
+        }
+        needBackup = (!slowOrRemoteFile && backupLocalFiles) || (slowOrRemoteFile && backupRemoteFiles);
+    }
+
+    /**
+     * no backup needed? be done
+     */
+    if (!needBackup) {
+        return true;
+    }
+
+    /**
+     * else: try to backup
+     */
+    if (config()->backupPrefix().contains(QDir::separator())) {
+        /**
+         * replace complete path, as prefix is a path!
+         */
+        u.setPath(config()->backupPrefix() + u.fileName() + config()->backupSuffix());
+    } else {
+        /**
+         * replace filename in url
+         */
+        const QString fileName = u.fileName();
+        u = u.adjusted(QUrl::RemoveFilename);
+        u.setPath(u.path() + config()->backupPrefix() + fileName + config()->backupSuffix());
+    }
+
+    qCDebug(LOG_KTE) << "backup src file name: " << url();
+    qCDebug(LOG_KTE) << "backup dst file name: " << u;
+
+    // handle the backup...
+    bool backupSuccess = false;
+
+    // local file mode, no kio
+    if (u.isLocalFile()) {
+        if (QFile::exists(url().toLocalFile())) {
+            // first: check if backupFile is already there, if true, unlink it
+            QFile backupFile(u.toLocalFile());
+            if (backupFile.exists()) {
+                backupFile.remove();
+            }
+
+            backupSuccess = QFile::copy(url().toLocalFile(), u.toLocalFile());
+        } else {
+            backupSuccess = true;
+        }
+    } else { // remote file mode, kio
+        // get the right permissions, start with safe default
+        KIO::StatJob *statJob = KIO::stat(url(), KIO::StatJob::SourceSide, 2);
+        KJobWidgets::setWindow(statJob, QApplication::activeWindow());
+
+        if (!statJob->exec()) {
+            // do a evil copy which will overwrite target if possible
+            KFileItem item(statJob->statResult(), url());
+            KIO::FileCopyJob *job = KIO::file_copy(url(), u, item.permissions(), KIO::Overwrite);
+            KJobWidgets::setWindow(job, QApplication::activeWindow());
+            job->exec();
+            backupSuccess = !job->error();
+        } else {
+            backupSuccess = true;
+        }
+    }
+
+    // backup has failed, ask user how to proceed
+    if (!backupSuccess && (KMessageBox::warningContinueCancel(dialogParent()
+                            , i18n("For file %1 no backup copy could be created before saving."
+                                    " If an error occurs while saving, you might lose the data of this file."
+                                    " A reason could be that the media you write to is full or the directory of the file is read-only for you.", url().toDisplayString(QUrl::PreferLocalFile))
+                            , i18n("Failed to create backup copy.")
+                            , KGuiItem(i18n("Try to Save Nevertheless"))
+                            , KStandardGuiItem::cancel(), QStringLiteral("Backup Failed Warning")) != KMessageBox::Continue)) {
+        return false;
+    }
+
     return true;
 }
 
@@ -2605,8 +2634,10 @@ bool KTextEditor::DocumentPrivate::closeUrl()
     //
     if (!m_reloading && !url().isEmpty()) {
         if (m_fileChangedDialogsActivated && m_modOnHd) {
-            QWidget *parentWidget(dialogParent());
+            // make sure to not forget pending mod-on-hd handler
+            delete m_modOnHdHandler;
 
+            QWidget *parentWidget(dialogParent());
             if (!(KMessageBox::warningContinueCancel(
                         parentWidget,
                         reasonedMOHString() + QLatin1String("\n\n") + i18n("Do you really want to continue to close this file? Data loss may occur."),
@@ -2665,6 +2696,7 @@ bool KTextEditor::DocumentPrivate::closeUrl()
     if (m_modOnHd) {
         m_modOnHd = false;
         m_modOnHdReason = OnDiskUnmodified;
+        m_prevModOnHdReason = OnDiskUnmodified;
         emit modifiedOnDisk(this, m_modOnHd, m_modOnHdReason);
     }
 
@@ -2893,10 +2925,6 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
             view->cursorRight();
             return true;
         }
-
-        if ( ! closingBracket.isNull() ) {
-            m_currentAutobraceClosingChar = closingBracket;
-        }
     }
 
     /**
@@ -2968,7 +2996,13 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
          * => add the matching closing one to the view + input chars
          * try to preserve the cursor position
          */
-        if (!closingBracket.isNull()) {
+        bool skipAutobrace = closingBracket == QLatin1Char('\'');
+        if ( highlight() && skipAutobrace ) {
+            auto context = highlight()->contextForLocation(this, view->cursorPosition() - Cursor{0, 1});
+            // skip adding ' in spellchecked areas, because those are text
+            skipAutobrace = !context || highlight()->attributeRequiresSpellchecking(context->attr);
+        }
+        if (!closingBracket.isNull() && !skipAutobrace ) {
             // add bracket to the view
             Q_FOREACH ( const auto& cursorPos, view->allCursors() ) {
                 const auto nextChar = view->document()->text({cursorPos, cursorPos + Cursor{0, 1}}).trimmed();
@@ -2985,6 +3019,7 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
                     chars.append(closingBracket);
                 }
             }
+            m_currentAutobraceClosingChar = closingBracket;
         }
 
         // end edit session here, to have updated HL in userTypedChar!
@@ -3742,8 +3777,6 @@ void KTextEditor::DocumentPrivate::comment(KTextEditor::ViewPrivate *v, uint lin
     bool hasStartStopCommentMark = (!(highlight()->getCommentStart(startAttrib).isEmpty())
                                     && !(highlight()->getCommentEnd(startAttrib).isEmpty()));
 
-    bool removed = false;
-
     if (change > 0) { // comment
         if (!hassel) {
             if (hasStartLineCommentMark) {
@@ -3772,6 +3805,7 @@ void KTextEditor::DocumentPrivate::comment(KTextEditor::ViewPrivate *v, uint lin
             }
         }
     } else { // uncomment
+        bool removed = false;
         if (!hassel) {
             removed = (hasStartLineCommentMark
                        && removeStartLineCommentFromSingleLine(line, startAttrib))
@@ -4088,72 +4122,59 @@ void KTextEditor::DocumentPrivate::updateDocName()
 
 void KTextEditor::DocumentPrivate::slotModifiedOnDisk(KTextEditor::View * /*v*/)
 {
-    if (m_isasking < 0) {
-        m_isasking = 0;
+    if (url().isEmpty() || !m_modOnHd) {
         return;
     }
 
-    if (!m_fileChangedDialogsActivated || m_isasking) {
+    if (!m_fileChangedDialogsActivated || m_modOnHdHandler) {
         return;
     }
 
-    if (m_modOnHd && !url().isEmpty()) {
-        m_isasking = 1;
-
-        QWidget *parentWidget(dialogParent());
-
-        KateModOnHdPrompt p(this, m_modOnHdReason, reasonedMOHString(), parentWidget);
-        switch (p.exec()) {
-        case KateModOnHdPrompt::Save: {
-            m_modOnHd = false;
-            const QUrl res = QFileDialog::getSaveFileUrl(parentWidget, i18n("Save File"), url());
-            if (!res.isEmpty() && checkOverwrite(res, parentWidget)) {
-                if (! saveAs(res)) {
-                    KMessageBox::error(parentWidget, i18n("Save failed"));
-                    m_modOnHd = true;
-                } else {
-                    emit modifiedOnDisk(this, false, OnDiskUnmodified);
-                }
-            } else { // the save as dialog was canceled, we are still modified on disk
-                m_modOnHd = true;
-            }
-
-            m_isasking = 0;
-            break;
-        }
-
-        case KateModOnHdPrompt::Reload:
-            m_modOnHd = false;
-            emit modifiedOnDisk(this, false, OnDiskUnmodified);
-            documentReload();
-            m_isasking = 0;
-            break;
-
-        case KateModOnHdPrompt::Ignore:
-            m_modOnHd = false;
-            emit modifiedOnDisk(this, false, OnDiskUnmodified);
-            m_isasking = 0;
-            break;
-
-        case KateModOnHdPrompt::Overwrite:
-            m_modOnHd = false;
-            emit modifiedOnDisk(this, false, OnDiskUnmodified);
-            m_isasking = 0;
-            save();
-            break;
-
-        case KateModOnHdPrompt::Close:
-            m_modOnHd = false;
-            emit modifiedOnDisk(this, false, OnDiskUnmodified);
-            m_isasking = 0;
-            // delay close, else we delete ourself in bad situations
-            QTimer::singleShot(0, this, SLOT(closeDocumentInApplication()));
-            break;
-
-        default: // Delay/cancel: ignore next focus event
-            m_isasking = -1;
-        }
+    // don't ask the user again and again the same thing
+    if (m_modOnHdReason == m_prevModOnHdReason) {
+        return;
     }
+    m_prevModOnHdReason = m_modOnHdReason;
+
+    m_modOnHdHandler = new KateModOnHdPrompt(this, m_modOnHdReason, reasonedMOHString());
+    connect(m_modOnHdHandler.data(), &KateModOnHdPrompt::saveAsTriggered, this, &DocumentPrivate::onModOnHdSaveAs);
+    connect(m_modOnHdHandler.data(), &KateModOnHdPrompt::reloadTriggered, this, &DocumentPrivate::onModOnHdReload);
+    connect(m_modOnHdHandler.data(), &KateModOnHdPrompt::ignoreTriggered, this, &DocumentPrivate::onModOnHdIgnore);
+}
+
+void KTextEditor::DocumentPrivate::onModOnHdSaveAs()
+{
+    m_modOnHd = false;
+    QWidget *parentWidget(dialogParent());
+    const QUrl res = QFileDialog::getSaveFileUrl(parentWidget, i18n("Save File"), url(), {}, nullptr,
+                                                 QFileDialog::DontConfirmOverwrite);
+    if (!res.isEmpty() && checkOverwrite(res, parentWidget)) {
+        if (! saveAs(res)) {
+            KMessageBox::error(parentWidget, i18n("Save failed"));
+            m_modOnHd = true;
+        } else {
+            delete m_modOnHdHandler;
+            m_prevModOnHdReason = OnDiskUnmodified;
+            emit modifiedOnDisk(this, false, OnDiskUnmodified);
+        }
+    } else { // the save as dialog was canceled, we are still modified on disk
+        m_modOnHd = true;
+    }
+}
+
+void KTextEditor::DocumentPrivate::onModOnHdReload()
+{
+    m_modOnHd = false;
+    m_prevModOnHdReason = OnDiskUnmodified;
+    emit modifiedOnDisk(this, false, OnDiskUnmodified);
+    documentReload();
+    delete m_modOnHdHandler;
+}
+
+void KTextEditor::DocumentPrivate::onModOnHdIgnore()
+{
+    // ignore as long as m_prevModOnHdReason == m_modOnHdReason
+    delete m_modOnHdHandler;
 }
 
 void KTextEditor::DocumentPrivate::setModifiedOnDisk(ModifiedOnDiskReason reason)
@@ -4181,6 +4202,10 @@ bool KTextEditor::DocumentPrivate::documentReload()
         return false;
     }
 
+    // typically, the message for externally modified files is visible. Since it
+    // does not make sense showing an additional dialog, just hide the message.
+    delete m_modOnHdHandler;
+
     if (m_modOnHd && m_fileChangedDialogsActivated) {
         QWidget *parentWidget(dialogParent());
 
@@ -4194,6 +4219,7 @@ bool KTextEditor::DocumentPrivate::documentReload()
             if (i == KMessageBox::No) {
                 m_modOnHd = false;
                 m_modOnHdReason = OnDiskUnmodified;
+                m_prevModOnHdReason = OnDiskUnmodified;
                 emit modifiedOnDisk(this, m_modOnHd, m_modOnHdReason);
             }
 
@@ -4274,7 +4300,8 @@ bool KTextEditor::DocumentPrivate::documentSave()
 
 bool KTextEditor::DocumentPrivate::documentSaveAs()
 {
-    const QUrl saveUrl = QFileDialog::getSaveFileUrl(dialogParent(), i18n("Save File"), url());
+    const QUrl saveUrl = QFileDialog::getSaveFileUrl(dialogParent(), i18n("Save File"), url(), {}, nullptr,
+                                                     QFileDialog::DontConfirmOverwrite);
     if (saveUrl.isEmpty() || !checkOverwrite(saveUrl, dialogParent())) {
         return false;
     }
@@ -4284,7 +4311,8 @@ bool KTextEditor::DocumentPrivate::documentSaveAs()
 
 bool KTextEditor::DocumentPrivate::documentSaveAsWithEncoding(const QString &encoding)
 {
-    const QUrl saveUrl = QFileDialog::getSaveFileUrl(dialogParent(), i18n("Save File"), url());
+    const QUrl saveUrl = QFileDialog::getSaveFileUrl(dialogParent(), i18n("Save File"), url(), {}, nullptr,
+                                                     QFileDialog::DontConfirmOverwrite);
     if (saveUrl.isEmpty() || !checkOverwrite(saveUrl, dialogParent())) {
         return false;
     }
@@ -4295,7 +4323,8 @@ bool KTextEditor::DocumentPrivate::documentSaveAsWithEncoding(const QString &enc
 
 bool KTextEditor::DocumentPrivate::documentSaveCopyAs()
 {
-    const QUrl saveUrl = QFileDialog::getSaveFileUrl(dialogParent(), i18n("Save Copy of File"), url());
+    const QUrl saveUrl = QFileDialog::getSaveFileUrl(dialogParent(), i18n("Save Copy of File"), url(),  {}, nullptr,
+                                                     QFileDialog::DontConfirmOverwrite);
     if (saveUrl.isEmpty() || !checkOverwrite(saveUrl, dialogParent())) {
         return false;
     }
@@ -4478,8 +4507,11 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
     QStringList vvl; // view variable names
     vvl << QStringLiteral("dynamic-word-wrap") << QStringLiteral("dynamic-word-wrap-indicators")
         << QStringLiteral("line-numbers") << QStringLiteral("icon-border") << QStringLiteral("folding-markers")
+        << QStringLiteral("folding-preview")
         << QStringLiteral("bookmark-sorting") << QStringLiteral("auto-center-lines")
         << QStringLiteral("icon-bar-color")
+        << QStringLiteral("scrollbar-minimap")
+        << QStringLiteral("scrollbar-preview")
         // renderer
         << QStringLiteral("background-color") << QStringLiteral("selection-color")
         << QStringLiteral("current-line-color") << QStringLiteral("bracket-highlight-color")
@@ -4561,7 +4593,12 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
                 QStringList l;
                 l << QStringLiteral("unix") << QStringLiteral("dos") << QStringLiteral("mac");
                 if ((n = l.indexOf(val.toLower())) != -1) {
+                    /**
+                     * set eol + avoid that it is overwritten by auto-detection again!
+                     * this fixes e.g. .kateconfig files with // kate: eol dos; to work, bug 365705
+                     */
                     m_config->setEol(n);
+                    m_config->setAllowEolDetection(false);
                 }
             } else if (var == QLatin1String("bom") || var == QLatin1String("byte-order-marker")) {
                 if (checkBoolValue(val, &state)) {
@@ -4616,7 +4653,9 @@ void KTextEditor::DocumentPrivate::setViewVariable(QString var, QString val)
     int n;
     QColor c;
     foreach (v, m_views) {
-        if (var == QLatin1String("dynamic-word-wrap") && checkBoolValue(val, &state)) {
+        if (var == QLatin1String("auto-brackets") && checkBoolValue(val, &state)) {
+            v->config()->setAutoBrackets(state);
+        } else if (var == QLatin1String("dynamic-word-wrap") && checkBoolValue(val, &state)) {
             v->config()->setDynWordWrap(state);
         } else if (var == QLatin1String("persistent-selection") && checkBoolValue(val, &state)) {
             v->config()->setPersistentSelection(state);
@@ -4630,10 +4669,16 @@ void KTextEditor::DocumentPrivate::setViewVariable(QString var, QString val)
             v->config()->setIconBar(state);
         } else if (var == QLatin1String("folding-markers") && checkBoolValue(val, &state)) {
             v->config()->setFoldingBar(state);
+        } else if (var == QLatin1String("folding-preview") && checkBoolValue(val, &state)) {
+            v->config()->setFoldingPreview(state);
         } else if (var == QLatin1String("auto-center-lines") && checkIntValue(val, &n)) {
             v->config()->setAutoCenterLines(n);
         } else if (var == QLatin1String("icon-bar-color") && checkColorValue(val, c)) {
             v->renderer()->config()->setIconBarColor(c);
+        } else if (var == QLatin1String("scrollbar-minimap") && checkBoolValue(val, &state)) {
+            v->config()->setScrollBarMiniMap(state);
+        } else if (var == QLatin1String("scrollbar-preview") && checkBoolValue(val, &state)) {
+            v->config()->setScrollBarPreview(state);
         }
         // RENDERER
         else if (var == QLatin1String("background-color") && checkColorValue(val, c)) {
@@ -4757,6 +4802,7 @@ void KTextEditor::DocumentPrivate::slotDelayedHandleModOnHd()
         if (m_modOnHdReason != OnDiskDeleted && createDigest() && oldDigest == checksum()) {
             m_modOnHd = false;
             m_modOnHdReason = OnDiskUnmodified;
+            m_prevModOnHdReason = OnDiskUnmodified;
         }
 
 #ifdef LIBGIT2_FOUND
@@ -4789,6 +4835,7 @@ void KTextEditor::DocumentPrivate::slotDelayedHandleModOnHd()
                         */
                         m_modOnHd = false;
                         m_modOnHdReason = OnDiskUnmodified;
+                        m_prevModOnHdReason = OnDiskUnmodified;
                         documentReload();
                     }
                     git_blob_free(blob);
@@ -4798,13 +4845,6 @@ void KTextEditor::DocumentPrivate::slotDelayedHandleModOnHd()
             git_repository_free(repository);
         }
 #endif
-    }
-
-    /**
-     * reenable dialog if not running atm
-     */
-    if (m_isasking == -1) {
-        m_isasking = false;
     }
 
     /**
@@ -4965,7 +5005,8 @@ void KTextEditor::DocumentPrivate::slotQueryClose_save(bool *handled, bool *abor
     *abortClosing = true;
     if (this->url().isEmpty()) {
         QWidget *parentWidget(dialogParent());
-        const QUrl res = QFileDialog::getSaveFileUrl(parentWidget, i18n("Save File"));
+        const QUrl res = QFileDialog::getSaveFileUrl(parentWidget, i18n("Save File"), QUrl(), {}, nullptr,
+                                                     QFileDialog::DontConfirmOverwrite);
         if (res.isEmpty() || !checkOverwrite(res, parentWidget)) {
             *abortClosing = true;
             return;
@@ -5095,11 +5136,6 @@ bool KTextEditor::DocumentPrivate::replaceText(const KTextEditor::Range &range, 
     changed |= insertText(range.start(), s, block);
     editEnd();
     return changed;
-}
-
-void KTextEditor::DocumentPrivate::ignoreModifiedOnDiskOnce()
-{
-    m_isasking = -1;
 }
 
 KateHighlighting *KTextEditor::DocumentPrivate::highlight() const

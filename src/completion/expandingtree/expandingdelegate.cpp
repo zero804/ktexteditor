@@ -33,6 +33,7 @@
 
 ExpandingDelegate::ExpandingDelegate(ExpandingWidgetModel *model, QObject *parent)
     : QItemDelegate(parent)
+    , m_currentColumnStart(0)
     , m_model(model)
 {
 }
@@ -41,7 +42,7 @@ ExpandingDelegate::ExpandingDelegate(ExpandingWidgetModel *model, QObject *paren
 static QColor getUsedBackgroundColor(const QStyleOptionViewItem &option, const QModelIndex &index)
 {
     if (option.showDecorationSelected && (option.state & QStyle::State_Selected)) {
-        QPalette::ColorGroup cg = option.state & QStyle::State_Enabled
+        QPalette::ColorGroup cg = (option.state & QStyle::State_Enabled)
                                   ? QPalette::Normal : QPalette::Disabled;
         if (cg == QPalette::Normal && !(option.state & QStyle::State_Active)) {
             cg = QPalette::Inactive;
@@ -299,11 +300,9 @@ void ExpandingDelegate::drawDecoration(QPainter *painter, const QStyleOptionView
 void ExpandingDelegate::drawBackground(QPainter *painter, const QStyleOptionViewItem &option, const QModelIndex &index) const
 {
     Q_UNUSED(index)
-    QStyleOptionViewItemV4 opt = option;
-    //initStyleOption(&opt, index);
     //Problem: This isn't called at all, because drawBrackground is not virtual :-/
     QStyle *style = model()->treeView()->style() ? model()->treeView()->style() : QApplication::style();
-    style->drawControl(QStyle::CE_ItemViewItem, &opt, painter);
+    style->drawControl(QStyle::CE_ItemViewItem, &option, painter);
 }
 
 ExpandingWidgetModel *ExpandingDelegate::model() const

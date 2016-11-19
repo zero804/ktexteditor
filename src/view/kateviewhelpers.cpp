@@ -40,6 +40,7 @@
 #include "katepartdebug.h"
 #include "katecommandrangeexpressionparser.h"
 #include "kateabstractinputmode.h"
+#include "katetextpreview.h"
 
 #include <KCharsets>
 #include <KColorUtils>
@@ -101,6 +102,7 @@ KateScrollBar::KateScrollBar(Qt::Orientation orientation, KateViewInternal *pare
     , m_view(parent->m_view)
     , m_doc(parent->doc())
     , m_viewInternal(parent)
+    , m_textPreview(nullptr)
     , m_showMarks(false)
     , m_showMiniMap(false)
     , m_miniMapAll(true)
@@ -114,6 +116,19 @@ KateScrollBar::KateScrollBar(Qt::Orientation orientation, KateViewInternal *pare
     m_updateTimer.setInterval(300);
     m_updateTimer.setSingleShot(true);
     QTimer::singleShot(10, this, SLOT(updatePixmap()));
+
+    // track mouse for text preview widget
+    setMouseTracking(orientation == Qt::Vertical);
+
+    // setup text preview timer
+    m_delayTextPreviewTimer.setSingleShot(true);
+    m_delayTextPreviewTimer.setInterval(250);
+    connect(&m_delayTextPreviewTimer, SIGNAL(timeout()), this, SLOT(showTextPreview()));
+}
+
+KateScrollBar::~KateScrollBar()
+{
+    delete m_textPreview;
 }
 
 void KateScrollBar::setShowMiniMap(bool b)
@@ -174,6 +189,9 @@ int KateScrollBar::minimapYToStdY(int y)
 
 void KateScrollBar::mousePressEvent(QMouseEvent *e)
 {
+    // delete text preview
+    hideTextPreview();
+
     if (m_showMiniMap) {
         QMouseEvent eMod(QEvent::MouseButtonPress,
                          QPoint(6, minimapYToStdY(e->pos().y())),
@@ -241,6 +259,27 @@ void KateScrollBar::mouseMoveEvent(QMouseEvent *e)
         const int lastLine = m_viewInternal->toRealCursor(m_viewInternal->endPos()).line() + 1;
         QToolTip::showText(m_toolTipPos, i18nc("from line - to line", "<center>%1<br/>&#x2014;<br/>%2</center>", fromLine, lastLine), this);
     }
+
+    showTextPreviewDelayed();
+}
+
+void KateScrollBar::leaveEvent(QEvent *event)
+{
+    hideTextPreview();
+
+    QAbstractSlider::leaveEvent(event);
+}
+
+bool KateScrollBar::eventFilter(QObject *object, QEvent *event)
+{
+    Q_UNUSED(object)
+
+    if (m_textPreview && event->type() == QEvent::WindowDeactivate) {
+        // We need hide the scrollbar TextPreview widget
+        hideTextPreview();
+    }
+
+    return false;
 }
 
 void KateScrollBar::paintEvent(QPaintEvent *e)
@@ -253,6 +292,89 @@ void KateScrollBar::paintEvent(QPaintEvent *e)
     } else {
         normalPaintEvent(e);
     }
+}
+
+void KateScrollBar::showTextPreviewDelayed()
+{
+    if (!m_textPreview) {
+        if (!m_delayTextPreviewTimer.isActive()) {
+            m_delayTextPreviewTimer.start();
+        }
+    } else {
+        showTextPreview();
+    }
+}
+
+void KateScrollBar::showTextPreview()
+{
+    if (orientation() != Qt::Vertical || isSliderDown() || (minimum() == maximum()) || !m_view->config()->scrollBarPreview()) {
+        return;
+    }
+
+    QRect grooveRect;
+    if (m_showMiniMap) {
+        // If mini-map is shown, the height of the map might not be the whole height
+        grooveRect = m_mapGroveRect;
+    } else {
+        QStyleOptionSlider opt;
+        opt.init(this);
+        opt.subControls = QStyle::SC_None;
+        opt.activeSubControls = QStyle::SC_None;
+        opt.orientation = orientation();
+        opt.minimum = minimum();
+        opt.maximum = maximum();
+        opt.sliderPosition = sliderPosition();
+        opt.sliderValue = value();
+        opt.singleStep = singleStep();
+        opt.pageStep = pageStep();
+
+        grooveRect = style()->subControlRect(QStyle::CC_ScrollBar, &opt, QStyle::SC_ScrollBarGroove, this);
+    }
+
+    if (m_view->config()->scrollPastEnd()) {
+        // Adjust the grove size to accommodate the added pageStep at the bottom
+        int adjust = pageStep()*grooveRect.height() / (maximum() + pageStep() - minimum());
+        grooveRect.adjust(0,0,0, -adjust);
+    }
+
+    const QPoint cursorPos = mapFromGlobal(QCursor::pos());
+    if (grooveRect.contains(cursorPos)) {
+
+        if (!m_textPreview) {
+            m_textPreview = new KateTextPreview(m_view);
+            m_textPreview->setAttribute(Qt::WA_ShowWithoutActivating);
+            m_textPreview->setFrameStyle(QFrame::StyledPanel);
+
+            // event filter to catch application WindowDeactivate event, to hide the preview window
+            qApp->installEventFilter(this);
+        }
+
+        const qreal posInPercent = static_cast<double>(cursorPos.y() - grooveRect.top()) / grooveRect.height();
+        const qreal startLine = posInPercent * m_view->textFolding().visibleLines();
+
+        m_textPreview->resize(m_view->width() / 2, m_view->height() / 5);
+        const int xGlobal = mapToGlobal(QPoint(0, 0)).x();
+        const int yGlobal = qMin(mapToGlobal(QPoint(0, height())).y() - m_textPreview->height(),
+                                 qMax(mapToGlobal(QPoint(0, 0)).y(), mapToGlobal(cursorPos).y() - m_textPreview->height() / 2));
+        m_textPreview->move(xGlobal - m_textPreview->width(), yGlobal);
+        m_textPreview->setLine(startLine);
+        m_textPreview->setCenterView(true);
+        m_textPreview->setScaleFactor(0.8);
+        m_textPreview->raise();
+        m_textPreview->show();
+    } else {
+        hideTextPreview();
+    }
+}
+
+void KateScrollBar::hideTextPreview()
+{
+    if (m_delayTextPreviewTimer.isActive()) {
+        m_delayTextPreviewTimer.stop();
+    }
+
+    qApp->removeEventFilter(this);
+    delete m_textPreview;
 }
 
 // This function is optimized for bing called in sequence.
@@ -1204,7 +1326,8 @@ KateIconBorder::KateIconBorder(KateViewInternal *internalView, QWidget *parent)
     , m_maxCharWidth(0.0)
     , iconPaneWidth(16)
     , m_annotationBorderWidth(6)
-    , m_foldingRange(0)
+    , m_foldingPreview(nullptr)
+    , m_foldingRange(nullptr)
     , m_nextHighlightBlock(-2)
     , m_currentBlockLine(-1)
 {
@@ -1219,12 +1342,15 @@ KateIconBorder::KateIconBorder(KateViewInternal *internalView, QWidget *parent)
     m_delayFoldingHlTimer.setSingleShot(true);
     m_delayFoldingHlTimer.setInterval(150);
     connect(&m_delayFoldingHlTimer, SIGNAL(timeout()), this, SLOT(showBlock()));
+
+    // user interaction (scrolling) hides e.g. preview
+    connect(m_view, SIGNAL(displayRangeChanged(KTextEditor::ViewPrivate*)), this, SLOT(displayRangeChanged()));
 }
 
 KateIconBorder::~KateIconBorder()
 {
+    delete m_foldingPreview;
     delete m_foldingRange;
-    m_foldingRange = 0;
 }
 
 void KateIconBorder::setIconBorderOn(bool enable)
@@ -1869,6 +1995,50 @@ void KateIconBorder::showBlock()
         m_foldingRange->setAttribute(attr);
     }
 
+    // show text preview, if a folded region starts here
+    bool foldUnderMouse = false;
+    if (m_foldingRange && m_view->config()->foldingPreview()) {
+        const QPoint globalPos = QCursor::pos();
+        const QPoint pos = mapFromGlobal(globalPos);
+        const KateTextLayout &t = m_view->m_viewInternal->yToKateTextLayout(pos.y());
+        if (t.isValid() && positionToArea(pos) == FoldingMarkers) {
+
+            const int realLine = t.line();
+            foldUnderMouse = !m_view->textFolding().isLineVisible(realLine + 1);
+
+            if (foldUnderMouse) {
+                if (!m_foldingPreview) {
+                    m_foldingPreview = new KateTextPreview(m_view);
+                    m_foldingPreview->setAttribute(Qt::WA_ShowWithoutActivating);
+                    m_foldingPreview->setFrameStyle(QFrame::StyledPanel);
+
+                    // event filter to catch application WindowDeactivate event, to hide the preview window
+//                     qApp->installEventFilter(this);
+                }
+
+                // TODO: use KateViewInternal::maxLen() somehow to compute proper width for amount of lines to display
+
+                // try using the end line of the range for proper popup height
+                const int lineCount = qMin(m_foldingRange->numberOfLines() + 1,
+                                           (height() - pos.y()) / m_view->renderer()->lineHeight());
+
+                m_foldingPreview->resize(m_view->width() / 2, lineCount * m_view->renderer()->lineHeight() + 2 * m_foldingPreview->frameWidth());
+                const int xGlobal = mapToGlobal(QPoint(width(), 0)).x();
+                const int yGlobal = m_view->mapToGlobal(m_view->cursorToCoordinate(KTextEditor::Cursor(realLine, 0))).y();
+                m_foldingPreview->move(QPoint(xGlobal, yGlobal) - m_foldingPreview->contentsRect().topLeft());
+                m_foldingPreview->setLine(realLine);
+                m_foldingPreview->setCenterView(false);
+                m_foldingPreview->setShowFoldedLines(true);
+                m_foldingPreview->raise();
+                m_foldingPreview->show();
+            }
+        }
+    }
+
+    if (!foldUnderMouse) {
+        delete m_foldingPreview;
+    }
+
     /**
      * repaint
      */
@@ -1885,6 +2055,8 @@ void KateIconBorder::hideBlock()
     m_currentBlockLine = -1;
     delete m_foldingRange;
     m_foldingRange = 0;
+
+    delete m_foldingPreview;
 }
 
 void KateIconBorder::leaveEvent(QEvent *event)
@@ -1983,6 +2155,8 @@ void KateIconBorder::mouseReleaseEvent(QMouseEvent *e)
                 }
                 m_view->textFolding().newFoldingRange(foldingRange, Kate::TextFolding::Folded);
             }
+
+            delete m_foldingPreview;
         }
 
         if (area == AnnotationBorder) {
@@ -2176,6 +2350,12 @@ void KateIconBorder::annotationModelChanged(KTextEditor::AnnotationModel *oldmod
         connect(newmodel, SIGNAL(lineChanged(int)), this, SLOT(updateAnnotationLine(int)));
     }
     updateAnnotationBorderWidth();
+}
+
+void KateIconBorder::displayRangeChanged()
+{
+    hideBlock();
+    removeAnnotationHovering();
 }
 
 //END KateIconBorder

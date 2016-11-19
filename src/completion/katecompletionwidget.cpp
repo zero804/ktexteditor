@@ -413,7 +413,7 @@ void KateCompletionWidget::startCompletion(const KTextEditor::Range &word, const
 
         disconnect(model, SIGNAL(waitForReset()), this, SLOT(waitForModelReset()));
 
-        m_completionRanges[model] = view()->doc()->newMovingRange(range, KTextEditor::MovingRange::ExpandRight | KTextEditor::MovingRange::ExpandLeft);
+        m_completionRanges[model] = CompletionRange(view()->doc()->newMovingRange(range, KTextEditor::MovingRange::ExpandRight | KTextEditor::MovingRange::ExpandLeft));
 
         //In automatic invocation mode, hide the completion widget as soon as the position where the completion was started is passed to the left
         m_completionRanges[model].leftBoundary = view()->cursorPosition();
@@ -521,10 +521,10 @@ bool KateCompletionWidget::updatePosition(bool force)
     }
 
     QPoint p = view()->mapToGlobal(cursorPosition);
-    int x = p.x() - m_entryList->columnTextViewportPosition(m_presentationModel->translateColumn(KTextEditor::CodeCompletionModel::Name)) - 4 - (m_entryList->viewport()->pos().x());
+    int x = p.x() - m_entryList->columnTextViewportPosition(m_presentationModel->translateColumn(KTextEditor::CodeCompletionModel::Name)) - 7 - (m_entryList->viewport()->pos().x());
     int y = p.y();
 
-    y += view()->renderer()->config()->fontMetrics().height() + 4;
+    y += view()->renderer()->config()->fontMetrics().height() + 2;
 
     bool borderHit = false;
 
@@ -706,10 +706,9 @@ void KateCompletionWidget::cursorPositionChanged()
         oldCurrentSourceIndex = m_presentationModel->mapToSource(m_entryList->currentIndex());
     }
 
-    QList<KTextEditor::CodeCompletionModel *> checkCompletionRanges = m_completionRanges.keys();
-
     //Check the models and eventuall abort some
-    for (QList<KTextEditor::CodeCompletionModel *>::iterator it = checkCompletionRanges.begin(); it != checkCompletionRanges.end(); ++it) {
+    const QList<KTextEditor::CodeCompletionModel *> checkCompletionRanges = m_completionRanges.keys();
+    for (QList<KTextEditor::CodeCompletionModel *>::const_iterator it = checkCompletionRanges.begin(); it != checkCompletionRanges.end(); ++it) {
         KTextEditor::CodeCompletionModel *model = *it;
         if (!m_completionRanges.contains(model)) {
             continue;
@@ -1299,7 +1298,8 @@ void KateCompletionWidget::completionModelReset()
 
 void KateCompletionWidget::modelDestroyed(QObject *model)
 {
-    unregisterCompletionModel(static_cast<KTextEditor::CodeCompletionModel *>(model));
+    m_sourceModels.removeAll(static_cast<KTextEditor::CodeCompletionModel *>(model));
+    abortCompletion();
 }
 
 void KateCompletionWidget::registerCompletionModel(KTextEditor::CodeCompletionModel *model)

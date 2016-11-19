@@ -29,6 +29,7 @@
 #include "katedialogs.h"
 
 #include <ktexteditor_version.h>
+#include <ktexteditor/message.h>
 
 #include "kateautoindent.h"
 #include "katebuffer.h"
@@ -42,7 +43,6 @@
 #include "kateglobal.h"
 
 // auto generated ui files
-#include "ui_modonhdwidget.h"
 #include "ui_textareaappearanceconfigwidget.h"
 #include "ui_bordersappearanceconfigwidget.h"
 #include "ui_navigationconfigwidget.h"
@@ -676,6 +676,7 @@ KateViewDefaultsConfig::KateViewDefaultsConfig(QWidget *parent)
 
     connect(bordersUi->chkIconBorder, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->chkScrollbarMarks, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
+    connect(bordersUi->chkScrollbarPreview, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->chkScrollbarMiniMap, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->chkScrollbarMiniMapAll, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     bordersUi->chkScrollbarMiniMapAll->hide(); // this is temporary until the feature is done
@@ -683,6 +684,7 @@ KateViewDefaultsConfig::KateViewDefaultsConfig(QWidget *parent)
     connect(bordersUi->chkLineNumbers, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->chkShowLineModification, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->chkShowFoldingMarkers, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
+    connect(bordersUi->chkShowFoldingPreview, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->rbSortBookmarksByPosition, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->rbSortBookmarksByCreation, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(bordersUi->cmbShowScrollbars, SIGNAL(activated(int)), this, SLOT(slotChanged()));
@@ -713,10 +715,12 @@ void KateViewDefaultsConfig::apply()
     KateViewConfig::global()->setLineNumbers(bordersUi->chkLineNumbers->isChecked());
     KateViewConfig::global()->setIconBar(bordersUi->chkIconBorder->isChecked());
     KateViewConfig::global()->setScrollBarMarks(bordersUi->chkScrollbarMarks->isChecked());
+    KateViewConfig::global()->setScrollBarPreview(bordersUi->chkScrollbarPreview->isChecked());
     KateViewConfig::global()->setScrollBarMiniMap(bordersUi->chkScrollbarMiniMap->isChecked());
     KateViewConfig::global()->setScrollBarMiniMapAll(bordersUi->chkScrollbarMiniMapAll->isChecked());
     KateViewConfig::global()->setScrollBarMiniMapWidth(bordersUi->spBoxMiniMapWidth->value());
     KateViewConfig::global()->setFoldingBar(bordersUi->chkShowFoldingMarkers->isChecked());
+    KateViewConfig::global()->setFoldingPreview(bordersUi->chkShowFoldingPreview->isChecked());
     KateViewConfig::global()->setLineModification(bordersUi->chkShowLineModification->isChecked());
     KateViewConfig::global()->setShowScrollbars(bordersUi->cmbShowScrollbars->currentIndex());
 
@@ -740,10 +744,12 @@ void KateViewDefaultsConfig::reload()
     bordersUi->chkLineNumbers->setChecked(KateViewConfig::global()->lineNumbers());
     bordersUi->chkIconBorder->setChecked(KateViewConfig::global()->iconBar());
     bordersUi->chkScrollbarMarks->setChecked(KateViewConfig::global()->scrollBarMarks());
+    bordersUi->chkScrollbarPreview->setChecked(KateViewConfig::global()->scrollBarPreview());
     bordersUi->chkScrollbarMiniMap->setChecked(KateViewConfig::global()->scrollBarMiniMap());
     bordersUi->chkScrollbarMiniMapAll->setChecked(KateViewConfig::global()->scrollBarMiniMapAll());
     bordersUi->spBoxMiniMapWidth->setValue(KateViewConfig::global()->scrollBarMiniMapWidth());
     bordersUi->chkShowFoldingMarkers->setChecked(KateViewConfig::global()->foldingBar());
+    bordersUi->chkShowFoldingPreview->setChecked(KateViewConfig::global()->foldingPreview());
     bordersUi->chkShowLineModification->setChecked(KateViewConfig::global()->lineModification());
     bordersUi->rbSortBookmarksByPosition->setChecked(KateViewConfig::global()->bookmarkSort() == 0);
     bordersUi->rbSortBookmarksByCreation->setChecked(KateViewConfig::global()->bookmarkSort() == 1);
@@ -898,28 +904,6 @@ void KateSaveConfigTab::apply()
         uiadv->edtBackupSuffix->setText(QStringLiteral("~"));
     }
 
-    const KateDocumentConfig::SwapFileMode swap_mode = static_cast<KateDocumentConfig::SwapFileMode>(uiadv->cmbSwapFileMode->currentIndex());
-    if (swap_mode == KateDocumentConfig::SwapFilePresetDirectory) {
-        const QString dirpath = uiadv->kurlSwapDirectory->url().toLocalFile();
-
-        if (!QDir(dirpath).exists()) {
-            KMessageBox::ButtonCode res = KMessageBox::warningYesNo(this,
-                                          i18n("Selected directory for swap file storage does not exist. Do you want to create it?"),
-                                          i18n("Missing Swap File Directory"));
-
-            if (res == KMessageBox::Yes) {
-                QDir().mkpath(dirpath);
-            } else {
-                // FIXME: what to do here? Return to config?
-            }
-        }
-
-        if (!QFileInfo(dirpath).isDir()) {
-            //FIXME: we are screwed here, revert to  KateDocumentConfig::EnableSwapFile?
-        }
-
-    }
-
     uint f(0);
     if (uiadv->chkBackupLocalFiles->isChecked()) {
         f |= KateDocumentConfig::LocalFiles;
@@ -941,7 +925,7 @@ void KateSaveConfigTab::apply()
     KateDocumentConfig::global()->setNewLineAtEof(ui->chkNewLineAtEof->isChecked());
 
     // set both standard and fallback encoding
-    KateDocumentConfig::global()->setEncoding((ui->cmbEncoding->currentIndex() == 0) ? QString() : KCharsets::charsets()->encodingForName(ui->cmbEncoding->currentText()));
+    KateDocumentConfig::global()->setEncoding(KCharsets::charsets()->encodingForName(ui->cmbEncoding->currentText()));
 
     KateGlobalConfig::global()->setProberType((KEncodingProber::ProberType)ui->cmbEncodingDetection->currentIndex());
     KateGlobalConfig::global()->setFallbackEncoding(KCharsets::charsets()->encodingForName(ui->cmbEncodingFallback->currentText()));
@@ -962,11 +946,9 @@ void KateSaveConfigTab::reload()
 
     // encodings
     ui->cmbEncoding->clear();
-    ui->cmbEncoding->addItem(i18n("KDE Default"));
-    ui->cmbEncoding->setCurrentIndex(0);
     ui->cmbEncodingFallback->clear();
     QStringList encodings(KCharsets::charsets()->descriptiveEncodingNames());
-    int insert = 1;
+    int insert = 0;
     for (int i = 0; i < encodings.count(); i++) {
         bool found = false;
         QTextCodec *codecForEnc = KCharsets::charsets()->codecForName(KCharsets::charsets()->encodingForName(encodings[i]), found);
@@ -975,13 +957,13 @@ void KateSaveConfigTab::reload()
             ui->cmbEncoding->addItem(encodings[i]);
             ui->cmbEncodingFallback->addItem(encodings[i]);
 
-            if (codecForEnc->name() == KateDocumentConfig::global()->encoding().toLatin1()) {
+            if (codecForEnc == KateDocumentConfig::global()->codec()) {
                 ui->cmbEncoding->setCurrentIndex(insert);
             }
 
             if (codecForEnc == KateGlobalConfig::global()->fallbackCodec()) {
                 // adjust index for fallback config, has no default!
-                ui->cmbEncodingFallback->setCurrentIndex(insert - 1);
+                ui->cmbEncodingFallback->setCurrentIndex(insert);
             }
 
             insert++;
@@ -1344,80 +1326,48 @@ void KateDictionaryBar::dictionaryChanged(const QString &dictionary)
 //BEGIN KateModOnHdPrompt
 KateModOnHdPrompt::KateModOnHdPrompt(KTextEditor::DocumentPrivate *doc,
                                      KTextEditor::ModificationInterface::ModifiedOnDiskReason modtype,
-                                     const QString &reason,
-                                     QWidget *parent)
-    : QDialog(parent),
-      m_doc(doc),
-      m_modtype(modtype),
-      m_proc(0),
-      m_diffFile(0)
+                                     const QString &reason)
+    : QObject(doc)
+    , m_doc(doc)
+    , m_modtype(modtype)
+    , m_proc(nullptr)
+    , m_diffFile(nullptr)
+    , m_diffAction(nullptr)
 {
-    QString title, okText, okIcon, okToolTip;
-    if (modtype == KTextEditor::ModificationInterface::OnDiskDeleted) {
-        title = i18n("File Was Deleted on Disk");
-        okText = i18n("&Save File As...");
-        okIcon = QStringLiteral("document-save-as");
-        okToolTip = i18n("Lets you select a location and save the file again.");
+    m_message = new KTextEditor::Message(reason, KTextEditor::Message::Information);
+    m_message->setPosition(KTextEditor::Message::AboveView);
+    m_message->setWordWrap(true);
+
+    // If the file isn't deleted, present a diff button
+    const bool onDiskDeleted = modtype == KTextEditor::ModificationInterface::OnDiskDeleted;
+    if (!onDiskDeleted) {
+        if (!QStandardPaths::findExecutable(QStringLiteral("diff")).isEmpty()) {
+            m_diffAction = new QAction(i18n("View &Difference"), this);
+            m_diffAction->setToolTip(i18n("Shows a diff of the changes"));
+            m_message->addAction(m_diffAction, false);
+            connect(m_diffAction, SIGNAL(triggered()), this, SLOT(slotDiff()));
+        }
+
+        QAction * aReload = new QAction(i18n("&Reload"), this);
+        aReload->setIcon(QIcon::fromTheme(QStringLiteral("view-refresh")));
+        aReload->setToolTip(i18n("Reload the file from disk. Unsaved changes will be lost."));
+        m_message->addAction(aReload);
+        connect(aReload, SIGNAL(triggered()), this, SIGNAL(reloadTriggered()));
     } else {
-        title = i18n("File Changed on Disk");
-        okText = i18n("&Reload File");
-        okIcon = QStringLiteral("view-refresh");
-        okToolTip = i18n("Reload the file from disk. If you have unsaved changes, "
-                         "they will be lost.");
+        QAction * aSaveAs = new QAction(i18n("&Save As..."), this);
+        aSaveAs->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
+        aSaveAs->setToolTip(i18n("Lets you select a location and save the file again."));
+        m_message->addAction(aSaveAs, false);
+        connect(aSaveAs, SIGNAL(triggered()), this, SIGNAL(saveAsTriggered()));
     }
 
-    setWindowTitle(title);
+    QAction * aIgnore = new QAction(i18n("&Ignore"), this);
+    aIgnore->setToolTip(i18n("Ignores the changes on disk without any action."));
+    aIgnore->setIcon(KStandardGuiItem::overwrite().icon());
+    m_message->addAction(aIgnore);
+    connect(aIgnore, SIGNAL(triggered()), this, SIGNAL(ignoreTriggered()));
 
-    QVBoxLayout *mainLayout = new QVBoxLayout;
-    setLayout(mainLayout);
-
-    QWidget *w = new QWidget(this);
-    mainLayout->addWidget(w);
-    ui = new Ui::ModOnHdWidget();
-    ui->setupUi(w);
-    ui->lblIcon->setPixmap(QIcon::fromTheme(QStringLiteral("dialog-warning")).pixmap(IconSize(KIconLoader::Desktop), IconSize(KIconLoader::Desktop)));
-    ui->lblText->setText(reason + QLatin1String("\n\n") + i18n("What do you want to do?"));
-
-    // buttons
-    QDialogButtonBox *buttons = new QDialogButtonBox(this);
-    mainLayout->addWidget(buttons);
-
-    QPushButton *okButton = new QPushButton(QIcon::fromTheme(okIcon), okText);
-    okButton->setToolTip(okToolTip);
-    buttons->addButton(okButton, QDialogButtonBox::AcceptRole);
-    connect(okButton, SIGNAL(clicked()), this, SLOT(slotOk()));
-
-    QPushButton *applyButton = new QPushButton(QIcon::fromTheme(QStringLiteral("dialog-warning")), i18n("&Ignore Changes"));
-    applyButton->setToolTip(i18n("Ignore the changes. You will not be prompted again."));
-    buttons->addButton(applyButton, QDialogButtonBox::ApplyRole);
-    connect(applyButton, SIGNAL(clicked()), this, SLOT(slotApply()));
-
-    QPushButton *cancelButton = new QPushButton;
-    KGuiItem::assign(cancelButton, KStandardGuiItem::cancel());
-    cancelButton->setToolTip(i18n("Do nothing. Next time you focus the file, "
-                                  "or try to save it or close it, you will be prompted again."));
-    buttons->addButton(cancelButton, QDialogButtonBox::RejectRole);
-    connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
-
-    // If the file isn't deleted, present a diff button, and a overwrite action.
-    if (modtype != KTextEditor::ModificationInterface::OnDiskDeleted) {
-        QPushButton *overwriteButton = new QPushButton;
-        KGuiItem::assign(overwriteButton, KStandardGuiItem::overwrite());
-        overwriteButton->setToolTip(i18n("Overwrite the disk file with the editor content."));
-        buttons->addButton(overwriteButton, QDialogButtonBox::ActionRole);
-        connect(overwriteButton, SIGNAL(clicked()), this, SLOT(slotOverwrite()));
-
-        connect(ui->btnDiff, SIGNAL(clicked()), this, SLOT(slotDiff()));
-    } else {
-        ui->chkIgnoreWhiteSpaces->setVisible(false);
-        ui->btnDiff->setVisible(false);
-
-        QPushButton *closeButton = new QPushButton;
-        KGuiItem::assign(closeButton, KStandardGuiItem::close());
-        closeButton->setToolTip(i18n("Close the document."));
-        buttons->addButton(closeButton, QDialogButtonBox::DestructiveRole);
-        connect(closeButton, SIGNAL(clicked()), this, SLOT(slotClose()));
-    }
+    m_doc->postMessage(m_message);
 }
 
 KateModOnHdPrompt::~KateModOnHdPrompt()
@@ -1429,7 +1379,7 @@ KateModOnHdPrompt::~KateModOnHdPrompt()
         delete m_diffFile;
         m_diffFile = 0;
     }
-    delete ui;
+    delete m_message;
 }
 
 void KateModOnHdPrompt::slotDiff()
@@ -1444,15 +1394,13 @@ void KateModOnHdPrompt::slotDiff()
     // Start a KProcess that creates a diff
     m_proc = new KProcess(this);
     m_proc->setOutputChannelMode(KProcess::MergedChannels);
-    *m_proc << QStringLiteral("diff") << QString(ui->chkIgnoreWhiteSpaces->isChecked() ? QLatin1String("-ub") : QLatin1String("-u"))
+    *m_proc << QStringLiteral("diff") << QLatin1String("-u")
             << QStringLiteral("-") <<  m_doc->url().toLocalFile();
     connect(m_proc, SIGNAL(readyRead()), this, SLOT(slotDataAvailable()));
     connect(m_proc, SIGNAL(finished(int,QProcess::ExitStatus)), this, SLOT(slotPDone()));
 
-    setCursor(Qt::WaitCursor);
-    // disable the button and checkbox, to hinder the user to run it twice.
-    ui->chkIgnoreWhiteSpaces->setEnabled(false);
-    ui->btnDiff->setEnabled(false);
+    // disable the diff button, to hinder the user to run it twice.
+    m_diffAction->setEnabled(false);
 
     m_proc->start();
 
@@ -1473,16 +1421,14 @@ void KateModOnHdPrompt::slotDataAvailable()
 
 void KateModOnHdPrompt::slotPDone()
 {
-    setCursor(Qt::ArrowCursor);
-    ui->chkIgnoreWhiteSpaces->setEnabled(true);
-    ui->btnDiff->setEnabled(true);
+    m_diffAction->setEnabled(true);
 
     const QProcess::ExitStatus es = m_proc->exitStatus();
     delete m_proc;
     m_proc = 0;
 
     if (es != QProcess::NormalExit) {
-        KMessageBox::sorry(this,
+        KMessageBox::sorry(nullptr,
                            i18n("The diff command failed. Please make sure that "
                                 "diff(1) is installed and in your PATH."),
                            i18n("Error Creating Diff"));
@@ -1492,15 +1438,9 @@ void KateModOnHdPrompt::slotPDone()
     }
 
     if (m_diffFile->size() == 0) {
-        if (ui->chkIgnoreWhiteSpaces->isChecked()) {
-            KMessageBox::information(this,
-                                     i18n("The files are identical."),
-                                     i18n("Diff Output"));
-        } else {
-            KMessageBox::information(this,
-                                     i18n("Ignoring amount of white space changed, the files are identical."),
-                                     i18n("Diff Output"));
-        }
+        KMessageBox::information(nullptr,
+                                 i18n("The files are identical."),
+                                 i18n("Diff Output"));
         delete m_diffFile;
         m_diffFile = 0;
         return;
@@ -1512,39 +1452,7 @@ void KateModOnHdPrompt::slotPDone()
     m_diffFile = 0;
 
     // KRun::runUrl should delete the file, once the client exits
-    KRun::runUrl(url, QStringLiteral("text/x-patch"), this, true);
-}
-
-void KateModOnHdPrompt::slotOk()
-{
-    done((m_modtype == KTextEditor::ModificationInterface::OnDiskDeleted) ? Save : Reload);
-}
-
-void KateModOnHdPrompt::slotApply()
-{
-    if (KMessageBox::warningContinueCancel(this,
-                                           i18n("Ignoring means that you will not be warned again (unless "
-                                                   "the disk file changes once more): if you save the document, you "
-                                                   "will overwrite the file on disk; if you do not save then the disk "
-                                                   "file (if present) is what you have."),
-                                           i18n("You Are on Your Own"),
-                                           KStandardGuiItem::cont(),
-                                           KStandardGuiItem::cancel(),
-                                           QStringLiteral("kate_ignore_modonhd")) != KMessageBox::Continue) {
-        return;
-    }
-
-    done(Ignore);
-}
-
-void KateModOnHdPrompt::slotOverwrite()
-{
-    done(Overwrite);
-}
-
-void KateModOnHdPrompt::slotClose()
-{
-    done(Close);
+    KRun::runUrl(url, QStringLiteral("text/x-patch"), nullptr, true);
 }
 
 //END KateModOnHdPrompt

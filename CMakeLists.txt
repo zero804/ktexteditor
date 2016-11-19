@@ -4,7 +4,7 @@ project(KTextEditor)
 
 # ECM setup
 include(FeatureSummary)
-find_package(ECM 5.23.0  NO_MODULE)
+find_package(ECM 5.28.0  NO_MODULE)
 set_package_properties(ECM PROPERTIES TYPE REQUIRED DESCRIPTION "Extra CMake Modules." URL "https://projects.kde.org/projects/kdesupport/extra-cmake-modules")
 feature_summary(WHAT REQUIRED_PACKAGES_NOT_FOUND FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
@@ -21,8 +21,8 @@ include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
 include(KDECMakeSettings)
 include(GenerateExportHeader)
 
-set(KF5_VERSION "5.24.0") # handled by release scripts
-set(KF5_DEP_VERSION "5.23.0") # handled by release scripts
+set(KF5_VERSION "5.29.0") # handled by release scripts
+set(KF5_DEP_VERSION "5.28.0") # handled by release scripts
 
 ecm_setup_version(
   ${KF5_VERSION}
@@ -33,7 +33,7 @@ ecm_setup_version(
 )
 
 # Dependencies
-set(REQUIRED_QT_VERSION 5.4.0)
+set(REQUIRED_QT_VERSION 5.5.0)
 
 # Required Qt5 components to build this framework
 find_package(Qt5 ${REQUIRED_QT_VERSION} NO_MODULE REQUIRED Core Widgets Script PrintSupport Xml XmlPatterns)

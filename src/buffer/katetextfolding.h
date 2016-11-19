@@ -51,7 +51,7 @@ public:
      * Create folding object for given buffer.
      * @param buffer text buffer we want to provide folding info for
      */
-    TextFolding(TextBuffer &buffer);
+    explicit TextFolding(TextBuffer &buffer);
 
     /**
      * Cleanup
@@ -113,7 +113,7 @@ public:
      * Query if a given line is visible.
      * Very fast, if nothing is folded, else does binary search
      * log(n) for n == number of folded ranges
-     * @param line line to query
+     * @param line real line to query
      * @param foldedRangeId if the line is not visible and that pointer is not 0, will be filled with id of range hiding the line or -1
      * @return is that line visible?
      */
@@ -158,6 +158,14 @@ public:
      * @return vector of id's + flags
      */
     QVector<QPair<qint64, FoldingRangeFlags> > foldingRangesStartingOnLine(int line) const;
+
+    /**
+     * Query child folding ranges for given range id. To query the toplevel
+     * ranges pass id -1
+     * @param parentRangeId id of parent range, pass -1 to query top level ranges
+     * @return vector of id's + flags for child ranges
+     */
+    QVector<QPair<qint64, FoldingRangeFlags> > foldingRangesForParentRange(qint64 parentRangeId = -1) const;
 
     /**
      * Return the current known folding ranges a QJsonDocument to store in configs.

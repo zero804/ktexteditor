@@ -130,15 +130,15 @@ void VariableLineEdit::addKateItems(VariableListView *listview)
         rendererConfig = activeView->renderer()->config();
     }
 
+    // Add 'auto-brackets' to list
+    item = new VariableBoolItem(QStringLiteral("auto-brackets"), false);
+    item->setHelpText(i18nc("short translation please", "Enable automatic insertion of brackets."));
+    listview->addItem(item);
+
     // Add 'auto-center-lines' to list
     item = new VariableIntItem(QStringLiteral("auto-center-lines"), viewConfig->autoCenterLines());
     static_cast<VariableIntItem *>(item)->setRange(1, 100);
     item->setHelpText(i18nc("short translation please", "Set the number of autocenter lines."));
-    listview->addItem(item);
-
-    // Add 'auto-insert-doxygen' to list
-    item = new VariableBoolItem(QStringLiteral("auto-insert-doxygen"), false);
-    item->setHelpText(i18nc("short translation please", "Auto insert asterisk in doxygen comments."));
     listview->addItem(item);
 
     // Add 'background-color' to list
@@ -193,6 +193,11 @@ void VariableLineEdit::addKateItems(VariableListView *listview)
     // Add 'folding-markers' to list
     item = new VariableBoolItem(QStringLiteral("folding-markers"), viewConfig->foldingBar());
     item->setHelpText(i18nc("short translation please", "Enable folding markers in the editor border."));
+    listview->addItem(item);
+
+    // Add 'folding-preview' to list
+    item = new VariableBoolItem(QStringLiteral("folding-preview"), viewConfig->foldingPreview());
+    item->setHelpText(i18nc("short translation please", "Enable folding preview on in the editor border."));
     listview->addItem(item);
 
     // Add 'font-size' to list
@@ -285,6 +290,16 @@ void VariableLineEdit::addKateItems(VariableListView *listview)
     // Add 'remove-trailing-spaces' to list
     item = new VariableRemoveSpacesItem(QStringLiteral("remove-trailing-spaces"), docConfig->removeSpaces());
     item->setHelpText(i18nc("short translation please", "Remove trailing spaces when saving the document."));
+    listview->addItem(item);
+
+    // Add 'scrollbar-minimap' to list
+    item = new VariableBoolItem(QStringLiteral("scrollbar-minimap"), viewConfig->scrollBarMiniMap());
+    item->setHelpText(i18nc("short translation please", "Show scrollbar minimap."));
+    listview->addItem(item);
+
+    // Add 'scrollbar-preview' to list
+    item = new VariableBoolItem(QStringLiteral("scrollbar-preview"), viewConfig->scrollBarPreview());
+    item->setHelpText(i18nc("short translation please", "Show scrollbar preview."));
     listview->addItem(item);
 
     // Add 'scheme' to list

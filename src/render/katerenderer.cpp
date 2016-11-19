@@ -558,7 +558,7 @@ The ultimate line painting function.
 Currently missing features:
 - draw indent lines
 */
-void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int xStart, int xEnd, const KTextEditor::Cursor *cursor)
+void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int xStart, int xEnd, const KTextEditor::Cursor *cursor, PaintTextLineFlags flags)
 {
     Q_ASSERT(range->isValid());
 
@@ -818,27 +818,21 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
                     }
                 }
 
-                // Clip the caret - Qt's caret has a habit of intruding onto other lines.
                 paint.save();
-                paint.setClipRect(0, line.lineNumber() * lineHeight(), xEnd - xStart, lineHeight());
                 switch (style) {
                 case Line :
-                    color.setAlpha(alpha);
                     paint.setPen(QPen(color, caretWidth));
                     break;
                 case Block :
                     // use a gray caret so it's possible to see the character
-                    color.setAlpha(alpha/2);
+                    color.setAlpha(128);
                     paint.setPen(QPen(color, caretWidth));
                     break;
                 case Underline :
-                    color.setAlpha(alpha);
-                    paint.setClipRect(0, lineHeight() - lineWidth, xEnd - xStart, lineWidth);
                     break;
                 case Half :
-                    color.setAlpha(alpha/2);
+                    color.setAlpha(128);
                     paint.setPen(QPen(color, caretWidth));
-                    paint.setClipRect(0, lineHeight() / 2, xEnd - xStart, lineHeight() / 2);
                     break;
                 }
 
@@ -863,7 +857,7 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
     }
 
     // Draws the dashed underline at the start of a folded block of text.
-    if (range->startsInvisibleBlock()) {
+    if (!(flags & SkipDrawFirstInvisibleLineUnderlined) && range->startsInvisibleBlock()) {
         const QPainter::RenderHints backupRenderHints = paint.renderHints();
         paint.setRenderHint(QPainter::Antialiasing, false);
         QPen pen(config()->wordWrapMarkerColor());
@@ -927,20 +921,10 @@ void KateRenderer::updateConfig()
 
 void KateRenderer::updateFontHeight()
 {
-    // first: get normal line spacing
-    m_fontHeight = config()->fontMetrics().height();
-
-    // Sometimes the height of italic fonts is larger than for the non-italic
-    // font. Since all our lines are of same/fixed height, use the maximum of
-    // both heights (bug #302748)
-    QFont italicFont = config()->font();
-    italicFont.setItalic(true);
-    m_fontHeight = qMax(m_fontHeight, qCeil(QFontMetricsF(italicFont).height()));
-
-    // same for bold font
-    QFont boldFont = config()->font();
-    boldFont.setBold(true);
-    m_fontHeight = qMax(m_fontHeight, qCeil(QFontMetricsF(boldFont).height()));
+    // use height of font + round down, ensure we have at least one pixel
+    // we round down to avoid artifacts: line height too large vs. qt background rendering of text attributes
+    const qreal height = config()->fontMetrics().height();
+    m_fontHeight = qMax(1, qFloor(height));
 }
 
 qreal KateRenderer::spaceWidth() const

@@ -453,6 +453,9 @@ public:
     bool scrollBarMarks() const;
     void setScrollBarMarks(bool on);
 
+    bool scrollBarPreview() const;
+    void setScrollBarPreview(bool on);
+
     bool scrollBarMiniMap() const;
     void setScrollBarMiniMap(bool on);
 
@@ -477,6 +480,9 @@ public:
 
     bool foldingBar() const;
     void setFoldingBar(bool on);
+
+    bool foldingPreview() const;
+    void setFoldingPreview(bool on);
 
     bool lineModification() const;
     void setLineModification(bool on);
@@ -571,12 +577,14 @@ private:
     int m_dynWordWrapAlignIndent;
     bool m_lineNumbers;
     bool m_scrollBarMarks;
+    bool m_scrollBarPreview;
     bool m_scrollBarMiniMap;
     bool m_scrollBarMiniMapAll;
     int  m_scrollBarMiniMapWidth;
     int  m_showScrollbars;
     bool m_iconBar;
     bool m_foldingBar;
+    bool m_foldingPreview;
     bool m_lineModification;
     int m_bookmarkSort;
     int m_autoCenterLines;
@@ -603,12 +611,14 @@ private:
     bool m_dynWordWrapAlignIndentSet : 1;
     bool m_lineNumbersSet : 1;
     bool m_scrollBarMarksSet : 1;
+    bool m_scrollBarPreviewSet : 1;
     bool m_scrollBarMiniMapSet : 1;
     bool m_scrollBarMiniMapAllSet : 1;
     bool m_scrollBarMiniMapWidthSet : 1;
     bool m_showScrollbarsSet : 1;
     bool m_iconBarSet : 1;
     bool m_foldingBarSet : 1;
+    bool m_foldingPreviewSet : 1;
     bool m_lineModificationSet : 1;
     bool m_bookmarkSortSet : 1;
     bool m_autoCenterLinesSet : 1;

@@ -1211,12 +1211,14 @@ KateViewConfig::KateViewConfig()
     m_dynWordWrapAlignIndentSet(false),
     m_lineNumbersSet(false),
     m_scrollBarMarksSet(false),
+    m_scrollBarPreviewSet(false),
     m_scrollBarMiniMapSet(false),
     m_scrollBarMiniMapAllSet(false),
     m_scrollBarMiniMapWidthSet(false),
     m_showScrollbarsSet(false),
     m_iconBarSet(false),
     m_foldingBarSet(false),
+    m_foldingPreviewSet(false),
     m_lineModificationSet(false),
     m_bookmarkSortSet(false),
     m_autoCenterLinesSet(false),
@@ -1255,12 +1257,14 @@ KateViewConfig::KateViewConfig(KTextEditor::ViewPrivate *view)
     m_dynWordWrapAlignIndentSet(false),
     m_lineNumbersSet(false),
     m_scrollBarMarksSet(false),
+    m_scrollBarPreviewSet(false),
     m_scrollBarMiniMapSet(false),
     m_scrollBarMiniMapAllSet(false),
     m_scrollBarMiniMapWidthSet(false),
     m_showScrollbarsSet(false),
     m_iconBarSet(false),
     m_foldingBarSet(false),
+    m_foldingPreviewSet(false),
     m_lineModificationSet(false),
     m_bookmarkSortSet(false),
     m_autoCenterLinesSet(false),
@@ -1296,12 +1300,14 @@ const char KEY_DYN_WORD_WRAP_INDICATORS[] = "Dynamic Word Wrap Indicators";
 const char KEY_DYN_WORD_WRAP_ALIGN_INDENT[] = "Dynamic Word Wrap Align Indent";
 const char KEY_LINE_NUMBERS[] = "Line Numbers";
 const char KEY_SCROLL_BAR_MARKS[] = "Scroll Bar Marks";
-const char KEY_SCROLL_BAR_MINI_MAP[] = "Scroll Bar Mini Map";
+const char KEY_SCROLL_BAR_PREVIEW[] = "Scroll Bar Preview";
+const char KEY_SCROLL_BAR_MINI_MAP[] = "Scroll Bar MiniMap";
 const char KEY_SCROLL_BAR_MINI_MAP_ALL[] = "Scroll Bar Mini Map All";
 const char KEY_SCROLL_BAR_MINI_MAP_WIDTH[] = "Scroll Bar Mini Map Width";
 const char KEY_SHOW_SCROLLBARS[] = "Show Scrollbars";
 const char KEY_ICON_BAR[] = "Icon Bar";
 const char KEY_FOLDING_BAR[] = "Folding Bar";
+const char KEY_FOLDING_PREVIEW[] = "Folding Preview";
 const char KEY_LINE_MODIFICATION[] = "Line Modification";
 const char KEY_BOOKMARK_SORT[] = "Bookmark Menu Sorting";
 const char KEY_AUTO_CENTER_LINES[] = "Auto Center Lines";
@@ -1333,13 +1339,15 @@ void KateViewConfig::readConfig(const KConfigGroup &config)
     setDynWordWrapIndicators(config.readEntry(KEY_DYN_WORD_WRAP_INDICATORS, 1));
     setDynWordWrapAlignIndent(config.readEntry(KEY_DYN_WORD_WRAP_ALIGN_INDENT, 80));
 
-    setLineNumbers(config.readEntry(KEY_LINE_NUMBERS,  false));
+    setLineNumbers(config.readEntry(KEY_LINE_NUMBERS, false));
 
-    setScrollBarMarks(config.readEntry(KEY_SCROLL_BAR_MARKS,  false));
+    setScrollBarMarks(config.readEntry(KEY_SCROLL_BAR_MARKS, false));
 
-    setScrollBarMiniMap(config.readEntry(KEY_SCROLL_BAR_MINI_MAP,  false));
+    setScrollBarPreview(config.readEntry(KEY_SCROLL_BAR_PREVIEW, true));
 
-    setScrollBarMiniMapAll(config.readEntry(KEY_SCROLL_BAR_MINI_MAP_ALL,  false));
+    setScrollBarMiniMap(config.readEntry(KEY_SCROLL_BAR_MINI_MAP, true));
+
+    setScrollBarMiniMapAll(config.readEntry(KEY_SCROLL_BAR_MINI_MAP_ALL, false));
 
     setScrollBarMiniMapWidth(config.readEntry(KEY_SCROLL_BAR_MINI_MAP_WIDTH,  60));
 
@@ -1348,6 +1356,8 @@ void KateViewConfig::readConfig(const KConfigGroup &config)
     setIconBar(config.readEntry(KEY_ICON_BAR, false));
 
     setFoldingBar(config.readEntry(KEY_FOLDING_BAR, true));
+
+    setFoldingPreview(config.readEntry(KEY_FOLDING_PREVIEW, true));
 
     setLineModification(config.readEntry(KEY_LINE_MODIFICATION, false));
 
@@ -1393,6 +1403,8 @@ void KateViewConfig::writeConfig(KConfigGroup &config)
 
     config.writeEntry(KEY_SCROLL_BAR_MARKS, scrollBarMarks());
 
+    config.writeEntry(KEY_SCROLL_BAR_PREVIEW, scrollBarPreview());
+
     config.writeEntry(KEY_SCROLL_BAR_MINI_MAP, scrollBarMiniMap());
 
     config.writeEntry(KEY_SCROLL_BAR_MINI_MAP_ALL, scrollBarMiniMapAll());
@@ -1404,6 +1416,8 @@ void KateViewConfig::writeConfig(KConfigGroup &config)
     config.writeEntry(KEY_ICON_BAR, iconBar());
 
     config.writeEntry(KEY_FOLDING_BAR, foldingBar());
+
+    config.writeEntry(KEY_FOLDING_PREVIEW, foldingPreview());
 
     config.writeEntry(KEY_LINE_MODIFICATION, lineModification());
 
@@ -1573,6 +1587,29 @@ void KateViewConfig::setScrollBarMarks(bool on)
     configEnd();
 }
 
+bool KateViewConfig::scrollBarPreview() const
+{
+    if (m_scrollBarPreviewSet || isGlobal()) {
+        return m_scrollBarPreview;
+    }
+
+    return s_global->scrollBarPreview();
+}
+
+void KateViewConfig::setScrollBarPreview(bool on)
+{
+    if (m_scrollBarPreviewSet && m_scrollBarPreview == on) {
+        return;
+    }
+
+    configStart();
+
+    m_scrollBarPreviewSet = true;
+    m_scrollBarPreview = on;
+
+    configEnd();
+}
+
 bool KateViewConfig::scrollBarMiniMap() const
 {
     if (m_scrollBarMiniMapSet || isGlobal()) {
@@ -1730,6 +1767,29 @@ void KateViewConfig::setFoldingBar(bool on)
 
     m_foldingBarSet = true;
     m_foldingBar = on;
+
+    configEnd();
+}
+
+bool KateViewConfig::foldingPreview() const
+{
+    if (m_foldingPreviewSet || isGlobal()) {
+        return m_foldingPreview;
+    }
+
+    return s_global->foldingPreview();
+}
+
+void KateViewConfig::setFoldingPreview(bool on)
+{
+    if (m_foldingPreviewSet && m_foldingPreview == on) {
+        return;
+    }
+
+    configStart();
+
+    m_foldingPreviewSet = true;
+    m_foldingPreview = on;
 
     configEnd();
 }

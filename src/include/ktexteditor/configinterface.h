@@ -67,6 +67,8 @@ namespace KTextEditor
  *  - line-numbers [bool], show/hide line numbers
  *  - icon-bar [bool], show/hide icon bar
  *  - folding-bar [bool], show/hide the folding bar
+ *  - folding-preview [bool], enable/disable folding preview when mouse hovers
+ *    on folded region
  *  - dynamic-word-wrap [bool], enable/disable dynamic word wrap
  *  - background-color [QColor], read/set the default background color
  *  - selection-color [QColor], read/set the default color for selections
@@ -83,7 +85,8 @@ namespace KTextEditor
  *  - current-line-number-color [QColor] read/set current line number color (in the icon border)
  *  - modification-markers [bool] read/set whether the modification markers are shown
  *  - word-count [bool] enable/disable the counting of words and characters in the statusbar
-
+ *  - scrollbar-minimap [bool] enable/disable scrollbar minimap
+ *  - scrollbar-preview [bool] enable/disable scrollbar text preview on hover
  *
  * KTextEditor::Document has support for the following:
  *  - backup-on-save-local [bool], enable/disable backup when saving local files

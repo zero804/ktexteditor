@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>BordersAppearanceConfigWidget</class>
  <widget class="QWidget" name="BordersAppearanceConfigWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>375</width>
+    <height>522</height>
+   </rect>
+  </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QGroupBox" name="gbBorders">
@@ -18,6 +26,36 @@
          <string>Show &amp;folding markers</string>
         </property>
        </widget>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <spacer name="horizontalSpacer_3">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+          <property name="sizeType">
+           <enum>QSizePolicy::Fixed</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>16</width>
+            <height>16</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
+        <item>
+         <widget class="QCheckBox" name="chkShowFoldingPreview">
+          <property name="whatsThis">
+           <string>If checked, hovering over a folded region shows a preview of the folded text in a popup.</string>
+          </property>
+          <property name="text">
+           <string>Show preview of folded code</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
       <item>
        <widget class="QCheckBox" name="chkIconBorder">
@@ -60,6 +98,16 @@
        </widget>
       </item>
       <item>
+       <widget class="QCheckBox" name="chkScrollbarPreview">
+        <property name="whatsThis">
+         <string>&lt;p&gt;If this option is checked, hovering over the vertical scrollbar will show a preview of the text.&lt;/p&gt;</string>
+        </property>
+        <property name="text">
+         <string>Show text &amp;preview on scrollbar</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QCheckBox" name="chkScrollbarMiniMap">
         <property name="whatsThis">
          <string>If this option is checked, every new view will show a mini map on the vertical scrollbar.</string>
@@ -94,7 +142,7 @@
          <item row="1" column="1">
           <widget class="QLabel" name="labelMiniMapWidth">
            <property name="text">
-            <string>Minimap Width</string>
+            <string>Minim&amp;ap Width</string>
            </property>
            <property name="buddy">
             <cstring>spBoxMiniMapWidth</cstring>
@@ -154,7 +202,7 @@
         <item>
          <widget class="QLabel" name="lblShowScrollbars">
           <property name="text">
-           <string>Scrollbars visibility:</string>
+           <string>Scro&amp;llbars visibility:</string>
           </property>
           <property name="buddy">
            <cstring>cmbShowScrollbars</cstring>
@@ -200,7 +248,7 @@
          <string>Each new bookmark will be added to the bottom, independently from where it is placed in the document.</string>
         </property>
         <property name="text">
-         <string>By c&amp;reation</string>
+         <string>B&amp;y creation</string>
         </property>
        </widget>
       </item>
@@ -210,7 +258,7 @@
          <string>The bookmarks will be ordered by the line numbers they are placed at.</string>
         </property>
         <property name="text">
-         <string>By &amp;position</string>
+         <string>By posi&amp;tion</string>
         </property>
        </widget>
       </item>
@@ -254,12 +302,12 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>62</x>
-     <y>162</y>
+     <x>76</x>
+     <y>295</y>
     </hint>
     <hint type="destinationlabel">
-     <x>23</x>
-     <y>191</y>
+     <x>37</x>
+     <y>347</y>
     </hint>
    </hints>
   </connection>

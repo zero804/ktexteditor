@@ -24,7 +24,6 @@
 
 #include <QPointer>
 #include <QStack>
-#include <QMimeType>
 #include <QTimer>
 
 #include <KJob>
@@ -68,6 +67,7 @@ class KateOnTheFlyChecker;
 class KateDocumentTest;
 
 class KateAutoIndent;
+class KateModOnHdPrompt;
 
 /**
  * @brief Backend of KTextEditor::Document related public KTextEditor interfaces.
@@ -578,20 +578,11 @@ public Q_SLOTS:
     //
 public:
     /**
-     * @return the name of the mimetype for the document.
+     * Tries to detect mime-type based on file name and content of buffer.
      *
-     * This method is using QMimeTypeDatabase::mimeTypeForUrl and if that
-     * fails then calls mimeTypeForContent
+     * @return the name of the mimetype for the document.
      */
     QString mimeType() Q_DECL_OVERRIDE;
-
-    /**
-     * @return QMimeType for this document, found by analyzing the
-     * actual content.
-     *
-     * Note that this method is *not* part of the DocumentInfoInterface.
-     */
-    QMimeType mimeTypeForContent();
 
     //
     // once was KTextEditor::VariableInterface
@@ -757,6 +748,12 @@ private:
     void deactivateDirWatch();
 
     QString m_dirWatchFile;
+
+    /**
+     * Make backup copy during saveFile, if configured that way.
+     * @return success? else saveFile should return false and not write the file
+     */
+    bool createBackupFile();
 
 public:
     /**
@@ -961,12 +958,14 @@ Q_SIGNALS:
      */
     void modifiedOnDisk(KTextEditor::Document *doc, bool isModified, KTextEditor::ModificationInterface::ModifiedOnDiskReason reason) Q_DECL_OVERRIDE;
 
-public:
-    void ignoreModifiedOnDiskOnce();
-
 private:
-    int m_isasking; // don't reenter slotModifiedOnDisk when this is true
-    // -1: ignore once, 0: false, 1: true
+    // helper to handle the embedded notification for externally modified files
+    QPointer<KateModOnHdPrompt> m_modOnHdHandler;
+
+private Q_SLOTS:
+    void onModOnHdSaveAs();
+    void onModOnHdReload();
+    void onModOnHdIgnore();
 
 public:
     bool setEncoding(const QString &e) Q_DECL_OVERRIDE;
@@ -1083,6 +1082,7 @@ private:
 
     bool m_modOnHd;
     ModifiedOnDiskReason m_modOnHdReason;
+    ModifiedOnDiskReason m_prevModOnHdReason;
 
     QString m_docName;
     int m_docNameNumber;
@@ -1360,16 +1360,11 @@ private:
      */
     QString m_openingErrorMessage;
 
-    /**
-     *
-     */
-    int m_lineLengthLimitOverride;
-
 public:
     /**
      * reads the line length limit from config, if it is not overriden
      */
-    int lineLengthLimit();
+    int lineLengthLimit() const;
 
 public Q_SLOTS:
     void openWithLineLengthLimitOverride();

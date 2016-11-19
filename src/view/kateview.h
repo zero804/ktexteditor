@@ -58,9 +58,11 @@ class KateSpellCheckDialog;
 class KateCompletionWidget;
 class KateViewInternal;
 class KateViewBar;
+class KateTextPreview;
 class KateGotoBar;
 class KateDictionaryBar;
 class KateSpellingMenu;
+class KateMessageWidget;
 class KateIconBorder;
 class KateStatusBar;
 class KateViewEncodingAction;
@@ -96,6 +98,7 @@ class KTEXTEDITOR_EXPORT ViewPrivate : public KTextEditor::View,
     friend class ::KateViewInternal;
     friend class ::KateIconBorder;
     friend class CalculatingCursor;
+    friend class ::KateTextPreview;
 
 public:
     ViewPrivate (KTextEditor::DocumentPrivate *doc, QWidget *parent, KTextEditor::MainWindow *mainWindow = Q_NULLPTR);
@@ -644,11 +647,10 @@ private Q_SLOTS:
     void exportHtmlToClipboard ();
     void exportHtmlToFile ();
 
-public Q_SLOTS: // TODO: turn into good interface, see kte5/foldinginterface.h
+public Q_SLOTS:
     void slotFoldToplevelNodes();
+    void slotExpandToplevelNodes();
     void slotCollapseLocal();
-    void slotCollapseLevel();
-    void slotExpandLevel();
     void slotExpandLocal();
 
 private:
@@ -904,13 +906,13 @@ public:
 
 private:
     /** Message widget showing KTextEditor::Messages above the View. */
-    QPointer<KateMessageWidget> m_topMessageWidget;
+    KateMessageWidget *m_topMessageWidget;
     /** Message widget showing KTextEditor::Messages below the View. */
-    QPointer<KateMessageWidget> m_bottomMessageWidget;
+    KateMessageWidget *m_bottomMessageWidget;
     /** Message widget showing KTextEditor::Messages as view overlay in top right corner. */
-    QPointer<KateMessageWidget> m_floatTopMessageWidget;
+    KateMessageWidget *m_floatTopMessageWidget;
     /** Message widget showing KTextEditor::Messages as view overlay in bottom left corner. */
-    QPointer<KateMessageWidget> m_floatBottomMessageWidget;
+    KateMessageWidget *m_floatBottomMessageWidget;
     /** Layout for floating notifications */
     QVBoxLayout *m_notificationLayout;
 

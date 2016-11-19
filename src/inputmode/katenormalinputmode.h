@@ -46,7 +46,7 @@ public:
     void overwrittenChar(const QChar &) Q_DECL_OVERRIDE;
 
     void clearSelection() Q_DECL_OVERRIDE;
-    bool stealKey(const QKeyEvent *) const Q_DECL_OVERRIDE;
+    bool stealKey(QKeyEvent *) Q_DECL_OVERRIDE;
 
     void gotFocus() Q_DECL_OVERRIDE;
     void lostFocus() Q_DECL_OVERRIDE;
@@ -76,8 +76,38 @@ public:
     QString bookmarkLabel(int line) const Q_DECL_OVERRIDE;
 
 private:
-    KateSearchBar *searchBar(bool initHintAsPower = false);
-    bool hasSearchBar() const;
+    /**
+     * Search bar mode:
+     *   - Setup Incremental mode, among other things: potential new search pattern
+     *   - Setup Power mode, aka find & replace: Also potential new search pattern
+     *   - Use current mode and current search pattern or if no Search bar exists, launch Incremental mode
+     */
+    enum SearchBarMode {
+        IncrementalSearchBar,
+        PowerSearchBar,
+        IncrementalSearchBarOrKeepMode
+    };
+
+    /**
+     * Get search bar, create it on demand. (with right mode)
+     * @param mode wanted search bar mode
+     * @return search bar widget
+     */
+    KateSearchBar *searchBar(const SearchBarMode mode);
+
+    /**
+     * search bar around?
+     * @return search bar around?
+     */
+    bool hasSearchBar() const
+    {
+        return m_searchBar;
+    }
+
+    /**
+     * Get command line bar, create it on demand.
+     * @return command line bar, created if not already there
+     */
     KateCommandLineBar *cmdLineBar();
 
 private:

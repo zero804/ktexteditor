@@ -22,7 +22,7 @@
 #include <kateconfig.h>
 #include <kateglobal.h>
 #include <kateundomanager.h>
-#include <emulatedcommandbar.h>
+#include <vimode/emulatedcommandbar/emulatedcommandbar.h>
 #include <inputmode/kateviinputmode.h>
 #include "base.h"
 #include "vimode/macros.h"
@@ -104,6 +104,8 @@ void BaseTest::init()
     vi_global = vi_input_mode->globalState();
     Q_ASSERT(vi_global);
     kate_document->config()->setShowSpaces(true); // Flush out some issues in the KateRenderer when rendering spaces.
+    kate_view->config()->setScrollBarMiniMap(false);
+    kate_view->config()->setScrollBarPreview(false);
 
     connect(kate_document, &KTextEditor::DocumentPrivate::textInserted,
             this, &BaseTest::textInserted);
@@ -318,12 +320,12 @@ void BaseTest::clearAllMacros()
     vi_global->macros()->clear();
 }
 
-void BaseTest::textInserted(Document *document, Range range)
+void BaseTest::textInserted(Document *document, KTextEditor::Range range)
 {
     m_docChanges.append(DocChange(DocChange::TextInserted, range, document->text(range)));
 }
 
-void BaseTest::textRemoved(Document *document, Range range)
+void BaseTest::textRemoved(Document *document, KTextEditor::Range range)
 {
     Q_UNUSED(document);
     m_docChanges.append(DocChange(DocChange::TextRemoved, range));

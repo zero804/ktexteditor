@@ -26,6 +26,7 @@
 #include <KActionMenu>
 
 #include <QPixmap>
+#include <QPointer>
 #include <QColor>
 #include <QScrollBar>
 #include <QHash>
@@ -45,6 +46,7 @@ class KateViewInternal;
 #define MAXFOLDINGCOLORS 16
 
 class KateLineInfo;
+class KateTextPreview;
 
 namespace KTextEditor
 {
@@ -69,9 +71,10 @@ class KateScrollBar : public QScrollBar
 
 public:
     KateScrollBar(Qt::Orientation orientation, class KateViewInternal *parent);
+    virtual ~KateScrollBar();
     QSize sizeHint() const Q_DECL_OVERRIDE;
 
-    inline bool showMarks()
+    inline bool showMarks() const
     {
         return m_showMarks;
     }
@@ -81,13 +84,13 @@ public:
         update();
     }
 
-    inline bool showMiniMap()
+    inline bool showMiniMap() const
     {
         return m_showMiniMap;
     }
     void setShowMiniMap(bool b);
 
-    inline bool miniMapAll()
+    inline bool miniMapAll() const
     {
         return m_miniMapAll;
     }
@@ -98,7 +101,7 @@ public:
         update();
     }
 
-    inline bool miniMapWidth()
+    inline bool miniMapWidth() const
     {
         return m_miniMapWidth;
     }
@@ -121,6 +124,8 @@ protected:
     void mousePressEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
     void mouseReleaseEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
     void mouseMoveEvent(QMouseEvent *e) Q_DECL_OVERRIDE;
+    void leaveEvent(QEvent *event) Q_DECL_OVERRIDE;
+    bool eventFilter(QObject *object, QEvent *event) Q_DECL_OVERRIDE;
     void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
     void resizeEvent(QResizeEvent *) Q_DECL_OVERRIDE;
     void sliderChange(SliderChange change) Q_DECL_OVERRIDE;
@@ -132,7 +137,12 @@ protected Q_SLOTS:
 public Q_SLOTS:
     void updatePixmap();
 
+private Q_SLOTS:
+    void showTextPreview();
 private:
+    void showTextPreviewDelayed();
+    void hideTextPreview();
+
     void redrawMarks();
     void recomputeMarksPositions();
 
@@ -151,6 +161,8 @@ private:
     KTextEditor::ViewPrivate *m_view;
     KTextEditor::DocumentPrivate *m_doc;
     class KateViewInternal *m_viewInternal;
+    QPointer<KateTextPreview> m_textPreview;
+    QTimer m_delayTextPreviewTimer;
 
     QHash<int, QColor> m_lines;
 
@@ -243,6 +255,7 @@ public Q_SLOTS:
     void updateAnnotationBorderWidth();
     void updateAnnotationLine(int line);
     void annotationModelChanged(KTextEditor::AnnotationModel *oldmodel, KTextEditor::AnnotationModel *newmodel);
+    void displayRangeChanged();
 
 private:
     void paintEvent(QPaintEvent *) Q_DECL_OVERRIDE;
@@ -287,6 +300,7 @@ private:
     mutable QPixmap m_arrow;
     mutable QColor m_oldBackgroundColor;
 
+    QPointer<KateTextPreview> m_foldingPreview;
     KTextEditor::MovingRange *m_foldingRange;
     int m_nextHighlightBlock;
     int m_currentBlockLine;

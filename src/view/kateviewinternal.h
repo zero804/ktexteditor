@@ -30,7 +30,6 @@
 #include <ktexteditor/attribute.h>
 
 #include "katetextcursor.h"
-#include "katelinelayout.h"
 #include "katetextline.h"
 #include "katedocument.h"
 #include "kateview.h"
@@ -73,6 +72,7 @@ class KateViewInternal : public QWidget
     friend class WrappingCursor;
     friend class KateAbstractInputMode;
     friend class KateMultiCursor;
+    friend class ::KateTextPreview;
 
 public:
     enum Bias {

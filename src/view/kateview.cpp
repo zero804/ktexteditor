@@ -51,6 +51,7 @@
 #include "script/katescriptmanager.h"
 #include "script/katescriptaction.h"
 #include "export/exporter.h"
+#include "katemessagewidget.h"
 #include "katetemplatehandler.h"
 #include "katepartdebug.h"
 #include "printing/kateprinter.h"
@@ -82,6 +83,7 @@
 #include <QPainter>
 #include <QClipboard>
 #include <QFileDialog>
+#include <QToolTip>
 
 //#define VIEW_RANGE_DEBUG
 
@@ -213,7 +215,7 @@ KTextEditor::ViewPrivate::ViewPrivate(KTextEditor::DocumentPrivate *doc, QWidget
     slotHlChanged();
     KCursor::setAutoHideCursor(m_viewInternal, true);
 
-    // user interaction (scrollling) starts notification auto-hide timer
+    // user interaction (scrolling) starts notification auto-hide timer
     connect(this, SIGNAL(displayRangeChanged(KTextEditor::ViewPrivate*)), m_topMessageWidget, SLOT(startAutoHideTimer()));
     connect(this, SIGNAL(displayRangeChanged(KTextEditor::ViewPrivate*)), m_bottomMessageWidget, SLOT(startAutoHideTimer()));
 
@@ -303,7 +305,7 @@ void KTextEditor::ViewPrivate::setupLayout()
     }
 
     // set margins
-    QStyleOptionFrameV3 opt;
+    QStyleOptionFrame opt;
     opt.initFrom(this);
     opt.frameShape = QFrame::StyledPanel;
     opt.state |= QStyle::State_Sunken;
@@ -593,7 +595,7 @@ void KTextEditor::ViewPrivate::setupActions()
     a = ac->addAction(KStandardAction::SaveAs, m_doc, SLOT(documentSaveAs()));
     a->setWhatsThis(i18n("Save the current document to disk, with a name of your choice."));
 
-    a = new KateViewEncodingAction(m_doc, this, i18n("Save As with &Encoding..."), this, true /* special mode for save as */);
+    a = new KateViewEncodingAction(m_doc, this, i18n("Save As with Encoding..."), this, true /* special mode for save as */);
     a->setIcon(QIcon::fromTheme(QStringLiteral("document-save-as")));
     ac->addAction(QStringLiteral("file_save_as_with_encoding"), a);
 
@@ -1184,9 +1186,7 @@ void KTextEditor::ViewPrivate::placeSecondaryCursor()
 
 void KTextEditor::ViewPrivate::setupCodeFolding()
 {
-    //FIXME: FOLDING
     KActionCollection *ac = this->actionCollection();
-
     QAction *a;
 
     a = ac->addAction(QStringLiteral("folding_toplevel"));
@@ -1194,12 +1194,12 @@ void KTextEditor::ViewPrivate::setupCodeFolding()
     ac->setDefaultShortcut(a, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_Minus));
     connect(a, SIGNAL(triggered(bool)), SLOT(slotFoldToplevelNodes()));
 
-    /*a = ac->addAction(QLatin1String("folding_expandtoplevel"));
+    a = ac->addAction(QLatin1String("folding_expandtoplevel"));
     a->setText(i18n("Unfold Toplevel Nodes"));
     ac->setDefaultShortcut(a, QKeySequence(Qt::CTRL+Qt::SHIFT+Qt::Key_Plus));
-    connect(a, SIGNAL(triggered(bool)), m_doc->foldingTree(), SLOT(expandToplevelNodes()));
+    connect(a, SIGNAL(triggered(bool)), SLOT(slotExpandToplevelNodes()));
 
-    a = ac->addAction(QLatin1String("folding_expandall"));
+    /*a = ac->addAction(QLatin1String("folding_expandall"));
     a->setText(i18n("Unfold All Nodes"));
     connect(a, SIGNAL(triggered(bool)), m_doc->foldingTree(), SLOT(expandAll()));
 
@@ -1218,11 +1218,18 @@ void KTextEditor::ViewPrivate::setupCodeFolding()
 
 void KTextEditor::ViewPrivate::slotFoldToplevelNodes()
 {
-    // FIXME: more performant implementation
     for (int line = 0; line < doc()->lines(); ++line) {
         if (textFolding().isLineVisible(line)) {
             foldLine(line);
         }
+    }
+}
+
+void KTextEditor::ViewPrivate::slotExpandToplevelNodes()
+{
+    const auto topLevelRanges(textFolding().foldingRangesForParentRange());
+    for (const auto &range : topLevelRanges) {
+        textFolding().unfoldRange(range.first);
     }
 }
 
@@ -1234,42 +1241,6 @@ void KTextEditor::ViewPrivate::slotCollapseLocal()
 void KTextEditor::ViewPrivate::slotExpandLocal()
 {
     unfoldLine(cursorPosition().line());
-}
-
-void KTextEditor::ViewPrivate::slotCollapseLevel()
-{
-    //FIXME: FOLDING
-#if 0
-    if (!sender()) {
-        return;
-    }
-    QAction *action = qobject_cast<QAction *>(sender());
-    if (!action) {
-        return;
-    }
-
-    const int level = action->data().toInt();
-    Q_ASSERT(level > 0);
-    m_doc->foldingTree()->collapseLevel(level);
-#endif
-}
-
-void KTextEditor::ViewPrivate::slotExpandLevel()
-{
-    //FIXME: FOLDING
-#if 0
-    if (!sender()) {
-        return;
-    }
-    QAction *action = qobject_cast<QAction *>(sender());
-    if (!action) {
-        return;
-    }
-
-    const int level = action->data().toInt();
-    Q_ASSERT(level > 0);
-    m_doc->foldingTree()->expandLevel(level);
-#endif
 }
 
 void KTextEditor::ViewPrivate::foldLine(int startLine)
@@ -2564,17 +2535,22 @@ KTextEditor::Cursor KTextEditor::ViewPrivate::cursorPositionVirtual() const
 
 QPoint KTextEditor::ViewPrivate::cursorToCoordinate(const KTextEditor::Cursor &cursor) const
 {
-    return m_viewInternal->cursorToCoordinate(cursor);
+    // map from ViewInternal to View coordinates
+    const QPoint pt = m_viewInternal->cursorToCoordinate(cursor, true, false);
+    return pt == QPoint(-1, -1) ? pt : m_viewInternal->mapToParent(pt);
 }
 
 KTextEditor::Cursor KTextEditor::ViewPrivate::coordinatesToCursor(const QPoint &coords) const
 {
-    return m_viewInternal->coordinatesToCursor(coords);
+    // map from View to ViewInternal coordinates
+    return m_viewInternal->coordinatesToCursor(m_viewInternal->mapFromParent(coords), false);
 }
 
 QPoint KTextEditor::ViewPrivate::cursorPositionCoordinates() const
 {
-    return m_viewInternal->cursorCoordinates();
+    // map from ViewInternal to View coordinates
+    const QPoint pt = m_viewInternal->cursorCoordinates();
+    return pt == QPoint(-1, -1) ? pt : m_viewInternal->mapToParent(pt);
 }
 
 bool KTextEditor::ViewPrivate::setCursorPositionVisual(const KTextEditor::Cursor &position)
@@ -3057,13 +3033,16 @@ QStringList KTextEditor::ViewPrivate::configKeys() const
         QStringLiteral("default-mark-type"),
         QStringLiteral("allow-mark-menu"),
         QStringLiteral("folding-bar"),
+        QStringLiteral("folding-preview"),
         QStringLiteral("icon-border-color"),
         QStringLiteral("folding-marker-color"),
         QStringLiteral("line-number-color"),
         QStringLiteral("current-line-number-color"),
         QStringLiteral("modification-markers"),
         QStringLiteral("keyword-completion"),
-        QStringLiteral("word-count")
+        QStringLiteral("word-count"),
+        QStringLiteral("scrollbar-minimap"),
+        QStringLiteral("scrollbar-preview")
     };
     return keys;
 }
@@ -3090,6 +3069,8 @@ QVariant KTextEditor::ViewPrivate::configValue(const QString &key)
         return config()->allowMarkMenu();
     } else if (key == QLatin1String("folding-bar")) {
         return config()->foldingBar();
+    } else if (key == QLatin1String("folding-preview")) {
+        return config()->foldingPreview();
     } else if (key == QLatin1String("icon-border-color")) {
         return renderer()->config()->iconBarColor();
     } else if (key == QLatin1String("folding-marker-color")) {
@@ -3102,6 +3083,10 @@ QVariant KTextEditor::ViewPrivate::configValue(const QString &key)
         return config()->lineModification();
     } else if (key == QLatin1String("keyword-completion")) {
         return config()->keywordCompletion();
+    } else if (key == QLatin1String("scrollbar-minimap")) {
+        return config()->scrollBarMiniMap();
+    } else if (key == QLatin1String("scrollbar-preview")) {
+        return config()->scrollBarPreview();
     }
 
     // return invalid variant
@@ -3142,12 +3127,18 @@ void KTextEditor::ViewPrivate::setConfigValue(const QString &key, const QVariant
             config()->setAllowMarkMenu(value.toBool());
         } else if (key == QLatin1String("folding-bar")) {
             config()->setFoldingBar(value.toBool());
+        } else if (key == QLatin1String("folding-preview")) {
+            config()->setFoldingPreview(value.toBool());
         } else if (key == QLatin1String("modification-markers")) {
             config()->setLineModification(value.toBool());
         } else if (key == QLatin1String("keyword-completion")) {
             config()->setKeywordCompletion(value.toBool());
         } else if (key == QLatin1String("word-count")) {
             config()->setShowWordCount(value.toBool());
+        } else if (key == QLatin1String("scrollbar-minimap")) {
+            config()->setScrollBarMiniMap(value.toBool());
+        } else if (key == QLatin1String("scrollbar-preview")) {
+            config()->setScrollBarPreview(value.toBool());
         }
 
     } else if (value.canConvert(QVariant::UInt)) {
@@ -3204,6 +3195,10 @@ KTextEditor::AnnotationModel *KTextEditor::ViewPrivate::annotationModel() const
 void KTextEditor::ViewPrivate::setAnnotationBorderVisible(bool visible)
 {
     m_viewInternal->m_leftBorder->setAnnotationBorderOn(visible);
+    if ( !visible ) {
+        // make sure the tooltip is hidden
+        QToolTip::hideText();
+    }
 }
 
 bool KTextEditor::ViewPrivate::isAnnotationBorderVisible() const
@@ -3241,7 +3236,7 @@ void KTextEditor::ViewPrivate::paintEvent(QPaintEvent *e)
         m_rightSpacer->geometry();
 
     if (contentsRect.isValid()) {
-        QStyleOptionFrameV3 opt;
+        QStyleOptionFrame opt;
         opt.initFrom(this);
         opt.frameShape = QFrame::StyledPanel;
         opt.state |= QStyle::State_Sunken;

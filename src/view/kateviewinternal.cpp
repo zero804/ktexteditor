@@ -482,7 +482,9 @@ void KateViewInternal::scrollPos(KTextEditor::Cursor &c, bool force, bool called
         if (!calledExternally && qAbs(viewLinesScrolled) < lines &&
             // NOTE: on some machines we must update if the floating widget is visible
             //       otherwise strange painting bugs may occur during scrolling...
-            !(m_view->m_floatTopMessageWidget || m_view->m_bottomMessageWidget))
+            !((m_view->m_floatTopMessageWidget && m_view->m_floatTopMessageWidget->isVisible()) ||
+              (m_view->m_floatBottomMessageWidget && m_view->m_floatBottomMessageWidget->isVisible()))
+           )
         {
             updateView(false, viewLinesScrolled);
 
@@ -705,6 +707,10 @@ void KateViewInternal::slotRegionVisibilityChanged()
 
         // set cursor to start of folding region
         cursors()->setPrimaryCursor(foldingRange.start(), true);
+    } else {
+        // force an update of the cursor, since otherwise the m_displayCursor
+        // line may be below the total amount of visible lines.
+        cursors()->setPrimaryCursor(m_cursor, true);
     }
 
     updateView();
@@ -754,7 +760,7 @@ QPoint KateViewInternal::cursorToCoordinate(const KTextEditor::Cursor &cursor, b
         return QPoint(-1, -1);
     }
 
-    int y = (int)viewLine * renderer()->lineHeight();
+    const int y = (int)viewLine * renderer()->lineHeight();
 
     KateTextLayout layout = cache()->viewLine(viewLine);
     int x = 0;
@@ -1593,6 +1599,12 @@ bool KateViewInternal::tagLine(const KTextEditor::Cursor &virtualCursor)
     int viewLine = cache()->displayViewLine(virtualCursor, true);
     if (viewLine >= 0 && viewLine < cache()->viewCacheLineCount()) {
         cache()->viewLine(viewLine).setDirty();
+
+        // tag one line more because of overlapping things like _, bug 335079
+        if (viewLine+1 < cache()->viewCacheLineCount()) {
+            cache()->viewLine(viewLine+1).setDirty();
+        }
+
         m_leftBorder->update(0, lineToY(viewLine), m_leftBorder->width(), renderer()->lineHeight());
         return true;
     }
@@ -1840,14 +1852,6 @@ bool KateViewInternal::eventFilter(QObject *obj, QEvent *e)
     case QEvent::DragLeave:
         // happens only when pressing ESC while dragging
         stopDragScroll();
-        break;
-
-    case QEvent::WindowBlocked:
-        // next focus originates from an internal dialog:
-        // don't show the modonhd prompt
-        if (isVisible()) {
-            doc()->ignoreModifiedOnDiskOnce();
-        }
         break;
 
     default:
@@ -2450,6 +2454,7 @@ void KateViewInternal::paintEvent(QPaintEvent *e)
     uint startz = (unionRect.y() / h);
     uint endz = startz + 1 + (unionRect.height() / h);
     uint lineRangesSize = cache()->viewCacheLineCount();
+    const KTextEditor::Cursor pos = m_cursor;
 
     QPainter paint(this);
     paint.setRenderHints(QPainter::Antialiasing);
@@ -2464,6 +2469,8 @@ void KateViewInternal::paintEvent(QPaintEvent *e)
     paint.translate(unionRect.x(), startz * h);
 
     for (uint z = startz; z <= endz; z++) {
+        paint.save();
+
         if ((z >= lineRangesSize) || (cache()->viewLine(z).line() == -1)) {
             if (!(z >= lineRangesSize)) {
                 cache()->viewLine(z).setDirty(false);
@@ -2483,34 +2490,32 @@ void KateViewInternal::paintEvent(QPaintEvent *e)
                be painted -- when no previous calls to paintTextLine were made.
             */
             if (!thisLine.viewLine() || z == startz) {
-                // Don't bother if we're not in the requested update region
-                if (!e->region().contains(QRect(unionRect.x(), startz * h, unionRect.width(), h))) {
-                    continue;
-                }
-
-                //qCDebug(LOG_KTE) << "paint text: line: " << thisLine.line() << " viewLine " << thisLine.viewLine() << " x: " << unionRect.x() << " y: " << sy
-                //  << " width: " << xEnd-xStart << " height: " << h << endl;
-
-                if (thisLine.viewLine()) {
-                    paint.translate(QPoint(0, h * - thisLine.viewLine()));
-                }
-
-                // The paintTextLine function should be well behaved, but if not, this clipping may be needed
-                //paint.setClipRect(QRect(xStart, 0, xEnd - xStart, h * (thisLine.kateLineLayout()->viewLineCount())));
+                //qDebug() << "paint text: line: " << thisLine.line() << " viewLine " << thisLine.viewLine() << " x: " << unionRect.x() << " y: " << unionRect.y() << " width: " << xEnd-xStart << " height: " << h << endl;
 
                 KTextEditor::Cursor pos = primaryCursor();
+
+                // first: paint our line
+                paint.translate(QPoint(0, h * - thisLine.viewLine()));
+                paint.setClipRect(QRect(0, 0, unionRect.width(), h * thisLine.kateLineLayout()->viewLineCount()));
                 renderer()->paintTextLine(paint, thisLine.kateLineLayout(), xStart, xEnd, &pos);
+                paint.translate(0, h * thisLine.viewLine());
 
-                //paint.setClipping(false);
-
-                if (thisLine.viewLine()) {
-                    paint.translate(0, h * thisLine.viewLine());
+                // second: paint previous line elements, that span into our line like _, bug 335079
+                if (z > 0) {
+                    KateTextLayout &previousLine = cache()->viewLine(z-1);
+                    paint.translate(QPoint(0, h * - (previousLine.viewLine() + 1)));
+                    renderer()->paintTextLine(paint, previousLine.kateLineLayout(), xStart, xEnd, &pos);
+                    paint.translate(0, h * (previousLine.viewLine() + 1));
                 }
 
+                /**
+                 * line painted, reset and state + mark line as non-dirty
+                 */
                 thisLine.setDirty(false);
             }
         }
 
+        paint.restore();
         paint.translate(0, h);
         sy += h;
     }
