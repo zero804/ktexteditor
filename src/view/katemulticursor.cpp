@@ -315,11 +315,13 @@ KateMultiCursor::KateMultiCursor(KateViewInternal* view)
     Q_ASSERT(view);
 }
 
-KTextEditor::ViewPrivate* KateMultiCursor::view() const {
+KTextEditor::ViewPrivate* KateMultiCursor::view() const
+{
     return m_viewInternal->view();
 }
 
-KTextEditor::DocumentPrivate* KateMultiCursor::doc() const {
+KTextEditor::DocumentPrivate* KateMultiCursor::doc() const
+{
     return view()->doc();
 }
 
@@ -333,7 +335,8 @@ KateViewInternal* KateMultiSelection::viewInternal() const
     return m_viewInternal;
 }
 
-const KateMultiSelection* KateMultiCursor::selections() const {
+const KateMultiSelection* KateMultiCursor::selections() const
+{
     return view()->selections();
 }
 
@@ -342,10 +345,11 @@ KateMultiSelection* KateMultiCursor::selections()
     return view()->selections();
 }
 
-void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool repaint, bool select) {
+void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool repaint, bool select)
+{
     qDebug() << "called" << cursor;
     Q_ASSERT(cursor.isValid());
-    if ( cursor == primaryCursor() ) {
+    if (cursor == primaryCursor()) {
         return;
     }
     CursorRepainter rep(this, repaint);
@@ -354,7 +358,8 @@ void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool r
 }
 
 
-Cursors KateMultiCursor::cursors() const {
+Cursors KateMultiCursor::cursors() const
+{
     auto cursors = secondaryCursors();
     cursors.prepend(primaryCursor());
     std::sort(cursors.begin(), cursors.end(), [](const KTextEditor::Cursor c1, const KTextEditor::Cursor c2) {
@@ -363,9 +368,10 @@ Cursors KateMultiCursor::cursors() const {
     return cursors;
 }
 
-const QVector<KTextEditor::MovingCursor::Ptr> KateMultiCursor::movingCursors() const {
+const QVector<KTextEditor::MovingCursor::Ptr> KateMultiCursor::movingCursors() const
+{
     QVector<KTextEditor::MovingCursor::Ptr> ret;
-    Q_FOREACH ( const auto& c, m_cursors ) {
+    Q_FOREACH (const auto& c, m_cursors) {
         ret.append(c);
     }
     return ret;
@@ -377,21 +383,24 @@ size_t KateMultiCursor::cursorsCount() const
     return m_cursors.size();
 }
 
-Cursor KateMultiCursor::primaryCursor() const {
+Cursor KateMultiCursor::primaryCursor() const
+{
     return m_cursors.first()->toCursor();
 }
 
-Cursors KateMultiCursor::secondaryCursors() const {
+Cursors KateMultiCursor::secondaryCursors() const
+{
     QVector<KTextEditor::Cursor> cursors;
     cursors.reserve(m_cursors.size() - 1);
-    foreach ( const auto moving, m_cursors.mid(1) ) {
+    foreach (const auto moving, m_cursors.mid(1)) {
         auto cursor = moving->toCursor();
         cursors.append(cursor);
     }
     return cursors;
 }
 
-bool KateMultiCursor::hasSecondaryCursors() const {
+bool KateMultiCursor::hasSecondaryCursors() const
+{
     return m_cursors.size() > 1;
 }
 
@@ -405,22 +414,23 @@ void KateMultiCursor::appendCursorInternal(const KTextEditor::Cursor& cursor)
     Q_ASSERT(m_cursors.size() == m_selections.size());
 }
 
-bool KateMultiCursor::toggleSecondaryCursorAt(const KTextEditor::Cursor& cursor, bool ensureExists) {
+bool KateMultiCursor::toggleSecondaryCursorAt(const KTextEditor::Cursor& cursor, bool ensureExists)
+{
     Q_ASSERT(cursor.isValid());
     qDebug() << "called" << cursor << m_cursors;
 
-    if ( selections()->positionSelected(cursor) ) {
+    if (selections()->positionSelected(cursor)) {
         // cannot place secondary cursors inside a selection
         qDebug() << "will not place cursor inside a selection";
         return false;
     }
 
     CursorRepainter rep(this);
-    Q_FOREACH ( const auto moving, m_cursors.mid(1) ) {
-        if ( moving->toCursor() == cursor ) {
+    Q_FOREACH (const auto moving, m_cursors.mid(1)) {
+        if (moving->toCursor() == cursor) {
             removeCursorInternal(moving);
             Q_ASSERT(!m_cursors.isEmpty());
-            if ( ! ensureExists ) {
+            if (! ensureExists) {
                 qDebug() << "removed secondary cursor" << cursor;
                 return false;
             }
@@ -433,7 +443,8 @@ bool KateMultiCursor::toggleSecondaryCursorAt(const KTextEditor::Cursor& cursor,
     return true;
 }
 
-void KateMultiCursor::clearSecondaryCursors() {
+void KateMultiCursor::clearSecondaryCursors()
+{
     qDebug() << "clearing secondary cursors";
     CursorRepainter rep(this);
     m_cursors.resize(1);
@@ -441,110 +452,120 @@ void KateMultiCursor::clearSecondaryCursors() {
     qDebug() << "cursors:" << m_cursors;
 }
 
-QVector<MovingCursor::Ptr> KateMultiCursor::allCursors() const {
+QVector<MovingCursor::Ptr> KateMultiCursor::allCursors() const
+{
     Q_ASSERT(m_cursors.size() >= 1);
     Q_ASSERT(m_selections.size() == m_cursors.size());
     return m_cursors;
 }
 
-void KateMultiCursor::moveCursorsLeft(bool sel, int32_t chars) {
+void KateMultiCursor::moveCursorsLeft(bool sel, int32_t chars)
+{
     qDebug() << "called" << sel << chars;
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
     m_savedHorizontalPositions.clear();
-    Q_FOREACH ( const auto& cursor, allCursors() ) {
+    Q_FOREACH (const auto& cursor, allCursors()) {
         if (! view()->wrapCursor() && cursor->column() == 0) {
             return;
         }
         cursor->setPosition(moveLeftRight(*cursor, -chars));
-        if ( secondaryFrozen() ) {
+        if (secondaryFrozen()) {
             break;
         }
     }
 }
 
-void KateMultiCursor::moveCursorsRight(bool sel, int32_t chars) {
+void KateMultiCursor::moveCursorsRight(bool sel, int32_t chars)
+{
     qDebug() << "called" << sel << chars;
     moveCursorsLeft(sel, -chars);
 }
 
-void KateMultiCursor::moveCursorsUp(bool sel, int32_t chars) {
+void KateMultiCursor::moveCursorsUp(bool sel, int32_t chars)
+{
     qDebug() << "called" << sel << chars;
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
-    Q_FOREACH ( const auto& cursor, allCursors() ) {
+    Q_FOREACH (const auto& cursor, allCursors()) {
         auto x = m_savedHorizontalPositions.value(cursor.data(), -1);
         cursor->setPosition(moveUpDown(*cursor, -chars, x));
         m_savedHorizontalPositions.insert(cursor.data(), x);
         qDebug() << "add cached x:" << *cursor.data() << x;
-        if ( secondaryFrozen() ) {
+        if (secondaryFrozen()) {
             break;
         }
     }
 }
 
-void KateMultiCursor::moveCursorsDown(bool sel, int32_t chars) {
+void KateMultiCursor::moveCursorsDown(bool sel, int32_t chars)
+{
     qDebug() << "called" << sel << chars;
     moveCursorsUp(sel, -chars);
 }
 
-void KateMultiCursor::moveCursorsEndOfLine(bool sel) {
+void KateMultiCursor::moveCursorsEndOfLine(bool sel)
+{
     qDebug() << "called" << sel;
     m_savedHorizontalPositions.clear();
 
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
-    Q_FOREACH ( const auto& cursor, allCursors() ) {
+    Q_FOREACH (const auto& cursor, allCursors()) {
         cursor->setPosition(moveEnd(*cursor));
-        if ( secondaryFrozen() ) {
+        if (secondaryFrozen()) {
             return;
         }
     }
 }
 
-void KateMultiCursor::moveCursorsStartOfLine(bool sel) {
+void KateMultiCursor::moveCursorsStartOfLine(bool sel)
+{
     qDebug() << "called" << sel;
     m_savedHorizontalPositions.clear();
 
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
-    Q_FOREACH ( const auto& cursor, allCursors() ) {
+    Q_FOREACH (const auto& cursor, allCursors()) {
         cursor->setPosition(moveHome(*cursor));
-        if ( secondaryFrozen() ) {
+        if (secondaryFrozen()) {
             return;
         }
     }
 }
 
-void KateMultiCursor::moveCursorsWordNext(bool sel) {
+void KateMultiCursor::moveCursorsWordNext(bool sel)
+{
     qDebug() << "called" << sel;
     m_savedHorizontalPositions.clear();
 
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
-    Q_FOREACH ( const auto& cursor, allCursors() ) {
+    Q_FOREACH (const auto& cursor, allCursors()) {
         cursor->setPosition(moveWord(*cursor, Right));
-        if ( secondaryFrozen() ) {
+        if (secondaryFrozen()) {
             return;
         }
     }
 }
 
-void KateMultiCursor::moveCursorsWordPrevious(bool sel) {
+void KateMultiCursor::moveCursorsWordPrevious(bool sel)
+{
     qDebug() << "called" << sel;
     m_savedHorizontalPositions.clear();
 
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
-    Q_FOREACH ( const auto& cursor, allCursors() ) {
+    Q_FOREACH (const auto& cursor, allCursors()) {
         cursor->setPosition(moveWord(*cursor, Left));
-        if ( secondaryFrozen() ) {
+        if (secondaryFrozen()) {
             return;
         }
     }
 }
 
-Cursor KateMultiCursor::moveHome(const KTextEditor::Cursor& cursor) const {
+Cursor KateMultiCursor::moveHome(const KTextEditor::Cursor& cursor) const
+{
     auto currentLayout = viewInternal()->currentLayout(cursor);
     if (view()->dynWordWrap() && currentLayout.startCol()) {
         // Allow us to go to the real start if we're already at the start of the view line
@@ -576,7 +597,8 @@ Cursor KateMultiCursor::moveHome(const KTextEditor::Cursor& cursor) const {
     return c;
 }
 
-Cursor KateMultiCursor::moveEnd(const KTextEditor::Cursor& cursor) const {
+Cursor KateMultiCursor::moveEnd(const KTextEditor::Cursor& cursor) const
+{
     auto layout = viewInternal()->currentLayout(cursor);
     if (view()->dynWordWrap() && layout.wrap()) {
         // Allow us to go to the real end if we're already at the end of the view line
@@ -611,7 +633,8 @@ Cursor KateMultiCursor::moveEnd(const KTextEditor::Cursor& cursor) const {
     Q_UNREACHABLE();
 }
 
-Cursor KateMultiCursor::moveLeftRight(const Cursor& start, int32_t chars) const {
+Cursor KateMultiCursor::moveLeftRight(const Cursor& start, int32_t chars) const
+{
     KTextEditor::Cursor c;
     if (view()->wrapCursor()) {
         c = WrappingCursor(viewInternal(), start) += chars;
@@ -622,22 +645,21 @@ Cursor KateMultiCursor::moveLeftRight(const Cursor& start, int32_t chars) const 
     return c;
 }
 
-Cursor KateMultiCursor::moveUpDown(const Cursor& start, int32_t direction, int32_t& x) const {
+Cursor KateMultiCursor::moveUpDown(const Cursor& start, int32_t direction, int32_t& x) const
+{
     qDebug() << "called" << start << direction;
     /**
      * move cursor to start/end of line, if we are at first/last line!
      */
     auto visLine = viewInternal()->toVirtualCursor(start).line();
     auto cache = viewInternal()->cache();
-    if ( direction < 0 ) {
-        if ( visLine == 0 && (!view()->dynWordWrap() || cache->viewLine(start) == 0)) {
+    if (direction < 0) {
+        if (visLine == 0 && (!view()->dynWordWrap() || cache->viewLine(start) == 0)) {
             return moveHome(start);
         }
-    }
-    else {
+    } else {
         if ((visLine >= view()->textFolding().visibleLines() - 1) && (!view()->dynWordWrap()
-            || cache->viewLine(start) == cache->lastViewLine(start.line())))
-        {
+                || cache->viewLine(start) == cache->lastViewLine(start.line()))) {
             return moveEnd(start);
         }
     }
@@ -672,7 +694,7 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
 
     KateHighlighting *h = doc()->highlight();
 
-    if ( dir == Right ) {
+    if (dir == Right) {
         if (c.atEdge(KateViewInternal::right)) {
             ++c;
         } else if (h->isInWord(doc()->line(c.line())[ c.column() ])) {
@@ -681,10 +703,10 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
             }
         } else {
             while (!c.atEdge(KateViewInternal::right)
-                    && !h->isInWord(doc()->line(c.line())[ c.column() ])
-                    // we must not skip space, because if that space is followed
-                    // by more non-word characters, we would skip them, too
-                    && !doc()->line(c.line())[ c.column() ].isSpace()) {
+                   && !h->isInWord(doc()->line(c.line())[ c.column() ])
+                   // we must not skip space, because if that space is followed
+                   // by more non-word characters, we would skip them, too
+                   && !doc()->line(c.line())[ c.column() ].isSpace()) {
                 ++c;
             }
         }
@@ -692,8 +714,7 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
         while (!c.atEdge(KateViewInternal::right) && doc()->line(c.line())[ c.column() ].isSpace()) {
             ++c;
         }
-    }
-    else if ( dir == Left ) {
+    } else if (dir == Left) {
         if (!c.atEdge(KateViewInternal::left)) {
             while (!c.atEdge(KateViewInternal::left) && doc()->line(c.line())[ c.column() - 1 ].isSpace()) {
                 --c;
@@ -707,10 +728,10 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
             }
         } else {
             while (!c.atEdge(KateViewInternal::left)
-                    && !h->isInWord(doc()->line(c.line())[ c.column() - 1 ])
-                    // in order to stay symmetric to wordLeft()
-                    // we must not skip space preceding a non-word sequence
-                    && !doc()->line(c.line())[ c.column() - 1 ].isSpace()) {
+                   && !h->isInWord(doc()->line(c.line())[ c.column() - 1 ])
+                   // in order to stay symmetric to wordLeft()
+                   // we must not skip space preceding a non-word sequence
+                   && !doc()->line(c.line())[ c.column() - 1 ].isSpace()) {
                 --c;
             }
         }
@@ -722,22 +743,25 @@ bool KateMultiCursor::cursorAtWordBoundary(const KTextEditor::Cursor& c) const
 {
     KateHighlighting *h = doc()->highlight();
     auto line = doc()->line(c.line());
-    if ( line.length() < c.column() ) {
+    if (line.length() < c.column()) {
         auto character = line.at(c.column());
         return !h->isInWord(character);
     }
     return true;
 }
 
-const KateMultiCursor* KateMultiSelection::cursors() const {
+const KateMultiCursor* KateMultiSelection::cursors() const
+{
     return view()->cursors();
 }
 
-KTextEditor::ViewPrivate* KateMultiSelection::view() const {
+KTextEditor::ViewPrivate* KateMultiSelection::view() const
+{
     return m_viewInternal->view();
 }
 
-KTextEditor::DocumentPrivate* KateMultiSelection::doc() const {
+KTextEditor::DocumentPrivate* KateMultiSelection::doc() const
+{
     return view()->doc();
 }
 
@@ -753,15 +777,15 @@ void KateMultiCursor::removeEncompassedSecondaryCursors(CursorSelectionFlags fla
     bool did_remove = false;
     do {
         did_remove = false;
-        for ( int32_t i = 0; i < m_selections.size(); i++ ) {
+        for (int32_t i = 0; i < m_selections.size(); i++) {
             auto sel = m_selections.at(i)->toRange();
-            if ( sel.isEmpty() ) {
+            if (sel.isEmpty()) {
                 continue;
             }
-            for ( int32_t j = i+1; j < m_selections.size(); j++ ) {
+            for (int32_t j = i + 1; j < m_selections.size(); j++) {
                 auto next = m_selections.at(j)->toRange();
                 KTextEditor::Range intersect;
-                if ( ! (intersect = sel.intersect(next)).isEmpty() ) {
+                if (!(intersect = sel.intersect(next)).isEmpty()) {
                     did_remove = true;
                     // update first to encompass both, then remove the second
                     qDebug() << "joining ranges:" << sel << next << i << j;
@@ -772,19 +796,17 @@ void KateMultiCursor::removeEncompassedSecondaryCursors(CursorSelectionFlags fla
                                                qMax(sel.end(), next.end())});
                     if ( ! (flags & UseMostRecentCursorFlag) ) {
                         // decide which cursor to keep: the one at the edge
-                        if ( m_selections.at(i)->toRange().boundaryAtCursor(newCurPos) ) {
+                        if (m_selections.at(i)->toRange().boundaryAtCursor(newCurPos)) {
                             m_cursors.at(i)->setPosition(newCurPos);
                         }
-                    }
-                    else {
+                    } else {
                         auto resultingRange = m_selections.at(i)->toRange();
                         qDebug() << "cursor not at boundary, adjusting" << resultingRange << curPos << newCurPos;
                         auto newPos = KTextEditor::Cursor::invalid();
-                        if ( next.end() > sel.end() ) {
+                        if (next.end() > sel.end()) {
                             // from the right
                             newPos = newCurPos == next.end() ? resultingRange.end() : resultingRange.start();
-                        }
-                        else {
+                        } else {
                             // from the left
                             newPos = newCurPos == next.start() ? resultingRange.start() : resultingRange.end();
                         }
@@ -795,7 +817,7 @@ void KateMultiCursor::removeEncompassedSecondaryCursors(CursorSelectionFlags fla
                 }
             }
         }
-    } while ( did_remove );
+    } while (did_remove);
 }
 
 void KateMultiCursor::removeDuplicateCursors()
@@ -803,11 +825,11 @@ void KateMultiCursor::removeDuplicateCursors()
     qDebug() << "called";
     // do not consider primary cursors in frozen mode
     auto start = secondaryFrozen() ? 1 : 0;
-    for ( size_t i = start; i < m_cursors.size(); i++ ) {
-        for ( size_t j = start; j < i; j++ ) {
-            if ( m_cursors.at(i)->toCursor() == m_cursors.at(j)->toCursor() ) {
+    for (size_t i = start; i < m_cursors.size(); i++) {
+        for (size_t j = start; j < i; j++) {
+            if (m_cursors.at(i)->toCursor() == m_cursors.at(j)->toCursor()) {
                 qDebug() << "removing duplicate cursor" << *m_cursors.at(j),
-                removeCursorInternal(m_cursors.at(j));
+                         removeCursorInternal(m_cursors.at(j));
                 j--;
                 i--;
             }
@@ -837,7 +859,7 @@ KTextEditor::Cursor KateMultiCursor::toVirtualCursor(const KTextEditor::Cursor& 
 
 void KateMultiSelection::clearSelectionIfNotPersistent()
 {
-    if ( ! view()->config()->persistentSelection() ) {
+    if (! view()->config()->persistentSelection()) {
         clearSelection();
     }
 }
@@ -865,16 +887,17 @@ void KateMultiSelection::setSelection(const KTextEditor::Range& selection, const
         return;
     }
     auto newCursor = cursor.isValid() ? cursor : selection.end();
-    setSelection(QVector<KTextEditor::Range>{selection}, QVector<Cursor>{newCursor});
+    setSelection(QVector<KTextEditor::Range> {selection}, QVector<Cursor> {newCursor});
 };
 
-void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& newCursors) {
+void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& newCursors)
+{
     Q_ASSERT(selection.size() == newCursors.size());
     Q_ASSERT(!selection.isEmpty());
 
     KateMultiCursor::CursorRepainter rep(cursors());
     clearCursorsInternal();
-    for ( size_t i = 0; i < selection.size(); i++ ) {
+    for (size_t i = 0; i < selection.size(); i++) {
         auto cursor = newCursors.at(i).isValid() ? newCursors.at(i) : selection.at(i).end();
         addSelectionInternal(selection.at(i), cursor);
     }
@@ -882,14 +905,15 @@ void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selecti
     qDebug() << "new selections:" << selections();
 };
 
-KateMultiCursor* KateMultiSelection::cursors() {
+KateMultiCursor* KateMultiSelection::cursors()
+{
     return m_viewInternal->cursors();
 }
 
 size_t KateMultiCursor::indexOfCursor(const KTextEditor::Cursor& cursor) const
 {
-    for ( size_t i = 0; i < m_cursors.size(); i++ ) {
-        if ( m_cursors.at(i)->toCursor() == cursor ) {
+    for (size_t i = 0; i < m_cursors.size(); i++) {
+        if (m_cursors.at(i)->toCursor() == cursor) {
             return i;
         }
     }
@@ -901,32 +925,27 @@ void KateMultiSelection::doSelectWithCursorInternal(const KTextEditor::Range& se
     auto adjacentRange = cursors()->m_selections.at(cursorIndex);
     auto adjacent = adjacentRange->toRange();
     KTextEditor::Range intersect;
-    if ( !adjacentRange->isEmpty() && !(intersect = adjacentRange->toRange().intersect(select)).isEmpty() ) {
+    if (!adjacentRange->isEmpty() && !(intersect = adjacentRange->toRange().intersect(select)).isEmpty()) {
         // there is an ajdacent range, toggle or shrink it
-        if ( adjacent.contains(select) ) {
+        if (adjacent.contains(select)) {
             // case 1: only shrink the adjacent range
-            if ( adjacent.start() == select.start() ) {
+            if (adjacent.start() == select.start()) {
                 adjacentRange->setRange({select.end(), adjacent.end()});
-            }
-            else {
+            } else {
                 adjacentRange->setRange({adjacent.start(), select.start()});
             }
-        }
-        else {
+        } else {
             // case 2: toggle overlapped region
-            if ( adjacent.start() == select.start() ) {
+            if (adjacent.start() == select.start()) {
                 adjacentRange->setRange({adjacent.end(), select.end()});
-            }
-            else {
+            } else {
                 adjacentRange->setRange({select.start(), adjacent.start()});
             }
         }
-    }
-    else if ( adjacentRange->isEmpty() ) {
+    } else if (adjacentRange->isEmpty()) {
         // new selection
         adjacentRange->setRange(select);
-    }
-    else {
+    } else {
         // grow selection
         adjacentRange->setRange({qMin(adjacentRange->start().toCursor(), select.start()),
                                  qMax(adjacentRange->end().toCursor(), select.end())});
@@ -940,30 +959,34 @@ KTextEditor::MovingRange::Ptr KateMultiSelection::selectionForCursor(const KText
     return cursors()->m_selections.at(index);
 }
 
-KTextEditor::Range KateMultiSelection::primarySelection() const {
+KTextEditor::Range KateMultiSelection::primarySelection() const
+{
     return *cursors()->m_selections.first();
 }
 
-Selections KateMultiSelection::selections() const {
+Selections KateMultiSelection::selections() const
+{
     Q_ASSERT(cursors()->m_selections.size() == cursors()->cursorsCount());
     Selections ret;
     ret.reserve(cursors()->m_selections.size());
-    Q_FOREACH ( const auto& r, cursors()->m_selections ) {
+    Q_FOREACH (const auto& r, cursors()->m_selections) {
         ret.append(r->toRange());
     }
     return ret;
 }
 
-bool KateMultiSelection::hasMultipleSelections() const {
+bool KateMultiSelection::hasMultipleSelections() const
+{
     auto s = cursors()->m_selections;
-    return std::count_if(s.begin(), s.end(), [](const KTextEditor::MovingRange::Ptr& r) {
+    return std::count_if(s.begin(), s.end(), [](const KTextEditor::MovingRange::Ptr & r) {
         return !r->isEmpty();
     }) > 1;
 }
 
-bool KateMultiSelection::hasSelections() const {
+bool KateMultiSelection::hasSelections() const
+{
     auto s = cursors()->m_selections;
-    return std::find_if(s.begin(), s.end(), [](const KTextEditor::MovingRange::Ptr& r) {
+    return std::find_if(s.begin(), s.end(), [](const KTextEditor::MovingRange::Ptr & r) {
         return !r->isEmpty();
     }) != s.end();
 }
@@ -991,7 +1014,8 @@ bool KateMultiSelection::lineSelected(int line) const
     );
 }
 
-void KateMultiSelection::clearSelection() {
+void KateMultiSelection::clearSelection()
+{
     KateMultiCursor::CursorRepainter rep(cursors());
     clearSelectionInternal();
 }
@@ -999,7 +1023,7 @@ void KateMultiSelection::clearSelection() {
 void KateMultiSelection::clearSelectionInternal()
 {
     qDebug() << " *** clearing selections";
-    Q_FOREACH ( auto& s, cursors()->m_selections ) {
+    Q_FOREACH (auto& s, cursors()->m_selections) {
         s->setRange(KTextEditor::Range::invalid());
     }
 }
@@ -1028,7 +1052,8 @@ bool KateMultiSelection::lineHasSelection(int line) const
         });
 }
 
-bool KateMultiSelection::overlapsLine(int line) const {
+bool KateMultiSelection::overlapsLine(int line) const
+{
     auto s = cursors()->m_selections;
     return std::any_of(s.begin(), s.end(),
         [line](const KTextEditor::MovingRange::Ptr r) {
@@ -1038,14 +1063,14 @@ bool KateMultiSelection::overlapsLine(int line) const {
 
 void KateMultiSelection::selectEntityAt(const KTextEditor::Cursor& cursor, KTextEditor::MovingRange::Ptr update, KateMultiSelection::SelectionMode kind)
 {
-    if ( kind == Mouse ) {
+    if (kind == Mouse) {
         return;
     }
-    if ( kind == Word ) {
+    if (kind == Word) {
         update->setRange(view()->document()->wordRangeAt(cursor));
     }
-    if ( kind == Line ) {
-        update->setRange({cursor.line(), 0, cursor.line()+1, 0});
+    if (kind == Line) {
+        update->setRange({cursor.line(), 0, cursor.line() + 1, 0});
     }
 }
 
@@ -1056,13 +1081,12 @@ void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor
     qDebug() << "called" << fromCursor << mode << flags;
     KateMultiCursor::CursorRepainter rep(cursors());
     m_activeSelectionMode = mode;
-    if ( flags & AddNewCursor ) {
+    if (flags & AddNewCursor) {
         cursors()->appendCursorInternal(fromCursor);
-    }
-    else {
+    } else {
         cursors()->clearSecondaryCursors();
         cursors()->m_cursors.last()->setPosition(fromCursor);
-        if ( ! (flags & KeepSelectionRange) ) {
+        if (!(flags & KeepSelectionRange)) {
             cursors()->m_selections.last()->setRange({fromCursor, fromCursor});
         }
     }
@@ -1072,9 +1096,9 @@ void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor
     m_activeSelectingCursor->setPosition(cursors()->m_selections.last()->end());
 
     auto newSelection = cursors()->m_selections.last()->toRange();
-    Q_FOREACH ( const auto& c, cursors()->m_cursors ) {
+    Q_FOREACH (const auto& c, cursors()->m_cursors) {
         auto cur = c->toCursor();
-        if ( newSelection.contains(cur) && !newSelection.boundaryAtCursor(cur) ) {
+        if (newSelection.contains(cur) && !newSelection.boundaryAtCursor(cur)) {
             // The new selection contains a cursor which existed previously.
             // Remove that.
             cursors()->removeCursorInternal(c);
@@ -1093,18 +1117,17 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
     Q_ASSERT(selection->isEmpty() || selection->toRange().boundaryAtCursor(*m_activeSelectingCursor));
 
     auto oldPos = m_activeSelectingCursor->toCursor();
-    if ( oldPos == cursor ) {
+    if (oldPos == cursor) {
         return;
     }
 
     KateMultiCursor::CursorRepainter rep(cursors());
     SelectingCursorMovement sel(this, true, true);
     m_activeSelectingCursor->setPosition(cursor);
-    if ( m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(cursor) ) {
+    if (m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(cursor)) {
         auto moved = cursors()->moveWord(cursor, oldPos < cursor ? KateMultiCursor::Left : KateMultiCursor::Right);
         m_activeSelectingCursor->setPosition(moved);
-    }
-    else if ( m_activeSelectionMode == Line ) {
+    } else if (m_activeSelectionMode == Line) {
         m_activeSelectingCursor->setColumn(oldPos < cursor ? 0 : doc()->lineLength(cursor.line()));
     }
 }
@@ -1136,20 +1159,20 @@ KateMultiSelection::SelectingCursorMovement::SelectingCursorMovement(KateMultiSe
     , m_allowDuplicates(allowDuplicates)
 {
     Q_ASSERT(selections);
-    if ( m_isSelecting ) {
+    if (m_isSelecting) {
         m_oldPositions = currentPositions();
         // always unfreeze when selecting
         m_selections->cursors()->setSecondaryFrozen(false);
-    }
-    else {
+    } else {
         // if moving without selecting, clear the selection
         m_selections->clearSelectionIfNotPersistent();
     }
 }
 
-KateMultiSelection::SelectingCursorMovement::PositionMap KateMultiSelection::SelectingCursorMovement::currentPositions() const {
+KateMultiSelection::SelectingCursorMovement::PositionMap KateMultiSelection::SelectingCursorMovement::currentPositions() const
+{
     PositionMap ret;
-    Q_FOREACH ( const auto c, m_selections->cursors()->movingCursors() ) {
+    Q_FOREACH (const auto c, m_selections->cursors()->movingCursors()) {
         ret.insert(c, c->toCursor());
     }
     return ret;
@@ -1157,25 +1180,25 @@ KateMultiSelection::SelectingCursorMovement::PositionMap KateMultiSelection::Sel
 
 KateMultiSelection::SelectingCursorMovement::~SelectingCursorMovement()
 {
-    if ( ! m_isSelecting ) {
+    if (! m_isSelecting) {
         m_selections->cursors()->removeDuplicateCursors();
         return;
     }
 
     auto newPositions = currentPositions();
     Q_ASSERT(newPositions.size() == m_oldPositions.size());
-    if ( newPositions.size() != m_oldPositions.size() ) {
+    if (newPositions.size() != m_oldPositions.size()) {
         qWarning() << "cursor count changed across movement, not modifying selection";
         return;
     }
-    Q_FOREACH ( const auto& cursor, m_oldPositions.keys() ) {
+    Q_FOREACH (const auto& cursor, m_oldPositions.keys()) {
         auto old = m_oldPositions.value(cursor);
         auto current = newPositions.value(cursor);
         qDebug() << "cursor moved:" << old << " -> " << current;
         auto range = KTextEditor::Range(qMin(old, current), qMax(old, current));
         m_selections->doSelectWithCursorInternal(range, m_selections->cursors()->m_cursors.indexOf(cursor));
     }
-    if ( ! m_allowDuplicates ) {
+    if (! m_allowDuplicates) {
         m_selections->cursors()->removeEncompassedSecondaryCursors();
     }
     qDebug() << "** selections after cursor movement:" << m_selections->selections();
@@ -1187,20 +1210,20 @@ KateMultiCursor::CursorRepainter::CursorRepainter(KateMultiCursor* cursors, bool
     , m_repaint(repaint)
     , m_primary(cursors->primaryCursor())
 {
-    if ( ! m_repaint ) {
+    if (! m_repaint) {
         return;
     }
-    Q_FOREACH ( const auto& c, cursors->cursors() ) {
+    Q_FOREACH (const auto& c, cursors->cursors()) {
         m_initialAffectedLines.append(cursors->toVirtualCursor(c));
     }
 
-    Q_FOREACH ( auto range, cursors->selections()->selections() ) {
-        if ( ! range.isValid() ) {
+    Q_FOREACH (auto range, cursors->selections()->selections()) {
+        if (! range.isValid()) {
             continue;
         }
         // adding superfluous items here is cheap; repainting
         // is done only once for each affected line in the end
-        for ( int32_t line = range.start().line(); line <= range.end().line(); line++ ) {
+        for (int32_t line = range.start().line(); line <= range.end().line(); line++) {
             m_initialAffectedLines.append({line, 0});
         }
     }
@@ -1208,30 +1231,30 @@ KateMultiCursor::CursorRepainter::CursorRepainter(KateMultiCursor* cursors, bool
 
 KateMultiCursor::CursorRepainter::~CursorRepainter()
 {
-    if ( m_cursors->primaryCursor() != m_primary ) {
+    if (m_cursors->primaryCursor() != m_primary) {
         m_cursors->viewInternal()->notifyPrimaryCursorChanged(m_cursors->primaryCursor());
     }
 
-    if ( ! m_repaint ) {
+    if (! m_repaint) {
         return;
     }
 
     QVector<KTextEditor::Cursor> resulting = m_initialAffectedLines;
-    Q_FOREACH ( const auto& cursor, m_cursors->cursors() ) {
+    Q_FOREACH (const auto& cursor, m_cursors->cursors()) {
         Q_ASSERT(cursor.isValid());
         auto viewCursor = m_cursors->toVirtualCursor(cursor);
-        if ( !resulting.contains(viewCursor) ) {
+        if (!resulting.contains(viewCursor)) {
             resulting.append(viewCursor);
         }
     }
-    Q_FOREACH ( auto range, m_cursors->selections()->selections() ) {
-        if ( ! range.isValid() ) {
+    Q_FOREACH (auto range, m_cursors->selections()->selections()) {
+        if (! range.isValid()) {
             continue;
         }
         // TODO: only repaint changed selections
-        for ( int32_t line = range.start().line(); line <= range.end().line(); line++ ) {
+        for (int32_t line = range.start().line(); line <= range.end().line(); line++) {
             auto pos = Cursor{line, 0};
-            if ( pos.isValid() && ! resulting.contains(pos) ) {
+            if (pos.isValid() && ! resulting.contains(pos)) {
                 resulting.append(pos);
             }
         }

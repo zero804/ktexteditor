@@ -26,7 +26,8 @@
 class KateMultiCursor;
 class QMimeData;
 
-class KateMultiClipboard {
+class KateMultiClipboard
+{
 public:
     KateMultiClipboard(KateMultiCursor* cursors);
     void copyToClipboard() const;

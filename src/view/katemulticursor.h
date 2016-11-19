@@ -23,9 +23,10 @@
 
 #include "ktexteditor/movingrange.h"
 
-namespace KTextEditor {
-    class DocumentPrivate;
-    class ViewPrivate;
+namespace KTextEditor
+{
+class DocumentPrivate;
+class ViewPrivate;
 }
 
 class KateMultiSelection;
@@ -38,7 +39,8 @@ using KTextEditor::Cursor;
 using Cursors = QVector<Cursor>;
 using Selections = QVector<KTextEditor::Range>;
 
-class KTEXTEDITOR_EXPORT KateMultiCursor {
+class KTEXTEDITOR_EXPORT KateMultiCursor
+{
 public:
     friend class KateMultiSelection;
 
@@ -51,25 +53,27 @@ public:
     bool hasSecondaryCursors() const;
     size_t cursorsCount() const;
 
-    void setPrimaryCursor(const Cursor& cursor, bool repaint=true, bool select=false);
+    void setPrimaryCursor(const Cursor& cursor, bool repaint = true, bool select = false);
 
-    bool toggleSecondaryCursorAt(const Cursor& cursor, bool ensureExists=false);
+    bool toggleSecondaryCursorAt(const Cursor& cursor, bool ensureExists = false);
     void clearSecondaryCursors();
 
-    void moveCursorsLeft(bool select=false, int32_t chars=1);
-    void moveCursorsRight(bool select=false, int32_t chars=1);
-    void moveCursorsUp(bool select=false, int32_t chars=1);
-    void moveCursorsDown(bool select=false, int32_t chars=1);
-    void moveCursorsEndOfLine(bool select=false);
-    void moveCursorsStartOfLine(bool select=false);
-    void moveCursorsWordPrevious(bool select=false);
-    void moveCursorsWordNext(bool select=false);
+    void moveCursorsLeft(bool select = false, int32_t chars = 1);
+    void moveCursorsRight(bool select = false, int32_t chars = 1);
+    void moveCursorsUp(bool select = false, int32_t chars = 1);
+    void moveCursorsDown(bool select = false, int32_t chars = 1);
+    void moveCursorsEndOfLine(bool select = false);
+    void moveCursorsStartOfLine(bool select = false);
+    void moveCursorsWordPrevious(bool select = false);
+    void moveCursorsWordNext(bool select = false);
 
-    bool secondaryFrozen() const {
+    bool secondaryFrozen() const
+    {
         return m_secondaryFrozen;
     }
 
-    void toggleSecondaryFrozen() {
+    void toggleSecondaryFrozen()
+    {
         return setSecondaryFrozen(!m_secondaryFrozen);
     }
     /**
@@ -81,7 +85,8 @@ public:
      *
      * @param frozen true to freeze, false to unfreeze.
      */
-    void setSecondaryFrozen(bool frozen) {
+    void setSecondaryFrozen(bool frozen)
+    {
         m_secondaryFrozen = frozen;
     };
 
@@ -130,16 +135,17 @@ private:
         NoFlags = 0x0,
         UseMostRecentCursorFlag = 0x1
     };
-    void removeEncompassedSecondaryCursors(CursorSelectionFlags flags=NoFlags);
+    void removeEncompassedSecondaryCursors(CursorSelectionFlags flags = NoFlags);
     void removeDuplicateCursors();
 
 private:
     KTextEditor::Cursor toVirtualCursor(const KTextEditor::Cursor& c) const;
 
 public:
-    class CursorRepainter {
+    class CursorRepainter
+    {
     public:
-        CursorRepainter(KateMultiCursor* cursors, bool repaint=true);
+        CursorRepainter(KateMultiCursor* cursors, bool repaint = true);
         ~CursorRepainter();
 
     private:
@@ -151,7 +157,8 @@ public:
     friend class CursorRepainter;
 };
 
-class KTEXTEDITOR_EXPORT KateMultiSelection {
+class KTEXTEDITOR_EXPORT KateMultiSelection
+{
 public:
     KateMultiSelection(KateViewInternal* view);
 
@@ -160,7 +167,7 @@ public:
     bool hasSelections() const;
     Selections selections() const;
 
-    void setSelection(const KTextEditor::Range& selection, const Cursor& cursor=Cursor::invalid());
+    void setSelection(const KTextEditor::Range& selection, const Cursor& cursor = Cursor::invalid());
     void setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& cursors);
     void clearSelection();
     void clearSelectionIfNotPersistent();
@@ -177,7 +184,7 @@ public:
         AddNewCursor = 0x2,
         KeepSelectionRange = 0x4
     };
-    void beginNewSelection(const Cursor& fromCursor, SelectionMode mode=Mouse, SelectionFlags flags=UsePrimaryCursor);
+    void beginNewSelection(const Cursor& fromCursor, SelectionMode mode = Mouse, SelectionFlags flags = UsePrimaryCursor);
     void updateNewSelection(const Cursor& cursor);
     void finishNewSelection();
     bool currentlySelecting() const;
@@ -222,9 +229,10 @@ private:
     KTextEditor::MovingCursor::Ptr m_activeSelectingCursor;
 
 public:
-    class SelectingCursorMovement {
+    class SelectingCursorMovement
+    {
     public:
-        SelectingCursorMovement(KateMultiSelection* selections, bool isSelecting=true, bool allowDuplicates=false);
+        SelectingCursorMovement(KateMultiSelection* selections, bool isSelecting = true, bool allowDuplicates = false);
         ~SelectingCursorMovement();
 
     private:
