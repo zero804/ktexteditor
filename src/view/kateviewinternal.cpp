@@ -710,7 +710,7 @@ void KateViewInternal::slotRegionVisibilityChanged()
     } else {
         // force an update of the cursor, since otherwise the m_displayCursor
         // line may be below the total amount of visible lines.
-        cursors()->setPrimaryCursor(m_cursor, true);
+        cursors()->setPrimaryCursor(primaryCursor(), true);
     }
 
     updateView();
@@ -2454,7 +2454,6 @@ void KateViewInternal::paintEvent(QPaintEvent *e)
     uint startz = (unionRect.y() / h);
     uint endz = startz + 1 + (unionRect.height() / h);
     uint lineRangesSize = cache()->viewCacheLineCount();
-    const KTextEditor::Cursor pos = m_cursor;
 
     QPainter paint(this);
     paint.setRenderHints(QPainter::Antialiasing);
