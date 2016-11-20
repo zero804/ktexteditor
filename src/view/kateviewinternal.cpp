@@ -2202,7 +2202,12 @@ void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
 #endif
 
         if (m_view->selection()) {
+#if defined(Q_OS_OSX)
+            // avoid "Data set on unsupported clipboard mode" warnings.
+            QApplication::clipboard()->setText(m_view->selectionText());
+#else
             QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
+#endif
         }
 
         m_possibleTripleClick = true;
