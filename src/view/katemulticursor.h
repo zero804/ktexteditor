@@ -67,6 +67,8 @@ public:
     void moveCursorsWordPrevious(bool select = false);
     void moveCursorsWordNext(bool select = false);
 
+    void removeDuplicateCursors();
+
     bool secondaryFrozen() const
     {
         return m_secondaryFrozen;
@@ -136,7 +138,6 @@ private:
         UseMostRecentCursorFlag = 0x1
     };
     void removeEncompassedSecondaryCursors(CursorSelectionFlags flags = NoFlags);
-    void removeDuplicateCursors();
 
 private:
     KTextEditor::Cursor toVirtualCursor(const KTextEditor::Cursor& c) const;

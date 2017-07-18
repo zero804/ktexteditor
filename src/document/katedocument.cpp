@@ -2921,6 +2921,7 @@ bool KTextEditor::DocumentPrivate::typeChars(KTextEditor::ViewPrivate *view, con
      * always unfreeze on typing
      */
     view->cursors()->setSecondaryFrozen(false);
+    view->cursors()->removeDuplicateCursors();
 
     /**
      * auto bracket handling for newly inserted text
