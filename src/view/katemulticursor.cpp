@@ -1070,7 +1070,14 @@ void KateMultiSelection::selectEntityAt(const KTextEditor::Cursor& cursor, KText
         update->setRange(view()->document()->wordRangeAt(cursor));
     }
     if (kind == Line) {
-        update->setRange({cursor.line(), 0, cursor.line() + 1, 0});
+        auto isLastLine = cursor.line() == view()->document()->lines() - 1;
+        if ( !isLastLine ) {
+            update->setRange({cursor.line(), 0, cursor.line() + 1, 0});
+        }
+        else {
+            auto lastLineLength = view()->document()->lineLength(cursor.line());
+            update->setRange({cursor.line(), 0, cursor.line(), lastLineLength});
+        }
     }
 }
 
