@@ -851,7 +851,10 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
             }
         };
         drawCaretAt(cursor);
-        foreach ( const auto& secondary, view()->cursors()->secondaryCursors() ) {
+        foreach ( const auto& secondary, view()->cursors()->cursors() ) {
+            if ( secondary == *cursor ) {
+                continue;
+            }
             drawCaretAt(&secondary, 128);
         }
     }
