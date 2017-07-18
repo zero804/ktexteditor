@@ -50,12 +50,12 @@ void KateSyntaxTest::testSyntaxHighlighting_data()
     /**
      * check for directories, one dir == one hl
      */
-    const QString testDir(QLatin1String(TEST_DATA_DIR) + QLatin1String("/syntax/"));
+    const QString testDir(QLatin1String(TEST_DATA_DIR) + QLatin1String("syntax/"));
     QDirIterator contents(testDir);
     while (contents.hasNext()) {
         const QString hlDir = contents.next();
         const QFileInfo info(hlDir);
-        if (!info.isDir() || hlDir.contains(QLatin1Char('.'))) {
+        if (!info.isDir() || info.fileName().contains(QLatin1Char('.'))) {
             continue;
         }
 
@@ -87,7 +87,7 @@ void KateSyntaxTest::testSyntaxHighlighting()
      * create a document with a view to be able to export stuff
      */
     KTextEditor::DocumentPrivate doc;
-    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(Q_NULLPTR));
+    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(nullptr));
 
     /**
      * load the test case

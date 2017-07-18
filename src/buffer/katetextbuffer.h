@@ -60,9 +60,9 @@ public:
      */
     enum EndOfLineMode {
         eolUnknown = -1
-                     , eolUnix = 0
-                                 , eolDos = 1
-                                            , eolMac = 2
+      , eolUnix = 0
+      , eolDos = 1
+      , eolMac = 2
     };
 
     /**
@@ -71,7 +71,7 @@ public:
      * @param parent parent qobject
      * @param blockSize block size in lines the buffer should try to hold, default 64 lines
      */
-    TextBuffer(KTextEditor::DocumentPrivate *parent, int blockSize = 64);
+    TextBuffer(KTextEditor::DocumentPrivate *parent, int blockSize = 64, bool alwaysUseKAuth = false);
 
     /**
      * Destruct the text buffer
@@ -644,6 +644,16 @@ private:
      * Limit for line length, longer lines will be wrapped on load
      */
     int m_lineLengthLimit;
+
+    /**
+     * For unit-testing purposes only.
+     */
+    bool m_alwaysUseKAuthForSave;
+
+    /**
+     * For copying QBuffer -> QTemporaryFile while saving document in privileged mode
+     */
+    static const qint64 bufferLength = 4096;
 };
 
 }

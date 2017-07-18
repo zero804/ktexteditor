@@ -53,7 +53,7 @@ class Commands : public KTextEditor::Command, public KateViCommandInterface
 public:
     ~Commands()
     {
-        m_instance = 0;
+        m_instance = nullptr;
     }
 
     /**
@@ -61,8 +61,7 @@ public:
      * @param view view to use for execution
      * @param cmd cmd string
      * @param msg message returned from running the command
-     * @param rangeStart first line in range
-     * @param rangeEnd last line in range
+     * @param range range to execute command on
      * @return success
      */
     bool exec(class KTextEditor::View *view, const QString &cmd, QString &msg,
@@ -83,7 +82,7 @@ public:
 
     static Commands *self()
     {
-        if (m_instance == 0) {
+        if (m_instance == nullptr) {
             m_instance = new Commands();
         }
         return m_instance;
@@ -106,12 +105,12 @@ class SedReplace : public KateCommands::SedReplace, public KateViCommandInterfac
 public:
     ~SedReplace()
     {
-        m_instance = 0;
+        m_instance = nullptr;
     }
 
     static SedReplace *self()
     {
-        if (m_instance == 0) {
+        if (m_instance == nullptr) {
             m_instance = new SedReplace();
         }
         return m_instance;

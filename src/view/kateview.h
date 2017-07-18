@@ -101,7 +101,7 @@ class KTEXTEDITOR_EXPORT ViewPrivate : public KTextEditor::View,
     friend class ::KateTextPreview;
 
 public:
-    ViewPrivate (KTextEditor::DocumentPrivate *doc, QWidget *parent, KTextEditor::MainWindow *mainWindow = Q_NULLPTR);
+    ViewPrivate (KTextEditor::DocumentPrivate *doc, QWidget *parent, KTextEditor::MainWindow *mainWindow = nullptr);
     ~ViewPrivate ();
 
     /**
@@ -135,6 +135,7 @@ public:
 public Q_SLOTS:
     void paste();
     void pasteInternal(const QVector<QString>& texts);
+//     void paste(const QString *textToPaste = nullptr);
     void cut();
     void copy() const;
 
@@ -150,7 +151,7 @@ private Q_SLOTS:
 public:
     void setContextMenu(QMenu *menu) Q_DECL_OVERRIDE;
     QMenu *contextMenu() const Q_DECL_OVERRIDE;
-    QMenu *defaultContextMenu(QMenu *menu = 0L) const Q_DECL_OVERRIDE;
+    QMenu *defaultContextMenu(QMenu *menu = nullptr) const Q_DECL_OVERRIDE;
 
 private Q_SLOTS:
     void aboutToShowContextMenu();
@@ -1007,6 +1008,19 @@ private:
 
 private:
     KateMultiClipboard m_clipboard;
+
+public:
+    void setScrollPositionInternal(KTextEditor::Cursor &cursor);
+
+    void setHorizontalScrollPositionInternal(int x);
+
+    KTextEditor::Cursor maxScrollPositionInternal() const;
+
+    int firstDisplayedLineInternal(LineType lineType) const;
+
+    int lastDisplayedLineInternal(LineType lineType) const;
+
+    QRect textAreaRectInternal() const;
 };
 
 }

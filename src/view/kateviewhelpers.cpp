@@ -61,6 +61,7 @@
 #include <QPalette>
 #include <QPen>
 #include <QAction>
+#include <QActionGroup>
 #include <QBoxLayout>
 #include <QMenu>
 #include <QStyle>
@@ -192,19 +193,25 @@ void KateScrollBar::mousePressEvent(QMouseEvent *e)
     // delete text preview
     hideTextPreview();
 
+    if (e->button() == Qt::MidButton) {
+        m_middleMouseDown = true;
+    } else if (e->button() == Qt::LeftButton) {
+        m_leftMouseDown = true;
+    }
+
     if (m_showMiniMap) {
+        if (m_leftMouseDown) {
+            // if we show the minimap left-click jumps directly to the selected position
+            int newVal = (e->pos().y()-m_mapGroveRect.top()) / (double)m_mapGroveRect.height() * (double)(maximum()+pageStep()) - pageStep()/2;
+            newVal = qBound(0, newVal, maximum());
+            setSliderPosition(newVal);
+        }
         QMouseEvent eMod(QEvent::MouseButtonPress,
                          QPoint(6, minimapYToStdY(e->pos().y())),
                          e->button(), e->buttons(), e->modifiers());
         QScrollBar::mousePressEvent(&eMod);
     } else {
         QScrollBar::mousePressEvent(e);
-    }
-
-    if (e->button() == Qt::MidButton) {
-        m_middleMouseDown = true;
-    } else if (e->button() == Qt::LeftButton) {
-        m_leftMouseDown = true;
     }
 
     m_toolTipPos = e->globalPos() - QPoint(e->pos().x(), 0);
@@ -476,7 +483,8 @@ void KateScrollBar::updatePixmap()
     modifiedLineColor.setHsv(modifiedLineColor.hue(), 255, 255 - backgroundColor.value() / 3);
     savedLineColor.setHsv(savedLineColor.hue(), 100, 255 - backgroundColor.value() / 3);
 
-    m_pixmap = QPixmap(pixmapLineWidth, pixmapLineCount);
+    // increase dimensions by ratio
+    m_pixmap = QPixmap(pixmapLineWidth * m_view->devicePixelRatio(), pixmapLineCount * m_view->devicePixelRatio());
     m_pixmap.fill(QColor("transparent"));
 
     // The text currently selected in the document, to be drawn later.
@@ -484,6 +492,9 @@ void KateScrollBar::updatePixmap()
 
     QPainter painter;
     if (painter.begin(&m_pixmap)) {
+        // init pen once, afterwards, only change it if color changes to avoid a lot of allocation for setPen
+        painter.setPen(selectionBgColor);
+
         // Do not force updates of the highlighting if the document is very large
         bool simpleMode = m_doc->lines() > 7500;
 
@@ -507,7 +518,9 @@ void KateScrollBar::updatePixmap()
 
             // Draw selection if it is on an empty line
             if (selection.contains(KTextEditor::Cursor(realLineNumber, 0)) && lineText.size() == 0) {
-                painter.setPen(selectionBgColor);
+                if (selectionBgColor != painter.pen().color()) {
+                    painter.setPen(selectionBgColor);
+                }
                 painter.drawLine(s_pixelMargin, pixelY, s_pixelMargin + s_lineWidth - 1, pixelY);
             }
 
@@ -536,7 +549,9 @@ void KateScrollBar::updatePixmap()
             }
 
             if (selStartX != -1) {
-                painter.setPen(selectionBgColor);
+                if (selectionBgColor != painter.pen().color()) {
+                    painter.setPen(selectionBgColor);
+                }
                 painter.drawLine(selStartX, pixelY, selEndX, pixelY);
             }
 
@@ -553,7 +568,10 @@ void KateScrollBar::updatePixmap()
                 } else if (lineText[x] == QLatin1Char('\t')) {
                     pixelX += qMax(4 / charIncrement, 1); // FIXME: tab width...
                 } else {
-                    painter.setPen(charColor(attributes, attributeIndex, decorations, defaultTextColor, x, lineText[x]));
+                    const QColor newPenColor(charColor(attributes, attributeIndex, decorations, defaultTextColor, x, lineText[x]));
+                    if (newPenColor != painter.pen().color()) {
+                        painter.setPen(newPenColor);
+                    }
 
                     // Actually draw the pixel with the color queried from the renderer.
                     painter.drawPoint(pixelX, pixelY);
@@ -582,7 +600,14 @@ void KateScrollBar::updatePixmap()
                 }
             }
         }
+
+        // end painting
+        painter.end();
     }
+
+    // set right ratio
+    m_pixmap.setDevicePixelRatio(m_view->devicePixelRatio());
+
     //qCDebug(LOG_KTE) << time.elapsed();
     // Redraw the scrollbar widget with the updated pixmap.
     update();
@@ -627,7 +652,7 @@ void KateScrollBar::miniMapPaintEvent(QPaintEvent *e)
     //style()->drawControl(QStyle::CE_ScrollBarSubLine, &opt, &painter, this);
 
     // calculate the document size and position
-    const int docHeight = qMin(grooveRect.height(), m_pixmap.height() * 2) - 2 * docXMargin;
+    const int docHeight = qMin(grooveRect.height(), int(m_pixmap.height() / m_pixmap.devicePixelRatio() * 2)) - 2 * docXMargin;
     const int yoffset = 1; // top-aligned in stead of center-aligned (grooveRect.height() - docHeight) / 2;
     const QRect docRect(QPoint(grooveRect.left() + docXMargin, yoffset + grooveRect.top()), QSize(grooveRect.width() - docXMargin, docHeight));
     m_mapGroveRect = docRect;
@@ -639,7 +664,6 @@ void KateScrollBar::miniMapPaintEvent(QPaintEvent *e)
     QRect visibleRect = docRect;
     visibleRect.moveTop(visibleStart);
     visibleRect.setHeight(visibleEnd - visibleStart);
-    m_mapSliderRect = visibleRect;
 
     // calculate colors
     const QColor backgroundColor = m_view->defaultStyleAttribute(KTextEditor::dsNormal)->background().color();
@@ -683,17 +707,17 @@ void KateScrollBar::miniMapPaintEvent(QPaintEvent *e)
     }
 
     // Smooth transform only when squeezing
-    if (grooveRect.height() < m_pixmap.height()) {
+    if (grooveRect.height() < m_pixmap.height() / m_pixmap.devicePixelRatio()) {
         painter.setRenderHint(QPainter::SmoothPixmapTransform);
     }
 
     // draw the modified lines margin
-    QRect pixmapMarginRect(QPoint(0, 0), QSize(s_pixelMargin, m_pixmap.height()));
+    QRect pixmapMarginRect(QPoint(0, 0), QSize(s_pixelMargin, m_pixmap.height() / m_pixmap.devicePixelRatio()));
     QRect docPixmapMarginRect(QPoint(0, docRect.top()), QSize(s_pixelMargin, docRect.height()));
     painter.drawPixmap(docPixmapMarginRect, m_pixmap, pixmapMarginRect);
 
     // calculate the stretch and draw the stretched lines (scrollbar marks)
-    QRect pixmapRect(QPoint(s_pixelMargin, 0), QSize(m_pixmap.width() - s_pixelMargin, m_pixmap.height()));
+    QRect pixmapRect(QPoint(s_pixelMargin, 0), QSize(m_pixmap.width() / m_pixmap.devicePixelRatio() - s_pixelMargin, m_pixmap.height() / m_pixmap.devicePixelRatio()));
     QRect docPixmapRect(QPoint(s_pixelMargin, docRect.top()), QSize(docRect.width() - s_pixelMargin, docRect.height()));
     painter.drawPixmap(docPixmapRect, m_pixmap, pixmapRect);
 
@@ -970,7 +994,7 @@ KateCmdLineEdit::KateCmdLineEdit(KateCommandLineBar *bar, KTextEditor::ViewPriva
     , m_msgMode(false)
     , m_histpos(0)
     , m_cmdend(0)
-    , m_command(0L)
+    , m_command(nullptr)
 {
     connect(this, SIGNAL(returnPressed(QString)),
             this, SLOT(slotReturnPressed(QString)));
@@ -1153,7 +1177,7 @@ void KateCmdLineEdit::slotReturnPressed(const QString &text)
         setCompletionObject(KateCmd::self()->commandCompletionObject());
         delete c;
     }
-    m_command = 0;
+    m_command = nullptr;
     m_cmdend = 0;
 
     // the following commands change the focus themselves
@@ -1974,7 +1998,7 @@ void KateIconBorder::showBlock()
         return;
     } else { // the ranges differ, delete the old, if it exists
         delete m_foldingRange;
-        m_foldingRange = 0;
+        m_foldingRange = nullptr;
     }
 
     if (newRange.isValid()) {
@@ -2054,7 +2078,7 @@ void KateIconBorder::hideBlock()
     m_nextHighlightBlock = -2;
     m_currentBlockLine = -1;
     delete m_foldingRange;
-    m_foldingRange = 0;
+    m_foldingRange = nullptr;
 
     delete m_foldingPreview;
 }
@@ -2160,7 +2184,7 @@ void KateIconBorder::mouseReleaseEvent(QMouseEvent *e)
         }
 
         if (area == AnnotationBorder) {
-            const bool singleClick = style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick, 0, this);
+            const bool singleClick = style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick, nullptr, this);
             if (e->button() == Qt::LeftButton && singleClick) {
                 emit m_view->annotationActivated(m_view, cursorOnLine);
             } else if (e->button() == Qt::RightButton) {
@@ -2181,7 +2205,7 @@ void KateIconBorder::mouseDoubleClickEvent(QMouseEvent *e)
     if (cursorOnLine == m_lastClickedLine &&
             cursorOnLine <= m_doc->lastLine()) {
         BorderArea area = positionToArea(e->pos());
-        const bool singleClick = style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick, 0, this);
+        const bool singleClick = style()->styleHint(QStyle::SH_ItemView_ActivateItemOnSingleClick, nullptr, this);
         if (area == AnnotationBorder && !singleClick) {
             emit m_view->annotationActivated(m_view, cursorOnLine);
         }
@@ -2208,6 +2232,7 @@ void KateIconBorder::showMarkMenu(uint line, const QPoint &pos)
 
     QMenu markMenu;
     QMenu selectDefaultMark;
+    auto selectDefaultMarkActionGroup = new QActionGroup(&selectDefaultMark);
 
     QVector<int> vec(33);
     int i = 1;
@@ -2227,6 +2252,7 @@ void KateIconBorder::showMarkMenu(uint line, const QPoint &pos)
             mA = markMenu.addAction(i18n("Mark Type %1",  bit + 1));
             dMA = selectDefaultMark.addAction(i18n("Mark Type %1",  bit + 1));
         }
+        selectDefaultMarkActionGroup->addAction(dMA);
         mA->setData(i);
         mA->setCheckable(true);
         dMA->setData(i + 100);
@@ -2544,7 +2570,7 @@ bool KateViewEncodingAction::setCurrentCodec(int mib)
 
 KateViewBarWidget::KateViewBarWidget(bool addCloseButton, QWidget *parent)
     : QWidget(parent)
-    , m_viewBar(0)
+    , m_viewBar(nullptr)
 {
     QHBoxLayout *layout = new QHBoxLayout(this);
 
@@ -2570,7 +2596,7 @@ KateViewBarWidget::KateViewBarWidget(bool addCloseButton, QWidget *parent)
 }
 
 KateViewBar::KateViewBar(bool external, QWidget *parent, KTextEditor::ViewPrivate *view)
-    : QWidget(parent), m_external(external), m_view(view), m_permanentBarWidget(0)
+    : QWidget(parent), m_external(external), m_view(view), m_permanentBarWidget(nullptr)
 
 {
     m_layout = new QVBoxLayout(this);
@@ -2604,9 +2630,9 @@ void KateViewBar::removeBarWidget(KateViewBarWidget *barWidget)
     }
 
     m_stack->removeWidget(barWidget);
-    barWidget->setAssociatedViewBar(0);
+    barWidget->setAssociatedViewBar(nullptr);
     barWidget->hide();
-    disconnect(barWidget, 0, this, 0);
+    disconnect(barWidget, nullptr, this, nullptr);
 }
 
 void KateViewBar::addPermanentBarWidget(KateViewBarWidget *barWidget)
@@ -2632,7 +2658,7 @@ void KateViewBar::removePermanentBarWidget(KateViewBarWidget *barWidget)
 
     m_permanentBarWidget->hide();
     m_stack->removeWidget(m_permanentBarWidget);
-    m_permanentBarWidget = 0;
+    m_permanentBarWidget = nullptr;
 
     if (hideBar) {
         m_stack->hide();
@@ -2647,7 +2673,7 @@ bool KateViewBar::hasPermanentWidget(KateViewBarWidget *barWidget) const
 
 void KateViewBar::showBarWidget(KateViewBarWidget *barWidget)
 {
-    Q_ASSERT(barWidget != 0);
+    Q_ASSERT(barWidget != nullptr);
 
     if (barWidget != qobject_cast<KateViewBarWidget *>(m_stack->currentWidget())) {
         hideCurrentBarWidget();

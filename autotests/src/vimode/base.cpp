@@ -37,8 +37,8 @@ using namespace KTextEditor;
 
 BaseTest::BaseTest()
 {
-    kate_view = Q_NULLPTR;
-    kate_document = Q_NULLPTR;
+    kate_view = nullptr;
+    kate_document = nullptr;
 
     mainWindow = new QMainWindow;
     mainWindowLayout = new QVBoxLayout(mainWindow);
@@ -87,7 +87,7 @@ void BaseTest::init()
     delete kate_view;
     delete kate_document;
 
-    kate_document = new KTextEditor::DocumentPrivate(false, false, 0, NULL);
+    kate_document = new KTextEditor::DocumentPrivate(false, false, nullptr, nullptr);
 
     // fixed indentation options
     kate_document->config()->setTabWidth(8);
@@ -194,7 +194,7 @@ void BaseTest::TestPressKey(const QString &str)
         QKeyEvent *key_event = new QKeyEvent(QEvent::KeyPress, keyCode, keyboard_modifier, key);
         // Attempt to simulate how Qt usually sends events - typically, we want to send them
         // to kate_view->focusProxy() (which is a KateViewInternal).
-        QWidget *destWidget = Q_NULLPTR;
+        QWidget *destWidget = nullptr;
         if (QApplication::activePopupWidget()) {
             // According to the docs, the activePopupWidget, if present, takes all events.
             destWidget = QApplication::activePopupWidget();

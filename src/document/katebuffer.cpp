@@ -52,7 +52,7 @@ KateBuffer::KateBuffer(KTextEditor::DocumentPrivate *doc)
       m_brokenEncoding(false),
       m_tooLongLinesWrapped(false),
       m_longestLineLoaded(0),
-      m_highlight(0),
+      m_highlight(nullptr),
       m_tabWidth(8),
       m_lineHighlighted(0),
       m_maxDynamicContexts(KATE_MAX_DYNAMIC_CONTEXTS)
@@ -225,7 +225,7 @@ bool KateBuffer::canEncode()
 {
     QTextCodec *codec = m_doc->config()->codec();
 
-    // hardcode some unicode encodings which can encode all chars
+    // hardcode some Unicode encodings which can encode all chars
     if ((QString::fromLatin1(codec->name()) == QLatin1String("UTF-8")) || (QString::fromLatin1(codec->name()) == QLatin1String("ISO-10646-UCS-2"))) {
         return true;
     }

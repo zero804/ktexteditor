@@ -50,7 +50,7 @@ void KateViewTest::testCoordinatesToCursor()
     KTextEditor::DocumentPrivate doc(false, false);
     doc.setText("Hi World!\nHi\n");
 
-    KTextEditor::View* view1 = static_cast<KTextEditor::View*>(doc.createView(Q_NULLPTR));
+    KTextEditor::View* view1 = static_cast<KTextEditor::View*>(doc.createView(nullptr));
     view1->show();
 
     QCOMPARE(view1->coordinatesToCursor(view1->cursorToCoordinate(KTextEditor::Cursor(0, 2))),
@@ -61,6 +61,23 @@ void KateViewTest::testCoordinatesToCursor()
     QCOMPARE(view1->coordinatesToCursor(view1->cursorToCoordinate(KTextEditor::Cursor(1, 5))),
              KTextEditor::Cursor::invalid());
     QCOMPARE(view1->cursorToCoordinate(KTextEditor::Cursor(3, 1)), QPoint(-1, -1));
+
+    // check consistency between cursorToCoordinate(view->cursorPosition() and cursorPositionCoordinates()
+    // random position
+    view1->setCursorPosition(KTextEditor::Cursor(0, 3));
+    QCOMPARE(view1->coordinatesToCursor(view1->cursorToCoordinate(view1->cursorPosition())),
+             KTextEditor::Cursor(0, 3));
+    QCOMPARE(view1->coordinatesToCursor(view1->cursorPositionCoordinates()), KTextEditor::Cursor(0, 3));
+    // end of line
+    view1->setCursorPosition(KTextEditor::Cursor(0, 9));
+    QCOMPARE(view1->coordinatesToCursor(view1->cursorToCoordinate(KTextEditor::Cursor(0, 9))),
+             KTextEditor::Cursor(0, 9));
+    QCOMPARE(view1->coordinatesToCursor(view1->cursorPositionCoordinates()), KTextEditor::Cursor(0, 9));
+    // empty line
+    view1->setCursorPosition(KTextEditor::Cursor(2, 0));
+    QCOMPARE(view1->coordinatesToCursor(view1->cursorToCoordinate(KTextEditor::Cursor(2, 0))),
+             KTextEditor::Cursor(2, 0));
+    QCOMPARE(view1->coordinatesToCursor(view1->cursorPositionCoordinates()), KTextEditor::Cursor(2, 0));
 
     // same test again, but with message widget on top visible
     KTextEditor::Message *message = new KTextEditor::Message("Jo World!", KTextEditor::Message::Information);
@@ -84,7 +101,7 @@ void KateViewTest::testCursorToCoordinates()
     KTextEditor::DocumentPrivate doc(false, false);
     doc.setText("int a;");
 
-    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, 0);
+    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, nullptr);
     view->config()->setDynWordWrap(true);
     view->show();
 
@@ -110,8 +127,8 @@ void KateViewTest::testReloadMultipleViews()
     QVERIFY(doc.openUrl(QUrl::fromLocalFile(file.fileName())));
     QCOMPARE(doc.highlightingMode(), QString("C++"));
 
-    KTextEditor::ViewPrivate *view1 = new KTextEditor::ViewPrivate(&doc, 0);
-    KTextEditor::ViewPrivate *view2 = new KTextEditor::ViewPrivate(&doc, 0);
+    KTextEditor::ViewPrivate *view1 = new KTextEditor::ViewPrivate(&doc, nullptr);
+    KTextEditor::ViewPrivate *view2 = new KTextEditor::ViewPrivate(&doc, nullptr);
     view1->show();
     view2->show();
     QCOMPARE(doc.views().count(), 2);
@@ -131,7 +148,7 @@ void KateViewTest::testTabCursorOnReload()
     KTextEditor::DocumentPrivate doc;
     QVERIFY(doc.openUrl(QUrl::fromLocalFile(file.fileName())));
 
-    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, 0);
+    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, nullptr);
     const KTextEditor::Cursor cursor(0, 4);
     view->setCursorPosition(cursor);
     QCOMPARE(view->cursorPosition(), cursor);
@@ -145,7 +162,7 @@ void KateViewTest::testLowerCaseBlockSelection()
     KTextEditor::DocumentPrivate doc;
     doc.setText("nY\nnYY\n");
 
-    KTextEditor::ViewPrivate *view1 = new KTextEditor::ViewPrivate(&doc, 0);
+    KTextEditor::ViewPrivate *view1 = new KTextEditor::ViewPrivate(&doc, nullptr);
     view1->setBlockSelection(true);
     view1->setSelection(Range(0, 1, 1, 3));
     view1->lowercase();
@@ -176,7 +193,7 @@ void KateViewTest::testSelection()
     KTextEditor::DocumentPrivate doc;
     QVERIFY(doc.openUrl(QUrl::fromLocalFile(file.fileName())));
 
-    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, 0);
+    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, nullptr);
     view->resize(100, 200);
     view->show();
 
@@ -250,7 +267,7 @@ void KateViewTest::testKillline()
         << "baz"
     );
 
-    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, 0);
+    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, nullptr);
 
     view->setCursorPositionInternal(KTextEditor::Cursor(1, 2));
     view->killLine();
@@ -290,7 +307,7 @@ void KateViewTest::testFoldFirstLine()
     QVERIFY(doc.openUrl(QUrl::fromLocalFile(file.fileName())));
     QCOMPARE(doc.highlightingMode(), QString("C++"));
 
-    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, 0);
+    KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, nullptr);
     view->config()->setFoldFirstLine(false);
     view->setCursorPosition({4, 0});
 
@@ -315,6 +332,73 @@ void KateViewTest::testFoldFirstLine()
     doc.setModified(false);
     QVERIFY(doc.documentReload());
     QVERIFY(view->textFolding().isLineVisible(1));
+}
+
+// test for bug https://bugs.kde.org/374163
+void KateViewTest::testDragAndDrop()
+{
+    KTextEditor::DocumentPrivate doc(false, false);
+    doc.setText("line0\n"
+                "line1\n"
+                "line2\n"
+                "\n"
+                "line4");
+
+    KTextEditor::View* view = static_cast<KTextEditor::View*>(doc.createView(nullptr));
+    view->show();
+    view->resize(400, 300);
+
+    QWidget *internalView = nullptr;
+    foreach (QObject* child, view->children()) {
+        if (child->metaObject()->className() == QByteArrayLiteral("KateViewInternal")) {
+            internalView = qobject_cast<QWidget *>(child);
+            break;
+        }
+    }
+    QVERIFY(internalView);
+
+    // select "line1\n"
+    view->setSelection(Range(1, 0, 2, 0));
+    QCOMPARE(view->selectionRange(), Range(1, 0, 2, 0));
+
+    QTest::qWaitForWindowExposed(view);
+    const QPoint startDragPos = internalView->mapFrom(view, view->cursorToCoordinate(KTextEditor::Cursor(1, 2)));
+    const QPoint endDragPos = internalView->mapFrom(view, view->cursorToCoordinate(KTextEditor::Cursor(3, 0)));
+    const QPoint gStartDragPos = internalView->mapToGlobal(startDragPos);
+    const QPoint gEndDragPos = internalView->mapToGlobal(endDragPos);
+
+    // now drag and drop selected text to Cursor(3, 0)
+    QMouseEvent pressEvent(QEvent::MouseButtonPress, startDragPos, gStartDragPos,
+                                Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(internalView, &pressEvent);
+
+    // ugly workaround: Drag & Drop has own blocking event queue. Therefore, we need a single-shot timer to
+    // break out of the blocking event queue, see (*)
+    QTimer::singleShot(50, [&](){
+        QMouseEvent moveEvent(QEvent::MouseMove, endDragPos + QPoint(5, 0), gEndDragPos + QPoint(5, 0),
+                            Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+        QMouseEvent releaseEvent(QEvent::MouseButtonRelease, endDragPos, gEndDragPos,
+                            Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+        QCoreApplication::sendEvent(internalView, &moveEvent);
+        QCoreApplication::sendEvent(internalView, &releaseEvent);
+    });
+
+    // (*) this somehow blocks...
+    QMouseEvent moveEvent1(QEvent::MouseMove, endDragPos + QPoint(10, 0), gEndDragPos + QPoint(10, 0),
+                           Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QCoreApplication::sendEvent(internalView, &moveEvent1);
+
+    QTest::qWait(100);
+
+    // final tests of dragged text
+    QCOMPARE(doc.text(), QString("line0\n"
+                                 "line2\n"
+                                 "line1\n"
+                                 "\n"
+                                 "line4"));
+
+    QCOMPARE(view->cursorPosition(), KTextEditor::Cursor(3, 0));
+    QCOMPARE(view->selectionRange(), Range(2, 0, 3, 0));
 }
 
 // kate: indent-mode cstyle; indent-width 4; replace-tabs on;

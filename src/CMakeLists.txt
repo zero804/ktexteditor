@@ -11,6 +11,12 @@ if(LIBGIT2_FOUND)
     set (KTEXTEDITOR_OPTIONAL_LIBS ${KTEXTEDITOR_OPTIONAL_LIBS} LibGit2::LibGit2)
 endif()
 
+if(EditorConfig_FOUND)
+    add_definitions(-DEDITORCONFIG_FOUND)
+    SET (CMAKE_REQUIRED_LIBRARIES editorconfig)
+    set (KTEXTEDITOR_OPTIONAL_LIBS ${KTEXTEDITOR_OPTIONAL_LIBS} editorconfig)
+endif()
+
 # handle include files, both normal ones and generated ones
 add_subdirectory(include)
 
@@ -46,6 +52,7 @@ include_directories(
 # KTextEditor interface sources
 set(ktexteditor_LIB_SRCS
 # text buffer & buffer helpers
+buffer/katesecuretextbuffer.cpp
 buffer/katetextbuffer.cpp
 buffer/katetextblock.cpp
 buffer/katetextline.cpp
@@ -215,6 +222,11 @@ inputmode/katenormalinputmode.cpp
 inputmode/katenormalinputmodefactory.cpp
 )
 
+# optionally compile with EditorConfig support
+if(EditorConfig_FOUND)
+    set(ktexteditor_LIB_SRCS ${ktexteditor_LIB_SRCS} document/editorconfig.cpp)
+endif()
+
 ki18n_wrap_ui(ktexteditor_LIB_SRCS
 dialogs/textareaappearanceconfigwidget.ui
 dialogs/bordersappearanceconfigwidget.ui
@@ -321,9 +333,45 @@ install(FILES
   COMPONENT Devel
 )
 
+if(BUILD_QCH)
+    ecm_add_qch(
+        KF5TextEditor_QCH
+        NAME KTextEditor
+        BASE_NAME KF5TextEditor
+        VERSION ${KF5_VERSION}
+        ORG_DOMAIN org.kde
+        SOURCES # using only public headers, to cover only public API
+            ${KTEXTEDITOR_PUBLIC_HEADERS}
+             "${CMAKE_SOURCE_DIR}/docs/apidocs-groups.dox"
+             "${CMAKE_SOURCE_DIR}/docs/coding-guidelines.dox"
+             "${CMAKE_SOURCE_DIR}/docs/design.dox"
+             "${CMAKE_SOURCE_DIR}/docs/porting.dox"
+        MD_MAINPAGE "${CMAKE_SOURCE_DIR}/README.md"
+        IMAGE_DIRS "${CMAKE_SOURCE_DIR}/docs/pics"
+        LINK_QCHS
+            KF5Parts_QCH
+        BLANK_MACROS
+            KTEXTEDITOR_EXPORT
+            KTEXTEDITOR_DEPRECATED
+            KTEXTEDITOR_DEPRECATED_EXPORT
+        TAGFILE_INSTALL_DESTINATION ${KDE_INSTALL_QTQCHDIR}
+        QCH_INSTALL_DESTINATION ${KDE_INSTALL_QTQCHDIR}
+        COMPONENT Devel
+    )
+endif()
+
 include(ECMGeneratePriFile)
 ecm_generate_pri_file(BASE_NAME KTextEditor LIB_NAME KF5TextEditor DEPS "KParts" FILENAME_VAR PRI_FILENAME INCLUDE_INSTALL_DIR ${KDE_INSTALL_INCLUDEDIR_KF5}/KTextEditor)
 install(FILES ${PRI_FILENAME} DESTINATION ${ECM_MKSPECS_INSTALL_DIR})
+
+
+add_executable(kauth_ktexteditor_helper buffer/katesecuretextbuffer.cpp)
+target_link_libraries(kauth_ktexteditor_helper
+  KF5::Auth
+)
+install(TARGETS kauth_ktexteditor_helper DESTINATION ${KAUTH_HELPER_INSTALL_DIR} )
+kauth_install_helper_files(kauth_ktexteditor_helper org.kde.ktexteditor.katetextbuffer root)
+kauth_install_actions(org.kde.ktexteditor.katetextbuffer buffer/org.kde.ktexteditor.katetextbuffer.actions)
 
 # add part
 add_subdirectory(part)

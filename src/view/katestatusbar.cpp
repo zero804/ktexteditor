@@ -55,10 +55,10 @@ void KateStatusBarOpenUpMenu::setVisible(bool visibility) {
 KateStatusBar::KateStatusBar(KTextEditor::ViewPrivate *view)
     : KateViewBarWidget(false)
     , m_view(view)
-    , m_insertModeLabel(Q_NULLPTR)
+    , m_insertModeLabel(nullptr)
     , m_modifiedStatus (-1)
     , m_selectionMode (-1)
-    , m_wordCounter(Q_NULLPTR)
+    , m_wordCounter(nullptr)
 {
     KAcceleratorManager::setNoAccel(this);
     setFocusProxy(m_view);
@@ -355,7 +355,7 @@ void KateStatusBar::addNumberAction(QActionGroup *group, QMenu *menu, int data)
 }
 
 void KateStatusBar::updateGroup(QActionGroup *group, int w) {
-    QAction *m1=0;
+    QAction *m1=nullptr;
     bool found=false;
     //linear search should be fast enough here, no additional hash
     Q_FOREACH(QAction *action, group->actions()) {
@@ -422,7 +422,7 @@ void KateStatusBar::slotIndentTabMode(QAction* a) {
 
 void KateStatusBar::toggleWordCount(bool on)
 {
-    if ((m_wordCounter != Q_NULLPTR) == on) {
+    if ((m_wordCounter != nullptr) == on) {
         return;
     }
 
@@ -431,7 +431,7 @@ void KateStatusBar::toggleWordCount(bool on)
         connect(m_wordCounter, &WordCounter::changed, this, &KateStatusBar::wordCountChanged);
     } else {
         delete m_wordCounter;
-        m_wordCounter = Q_NULLPTR;
+        m_wordCounter = nullptr;
         wordCountChanged(0, 0, 0, 0);
     }
 

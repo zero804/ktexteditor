@@ -111,8 +111,8 @@ void KTextEditor::ViewPrivate::blockFix(KTextEditor::Range &range)
 
 KTextEditor::ViewPrivate::ViewPrivate(KTextEditor::DocumentPrivate *doc, QWidget *parent, KTextEditor::MainWindow *mainWindow)
     : KTextEditor::View (this, parent)
-    , m_completionWidget(0)
-    , m_annotationModel(0)
+    , m_completionWidget(nullptr)
+    , m_annotationModel(nullptr)
     , m_hasWrap(false)
     , m_doc(doc)
     , m_textFolding(doc->buffer())
@@ -128,18 +128,18 @@ KTextEditor::ViewPrivate::ViewPrivate(KTextEditor::DocumentPrivate *doc, QWidget
     , m_startingUp(true)
     , m_updatingDocumentConfig(false)
     , blockSelect(false)
-    , m_bottomViewBar(0)
-    , m_gotoBar(0)
-    , m_dictionaryBar(NULL)
+    , m_bottomViewBar(nullptr)
+    , m_gotoBar(nullptr)
+    , m_dictionaryBar(nullptr)
     , m_spellingMenu(new KateSpellingMenu(this))
     , m_userContextMenuSet(false)
     , m_delayedUpdateTriggered(false)
     , m_lineToUpdateMin(-1)
     , m_lineToUpdateMax(-1)
-    , m_floatTopMessageWidget(0)
-    , m_floatBottomMessageWidget(0)
+    , m_floatTopMessageWidget(nullptr)
+    , m_floatBottomMessageWidget(nullptr)
     , m_mainWindow(mainWindow ? mainWindow : KTextEditor::EditorPrivate::self()->dummyMainWindow()) // use dummy window if no window there!
-    , m_statusBar(Q_NULLPTR)
+    , m_statusBar(nullptr)
     , m_temporaryAutomaticInvocationDisabled(false)
     , m_autoFoldedFirstLine(false)
     , m_clipboard(cursors())
@@ -156,7 +156,7 @@ KTextEditor::ViewPrivate::ViewPrivate(KTextEditor::DocumentPrivate *doc, QWidget
      */
     QWidget *bottomBarParent = m_mainWindow->createViewBar(this);
 
-    m_bottomViewBar = new KateViewBar(bottomBarParent != 0, bottomBarParent ? bottomBarParent : this, this);
+    m_bottomViewBar = new KateViewBar(bottomBarParent != nullptr, bottomBarParent ? bottomBarParent : this, this);
 
     // ugly workaround:
     // Force the layout to be left-to-right even on RTL deskstop, as discussed
@@ -254,7 +254,7 @@ KTextEditor::ViewPrivate::~ViewPrivate()
      * remove view bar again, if needed
      */
     m_mainWindow->deleteViewBar(this);
-    m_bottomViewBar = 0;
+    m_bottomViewBar = nullptr;
 
     m_doc->removeView(this);
 
@@ -273,7 +273,7 @@ void KTextEditor::ViewPrivate::toggleStatusBar()
     if (m_statusBar) {
         bottomViewBar()->removePermanentBarWidget(m_statusBar);
         delete m_statusBar;
-        m_statusBar = Q_NULLPTR;
+        m_statusBar = nullptr;
         emit statusBarEnabledChanged(this, false);
         return;
     }
@@ -460,7 +460,7 @@ void KTextEditor::ViewPrivate::setupActions()
     KActionCollection *ac = actionCollection();
     QAction *a;
 
-    m_toggleWriteLock = 0;
+    m_toggleWriteLock = nullptr;
 
     m_cut = a = ac->addAction(KStandardAction::Cut, this, SLOT(cut()));
     a->setWhatsThis(i18n("Cut the selected text and move it to the clipboard"));
@@ -575,8 +575,8 @@ void KTextEditor::ViewPrivate::setupActions()
         m_cut->setEnabled(false);
         m_paste->setEnabled(false);
         m_pasteMenu->setEnabled(false);
-        m_editUndo = 0;
-        m_editRedo = 0;
+        m_editUndo = nullptr;
+        m_editRedo = nullptr;
     }
 
     a = ac->addAction(KStandardAction::Print, this, SLOT(print()));
@@ -783,7 +783,7 @@ void KTextEditor::ViewPrivate::setupActions()
     a = m_addBom = new KToggleAction(i18n("Add &Byte Order Mark (BOM)"), this);
     m_addBom->setChecked(m_doc->config()->bom());
     ac->addAction(QStringLiteral("add_bom"), a);
-    a->setWhatsThis(i18n("Enable/disable adding of byte order markers for UTF-8/UTF-16 encoded files while saving"));
+    a->setWhatsThis(i18n("Enable/disable adding of byte order marks for UTF-8/UTF-16 encoded files while saving"));
     connect(m_addBom, SIGNAL(triggered(bool)), this, SLOT(setAddBom(bool)));
 
     // encoding menu
@@ -2549,8 +2549,50 @@ KTextEditor::Cursor KTextEditor::ViewPrivate::coordinatesToCursor(const QPoint &
 QPoint KTextEditor::ViewPrivate::cursorPositionCoordinates() const
 {
     // map from ViewInternal to View coordinates
-    const QPoint pt = m_viewInternal->cursorCoordinates();
+    const QPoint pt = m_viewInternal->cursorCoordinates(false);
     return pt == QPoint(-1, -1) ? pt : m_viewInternal->mapToParent(pt);
+}
+
+void KTextEditor::ViewPrivate::setScrollPositionInternal(KTextEditor::Cursor &cursor)
+{
+    m_viewInternal->scrollPos(cursor, false, true, false);
+}
+
+void KTextEditor::ViewPrivate::setHorizontalScrollPositionInternal(int x)
+{
+    m_viewInternal->scrollColumns(x);
+}
+
+KTextEditor::Cursor KTextEditor::ViewPrivate::maxScrollPositionInternal() const
+{
+    return m_viewInternal->maxStartPos(true);
+}
+
+
+int KTextEditor::ViewPrivate::firstDisplayedLineInternal(LineType lineType) const
+{
+    if (lineType == RealLine) {
+        return m_textFolding.visibleLineToLine(m_viewInternal->startLine());
+    } else {
+        return m_viewInternal->startLine();
+    }
+}
+
+int KTextEditor::ViewPrivate::lastDisplayedLineInternal(LineType lineType) const
+{
+    if (lineType == RealLine) {
+        return  m_textFolding.visibleLineToLine(m_viewInternal->endLine());
+    } else {
+        return m_viewInternal->endLine();
+    }
+}
+
+QRect KTextEditor::ViewPrivate::textAreaRectInternal() const
+{
+    const auto sourceRect = m_viewInternal->rect();
+    const auto topLeft = m_viewInternal->mapTo(this, sourceRect.topLeft());
+    const auto bottomRight = m_viewInternal->mapTo(this, sourceRect.bottomRight());
+    return {topLeft, bottomRight};
 }
 
 bool KTextEditor::ViewPrivate::setCursorPositionVisual(const KTextEditor::Cursor &position)
@@ -2976,7 +3018,7 @@ QMenu *KTextEditor::ViewPrivate::contextMenu() const
             }
         }
     }
-    return 0;
+    return nullptr;
 }
 
 QMenu *KTextEditor::ViewPrivate::defaultContextMenu(QMenu *menu) const
@@ -3042,7 +3084,8 @@ QStringList KTextEditor::ViewPrivate::configKeys() const
         QStringLiteral("keyword-completion"),
         QStringLiteral("word-count"),
         QStringLiteral("scrollbar-minimap"),
-        QStringLiteral("scrollbar-preview")
+        QStringLiteral("scrollbar-preview"),
+        QStringLiteral("font")
     };
     return keys;
 }
@@ -3083,10 +3126,14 @@ QVariant KTextEditor::ViewPrivate::configValue(const QString &key)
         return config()->lineModification();
     } else if (key == QLatin1String("keyword-completion")) {
         return config()->keywordCompletion();
+    } else if (key == QLatin1String("word-count")) {
+        return config()->showWordCount();
     } else if (key == QLatin1String("scrollbar-minimap")) {
         return config()->scrollBarMiniMap();
     } else if (key == QLatin1String("scrollbar-preview")) {
         return config()->scrollBarPreview();
+    } else if (key == QLatin1String("font")) {
+        return renderer()->config()->font();
     }
 
     // return invalid variant
@@ -3144,6 +3191,11 @@ void KTextEditor::ViewPrivate::setConfigValue(const QString &key, const QVariant
     } else if (value.canConvert(QVariant::UInt)) {
         if (key == QLatin1String("default-mark-type")) {
             config()->setDefaultMarkType(value.toUInt());
+        }
+
+    } else if (value.canConvert(QVariant::Font)) {
+        if (key == QLatin1String("font")) {
+            renderer()->config()->setFont(value.value<QFont>());
         }
     }
 }

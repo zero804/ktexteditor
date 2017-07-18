@@ -51,6 +51,10 @@
 #include "kateabstractinputmode.h"
 #include "katetemplatehandler.h"
 
+#ifdef EDITORCONFIG_FOUND
+#include "editorconfig.h"
+#endif
+
 #include <KTextEditor/DocumentCursor>
 #include <KTextEditor/Attribute>
 
@@ -181,13 +185,13 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
     : KTextEditor::Document (this, parent),
       m_bSingleViewMode(bSingleViewMode),
       m_bReadOnly(bReadOnly),
-      m_activeView(0),
+      m_activeView(nullptr),
       editSessionNumber(0),
       editIsRunning(false),
       m_undoMergeAllEdits(false),
       m_undoManager(new KateUndoManager(this)),
       m_editableMarks(markType01),
-      m_annotationModel(0),
+      m_annotationModel(nullptr),
       m_buffer(new KateBuffer(this)),
       m_indenter(new KateAutoIndent(this)),
       m_hlSetByUser(false),
@@ -204,7 +208,7 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
       m_reloading(false),
       m_config(new KateDocumentConfig(this)),
       m_fileChangedDialogsActivated(false),
-      m_onTheFlyChecker(0),
+      m_onTheFlyChecker(nullptr),
       m_documentState(DocumentIdle),
       m_readWriteStateBeforeLoading(false),
       m_isUntitled(true),
@@ -233,7 +237,7 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
     m_buffer->setHighlight(0);
 
     // swap file
-    m_swapfile = (config()->swapFileMode() == KateDocumentConfig::DisableSwapFile) ? 0L : new Kate::SwapFile(this);
+    m_swapfile = (config()->swapFileMode() == KateDocumentConfig::DisableSwapFile) ? nullptr : new Kate::SwapFile(this);
 
     // important, fill in the config into the indenter we use...
     m_indenter->updateConfig();
@@ -314,7 +318,7 @@ KTextEditor::DocumentPrivate::~DocumentPrivate()
 
     // kill it early, it has ranges!
     delete m_onTheFlyChecker;
-    m_onTheFlyChecker = NULL;
+    m_onTheFlyChecker = nullptr;
 
     clearDictionaryRanges();
 
@@ -392,7 +396,7 @@ QWidget *KTextEditor::DocumentPrivate::widget()
 {
     // no singleViewMode -> no widget()...
     if (!singleViewMode()) {
-        return 0;
+        return nullptr;
     }
 
     // does a widget exist already? use it!
@@ -401,7 +405,7 @@ QWidget *KTextEditor::DocumentPrivate::widget()
     }
 
     // create and return one...
-    KTextEditor::View *view = (KTextEditor::View *)createView(0);
+    KTextEditor::View *view = (KTextEditor::View *)createView(nullptr);
     insertChildClient(view);
     view->setContextMenu(view->defaultContextMenu());
     setWidget(view);
@@ -1821,6 +1825,9 @@ void KTextEditor::DocumentPrivate::readSessionConfig(const KConfigGroup &kconfig
         // restore the filetype
         if (kconfig.hasKey("Mode")) {
             updateFileType(kconfig.readEntry("Mode", fileType()));
+
+            // restore if set by user, too!
+            m_fileTypeSetByUser = kconfig.readEntry("Mode Set By User", false);
         }
     }
 
@@ -1869,6 +1876,8 @@ void KTextEditor::DocumentPrivate::writeSessionConfig(KConfigGroup &kconfig, con
     if (!flags.contains(QStringLiteral("SkipMode"))) {
         // save file type
         kconfig.writeEntry("Mode", m_fileType);
+        // save if set by user, too!
+        kconfig.writeEntry("Mode Set By User", m_fileTypeSetByUser);
     }
 
     if (!flags.contains(QStringLiteral("SkipHighlighting"))) {
@@ -2024,27 +2033,26 @@ void KTextEditor::DocumentPrivate::requestMarkTooltip(int line, QPoint position)
 
 bool KTextEditor::DocumentPrivate::handleMarkClick(int line)
 {
+    bool handled = false;
     KTextEditor::Mark *mark = m_marks.value(line);
     if (!mark) {
-        return false;
+        emit markClicked(this, KTextEditor::Mark{line, 0}, handled);
+    } else {
+        emit markClicked(this, *mark, handled);
     }
-
-    bool handled = false;
-    emit markClicked(this, *mark, handled);
 
     return handled;
 }
 
 bool KTextEditor::DocumentPrivate::handleMarkContextMenu(int line, QPoint position)
 {
+    bool handled = false;
     KTextEditor::Mark *mark = m_marks.value(line);
     if (!mark) {
-        return false;
+        emit markContextMenuRequested(this, KTextEditor::Mark{line, 0}, position, handled);
+    } else {
+        emit markContextMenuRequested(this, *mark, position, handled);
     }
-
-    bool handled = false;
-
-    emit markContextMenuRequested(this, *mark, position, handled);
 
     return handled;
 }
@@ -2150,10 +2158,10 @@ void KTextEditor::DocumentPrivate::showAndSetOpeningErrorAccess()
         = new KTextEditor::Message(i18n("The file %1 could not be loaded, as it was not possible to read from it.<br />Check if you have read access to this file.", this->url().toDisplayString(QUrl::PreferLocalFile)),
                                    KTextEditor::Message::Error);
     message->setWordWrap(true);
-    QAction *tryAgainAction = new QAction(QIcon::fromTheme(QStringLiteral("view-refresh")), i18nc("translators: you can also translate 'Try Again' with 'Reload'", "Try Again"), 0);
+    QAction *tryAgainAction = new QAction(QIcon::fromTheme(QStringLiteral("view-refresh")), i18nc("translators: you can also translate 'Try Again' with 'Reload'", "Try Again"), nullptr);
     connect(tryAgainAction, SIGNAL(triggered()), SLOT(documentReload()), Qt::QueuedConnection);
 
-    QAction *closeAction = new QAction(QIcon::fromTheme(QStringLiteral("window-close")), i18n("&Close"), 0);
+    QAction *closeAction = new QAction(QIcon::fromTheme(QStringLiteral("window-close")), i18n("&Close"), nullptr);
     closeAction->setToolTip(i18n("Close message"));
 
     // add try again and close actions
@@ -2175,7 +2183,7 @@ void KTextEditor::DocumentPrivate::openWithLineLengthLimitOverride()
 {
     // raise line length limit to the next power of 2
     const int longestLine = m_buffer->longestLineLoaded();
-    int newLimit = pow(2, ceil(log(longestLine) / log(2))); // TODO: C++11: use log2(x)
+    int newLimit = pow(2, ceil(log2(longestLine)));
     if (newLimit <= longestLine) {
         newLimit *= 2;
     }
@@ -2357,7 +2365,7 @@ bool KTextEditor::DocumentPrivate::saveFile()
     //
     if (!m_buffer->canEncode()
             && (KMessageBox::warningContinueCancel(dialogParent(),
-                    i18n("The selected encoding cannot encode every unicode character in this document. Do you really want to save it? There could be some data lost."), i18n("Possible Data Loss"), KGuiItem(i18n("Save Nevertheless"))) != KMessageBox::Continue)) {
+                    i18n("The selected encoding cannot encode every Unicode character in this document. Do you really want to save it? There could be some data lost."), i18n("Possible Data Loss"), KGuiItem(i18n("Save Nevertheless"))) != KMessageBox::Continue)) {
         return false;
     }
 
@@ -2369,16 +2377,14 @@ bool KTextEditor::DocumentPrivate::saveFile()
         return false;
 
     // update file type, pass no file path, read file type content from this document
-    updateFileType(KTextEditor::EditorPrivate::self()->modeManager()->fileType(this, QString()));
-
-    // remember the oldpath...
     QString oldPath = m_dirWatchFile;
 
-    // read dir config (if possible and wanted)
-    if (url().isLocalFile()) {
-        QFileInfo fo(oldPath), fn(localFilePath());
+    // only update file type if path has changed so that variables are not overridden on normal save
+    if (oldPath != localFilePath()) {
+        updateFileType(KTextEditor::EditorPrivate::self()->modeManager()->fileType(this, QString()));
 
-        if (fo.path() != fn.path()) {
+        if (url().isLocalFile()) {
+            // if file is local then read dir config for new path
             readDirConfig();
         }
     }
@@ -2545,7 +2551,7 @@ void KTextEditor::DocumentPrivate::readDirConfig()
     }
 
     /**
-     * search .kateconfig upwards
+     * first search .kateconfig upwards
      * with recursion guard
      */
     QSet<QString> seenDirectories;
@@ -2571,7 +2577,7 @@ void KTextEditor::DocumentPrivate::readDirConfig()
                 linesRead++;
             }
 
-            break;
+            return;
         }
 
         /**
@@ -2581,6 +2587,14 @@ void KTextEditor::DocumentPrivate::readDirConfig()
             break;
         }
     }
+
+#ifdef EDITORCONFIG_FOUND
+    // if there wasn’t any .kateconfig file and KTextEditor was compiled with
+    // EditorConfig support, try to load document config from a .editorconfig
+    // file, if such is provided
+    EditorConfig editorConfig(this);
+    editorConfig.parse();
+#endif
 }
 
 void KTextEditor::DocumentPrivate::activateDirWatch(const QString &useFileName)
@@ -2622,6 +2636,10 @@ void KTextEditor::DocumentPrivate::deactivateDirWatch()
 
 bool KTextEditor::DocumentPrivate::openUrl(const QUrl &url)
 {
+    if (!m_reloading) {
+        // Reset filetype when opening url
+        m_fileTypeSetByUser = false;
+    }
     bool res = KTextEditor::Document::openUrl(normalizeUrl(url));
     updateDocName();
     return res;
@@ -2828,7 +2846,7 @@ void KTextEditor::DocumentPrivate::removeView(KTextEditor::View *view)
     m_views.remove(view);
 
     if (activeView() == view) {
-        setActiveView(0L);
+        setActiveView(nullptr);
     }
 }
 
@@ -4600,7 +4618,7 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
                     m_config->setEol(n);
                     m_config->setAllowEolDetection(false);
                 }
-            } else if (var == QLatin1String("bom") || var == QLatin1String("byte-order-marker")) {
+            } else if (var == QLatin1String("bom") || var == QLatin1String("byte-order-mark") || var == QLatin1String("byte-order-marker")) {
                 if (checkBoolValue(val, &state)) {
                     m_config->setBom(state);
                 }
@@ -4817,9 +4835,9 @@ void KTextEditor::DocumentPrivate::slotDelayedHandleModOnHd()
              * libgit2 docs state that UTF-8 is the right encoding, even on windows
              * I hope that is correct!
              */
-            git_repository *repository = Q_NULLPTR;
+            git_repository *repository = nullptr;
             const QByteArray utf8Path = url().toLocalFile().toUtf8();
-            if (git_repository_open_ext(&repository, utf8Path.constData(), 0, Q_NULLPTR) == 0) {
+            if (git_repository_open_ext(&repository, utf8Path.constData(), 0, nullptr) == 0) {
                 /**
                  * if we have repo, convert the git hash to an OID
                  */
@@ -4828,7 +4846,7 @@ void KTextEditor::DocumentPrivate::slotDelayedHandleModOnHd()
                     /**
                      * finally: is there a blob for this git hash?
                      */
-                    git_blob *blob = Q_NULLPTR;
+                    git_blob *blob = nullptr;
                     if (git_blob_lookup(&blob, repository, &oid) == 0) {
                         /**
                         * this hash exists still in git => just reload
@@ -5051,6 +5069,7 @@ QStringList KTextEditor::DocumentPrivate::configKeys() const
         QStringLiteral("indent-pasted-text"),
         QStringLiteral("tab-width"),
         QStringLiteral("indent-width"),
+        QStringLiteral("on-the-fly-spellcheck"),
     };
     return keys;
 }
@@ -5073,6 +5092,8 @@ QVariant KTextEditor::DocumentPrivate::configValue(const QString &key)
         return m_config->tabWidth();
     } else if (key == QLatin1String("indent-width")) {
         return m_config->indentationWidth();
+    } else if (key == QLatin1String("on-the-fly-spellcheck")) {
+        return isOnTheFlySpellCheckingEnabled();
     }
 
     // return invalid variant
@@ -5087,16 +5108,15 @@ void KTextEditor::DocumentPrivate::setConfigValue(const QString &key, const QVar
         } else if (key == QLatin1String("backup-on-save-prefix")) {
             m_config->setBackupPrefix(value.toString());
         }
-    } else if (value.canConvert(QVariant::Bool)) {
+    } else if (value.type() == QVariant::Bool) {
         const bool bValue = value.toBool();
-        if (key == QLatin1String("backup-on-save-local") && value.type() == QVariant::String) {
+        if (key == QLatin1String("backup-on-save-local")) {
             uint f = m_config->backupFlags();
             if (bValue) {
                 f |= KateDocumentConfig::LocalFiles;
             } else {
                 f ^= KateDocumentConfig::LocalFiles;
             }
-
             m_config->setBackupFlags(f);
         } else if (key == QLatin1String("backup-on-save-remote")) {
             uint f = m_config->backupFlags();
@@ -5105,12 +5125,13 @@ void KTextEditor::DocumentPrivate::setConfigValue(const QString &key, const QVar
             } else {
                 f ^= KateDocumentConfig::RemoteFiles;
             }
-
             m_config->setBackupFlags(f);
         } else if (key == QLatin1String("replace-tabs")) {
             m_config->setReplaceTabsDyn(bValue);
         } else if (key == QLatin1String("indent-pasted-text")) {
             m_config->setIndentPastedText(bValue);
+        } else if (key == QLatin1String("on-the-fly-spellcheck")) {
+            onTheFlySpellCheckingEnabled(bValue);
         }
     } else if (value.canConvert(QVariant::Int)) {
         if (key == QLatin1String("tab-width")) {
@@ -5388,7 +5409,7 @@ void KTextEditor::DocumentPrivate::slotTriggerLoadingMessage()
      * if around job: add cancel action
      */
     if (m_loadingJob) {
-        QAction *cancel = new QAction(i18n("&Abort Loading"), 0);
+        QAction *cancel = new QAction(i18n("&Abort Loading"), nullptr);
         connect(cancel, SIGNAL(triggered()), this, SLOT(slotAbortLoading()));
         m_loadingMessage->addAction(cancel);
     }
@@ -5413,7 +5434,7 @@ void KTextEditor::DocumentPrivate::slotAbortLoading()
      * signal results!
      */
     m_loadingJob->kill(KJob::EmitResult);
-    m_loadingJob = 0;
+    m_loadingJob = nullptr;
 }
 
 void KTextEditor::DocumentPrivate::slotUrlChanged(const QUrl &url)
@@ -5600,11 +5621,11 @@ void KTextEditor::DocumentPrivate::onTheFlySpellCheckingEnabled(bool enable)
     }
 
     if (enable) {
-        Q_ASSERT(m_onTheFlyChecker == 0);
+        Q_ASSERT(m_onTheFlyChecker == nullptr);
         m_onTheFlyChecker = new KateOnTheFlyChecker(this);
     } else {
         delete m_onTheFlyChecker;
-        m_onTheFlyChecker = 0;
+        m_onTheFlyChecker = nullptr;
     }
 
     foreach (KTextEditor::ViewPrivate *view, m_views) {
@@ -5614,7 +5635,7 @@ void KTextEditor::DocumentPrivate::onTheFlySpellCheckingEnabled(bool enable)
 
 bool KTextEditor::DocumentPrivate::isOnTheFlySpellCheckingEnabled() const
 {
-    return m_onTheFlyChecker != 0;
+    return m_onTheFlyChecker != nullptr;
 }
 
 QString KTextEditor::DocumentPrivate::dictionaryForMisspelledRange(const KTextEditor::Range &range) const
@@ -5798,7 +5819,7 @@ KTextEditor::Attribute::Ptr KTextEditor::DocumentPrivate::attributeAt(const KTex
 {
     KTextEditor::Attribute::Ptr attrib(new KTextEditor::Attribute());
 
-    KTextEditor::ViewPrivate *view = m_views.empty() ? Q_NULLPTR : m_views.begin().value();
+    KTextEditor::ViewPrivate *view = m_views.empty() ? nullptr : m_views.begin().value();
     if (!view) {
         qCWarning(LOG_KTE) << "ATTENTION: cannot access lineAttributes() without any View (will be fixed eventually)";
         return attrib;
@@ -5942,7 +5963,7 @@ bool KTextEditor::DocumentPrivate::postMessage(KTextEditor::Message *message)
 
     // if there are no actions, add a close action by default if widget does not auto-hide
     if (message->actions().count() == 0 && message->autoHide() < 0) {
-        QAction *closeAction = new QAction(QIcon::fromTheme(QStringLiteral("window-close")), i18n("&Close"), 0);
+        QAction *closeAction = new QAction(QIcon::fromTheme(QStringLiteral("window-close")), i18n("&Close"), nullptr);
         closeAction->setToolTip(i18n("Close message"));
         message->addAction(closeAction);
     }
@@ -5952,7 +5973,7 @@ bool KTextEditor::DocumentPrivate::postMessage(KTextEditor::Message *message)
 
     // reparent actions, as we want full control over when they are deleted
     foreach (QAction *action, message->actions()) {
-        action->setParent(0);
+        action->setParent(nullptr);
         m_messageHash[message].append(QSharedPointer<QAction>(action));
     }
 

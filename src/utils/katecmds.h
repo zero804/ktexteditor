@@ -63,7 +63,7 @@ class CoreCommands : public KTextEditor::Command
 public:
     ~CoreCommands()
     {
-        m_instance = 0;
+        m_instance = nullptr;
     }
 
     /**
@@ -80,8 +80,7 @@ public:
      * @param view view to use for execution
      * @param cmd cmd string
      * @param errorMsg error to return if no success
-     * @param rangeStart first line in range
-     * @param rangeEnd last line in range
+     * @param range range to execute command on
      * @return success
      */
     bool exec(class KTextEditor::View *view, const QString &cmd, QString &errorMsg,
@@ -97,7 +96,7 @@ public:
 
     static CoreCommands *self()
     {
-        if (m_instance == 0) {
+        if (m_instance == nullptr) {
             m_instance = new CoreCommands();
         }
         return m_instance;
@@ -124,7 +123,7 @@ class Character : public KTextEditor::Command
 public:
     ~Character()
     {
-        m_instance = 0;
+        m_instance = nullptr;
     }
 
     /**
@@ -142,7 +141,7 @@ public:
 
     static Character *self()
     {
-        if (m_instance == 0) {
+        if (m_instance == nullptr) {
             m_instance = new Character();
         }
         return m_instance;
@@ -164,7 +163,7 @@ class Date : public KTextEditor::Command
 public:
     ~Date()
     {
-        m_instance = 0;
+        m_instance = nullptr;
     }
 
     /**
@@ -182,7 +181,7 @@ public:
 
     static Date *self()
     {
-        if (m_instance == 0) {
+        if (m_instance == nullptr) {
             m_instance = new Date();
         }
         return m_instance;

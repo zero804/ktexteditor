@@ -51,7 +51,7 @@ public:
      * @param proberType prober type
      */
     TextLoader(const QString &filename, KEncodingProber::ProberType proberType)
-        : m_codec(0)
+        : m_codec(nullptr)
         , m_eof(false)  // default to not eof
         , m_lastWasEndOfLine(true)  // at start of file, we had a virtual newline
         , m_lastWasR(false)  // we have not found a \r as last char
@@ -60,7 +60,7 @@ public:
         , m_eol(TextBuffer::eolUnknown)  // no eol type detected atm
         , m_buffer(KATE_FILE_LOADER_BS, 0)
         , m_digest(QCryptographicHash::Sha1)
-        , m_converterState(0)
+        , m_converterState(nullptr)
         , m_bomFound(false)
         , m_firstRead(true)
         , m_proberType(proberType)
@@ -156,8 +156,8 @@ public:
     }
 
     /**
-     * internal unicode data array
-     * @return internal unicode data
+     * internal Unicode data array
+     * @return internal Unicode data
      */
     const QChar *unicode() const
     {
@@ -174,8 +174,8 @@ public:
     }
 
     /**
-     * read a line, return length + offset in unicode data
-     * @param offset offset into internal unicode data for read line
+     * read a line, return length + offset in Unicode data
+     * @param offset offset into internal Unicode data for read line
      * @param length length of read line
      * @return true if no encoding errors occurred
      */
@@ -213,12 +213,12 @@ public:
                         // update hash sum
                         m_digest.addData(m_buffer.data(), c);
                     
-                        // detect byte order marks & codec for byte order markers on first read
+                        // detect byte order marks & codec for byte order marks on first read
                         int bomBytes = 0;
                         if (m_firstRead) {
                             // use first 16 bytes max to allow BOM detection of codec
                             QByteArray bom(m_buffer.data(), qMin(16, c));
-                            QTextCodec *codecForByteOrderMark = QTextCodec::codecForUtfText(bom, 0);
+                            QTextCodec *codecForByteOrderMark = QTextCodec::codecForUtfText(bom, nullptr);
 
                             // if codec != null, we found a BOM!
                             if (codecForByteOrderMark) {
@@ -248,13 +248,13 @@ public:
                                     m_codec = codecForByteOrderMark;
                                 } else {
                                     /**
-                                     * no unicode BOM found, trigger prober
+                                     * no Unicode BOM found, trigger prober
                                      */
                                     
                                     /**
                                      * first: try to get HTML header encoding
                                      */
-                                    if (QTextCodec *codecForHtml = QTextCodec::codecForHtml (m_buffer, 0)) {
+                                    if (QTextCodec *codecForHtml = QTextCodec::codecForHtml (m_buffer, nullptr)) {
                                         m_codec = codecForHtml;
                                     }
                                     

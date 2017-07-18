@@ -50,7 +50,7 @@ class MovingRangeInvalidator : public QObject
 {
     Q_OBJECT
 public:
-    explicit MovingRangeInvalidator(QObject *parent = 0)
+    explicit MovingRangeInvalidator(QObject *parent = nullptr)
         : QObject(parent)
     {
     }
@@ -283,7 +283,7 @@ void KateDocumentTest::testForgivingApiUsage()
 void KateDocumentTest::testReplaceTabs()
 {
     KTextEditor::DocumentPrivate doc;
-    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(Q_NULLPTR));
+    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(nullptr));
 
     auto reset = [&]() {
         doc.setText("  Hi!");
@@ -410,9 +410,10 @@ void KateDocumentTest::testInsertAfterEOF()
 // sure, these two implementations result in the same checksum.
 void KateDocumentTest::testDigest()
 {
-    // git hash of data/md5checksum.txt: 95c6f5f5dbb36abf1151b2a8501b37282e268d13
+    // Git hash of test file (git hash-object data/md5checksum.txt):
+    const QByteArray gitHash = "696e6d35a5d9cc28d16e56bdcb2d2a88126b814e";
     // QCryptographicHash is used, therefore we need fromHex here
-    const QByteArray fileDigest = QByteArray::fromHex("95c6f5f5dbb36abf1151b2a8501b37282e268d13");
+    const QByteArray fileDigest = QByteArray::fromHex(gitHash);
 
     // make sure, Kate::TextBuffer and KTextEditor::DocumentPrivate::createDigest() equal
     KTextEditor::DocumentPrivate doc;
@@ -436,7 +437,7 @@ void KateDocumentTest::testDefStyleNum()
 void KateDocumentTest::testTypeCharsWithSurrogateAndNewLine()
 {
     KTextEditor::DocumentPrivate doc;
-    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(Q_NULLPTR));
+    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(nullptr));
     const uint surrogateUcs4String[] = { 0x1f346, '\n', 0x1f346, 0 };
     const auto surrogateString = QString::fromUcs4(surrogateUcs4String);
     doc.typeChars(view, surrogateString);
@@ -447,7 +448,7 @@ void KateDocumentTest::testTypeCharsWithSurrogateAndNewLine()
 void KateDocumentTest::testRemoveComposedCharacters()
 {
     KTextEditor::DocumentPrivate doc;
-    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(Q_NULLPTR));
+    auto view = static_cast<KTextEditor::ViewPrivate*>(doc.createView(nullptr));
     doc.setText(QString::fromUtf8("व्यक्तियों"));
     doc.del(view, Cursor(0, 0));
 

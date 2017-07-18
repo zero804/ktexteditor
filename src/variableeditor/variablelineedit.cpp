@@ -46,7 +46,7 @@
 VariableLineEdit::VariableLineEdit(QWidget *parent)
     : QWidget(parent)
 {
-    m_listview = 0;
+    m_listview = nullptr;
 
     QHBoxLayout *hl = new QHBoxLayout();
     hl->setMargin(0);
@@ -61,7 +61,7 @@ VariableLineEdit::VariableLineEdit(QWidget *parent)
     hl->addWidget(m_lineedit);
     hl->addWidget(m_button);
 
-    m_popup = new QFrame(0, Qt::Popup);
+    m_popup = new QFrame(nullptr, Qt::Popup);
     m_popup->setFrameStyle(QFrame::StyledPanel | QFrame::Raised);
     QVBoxLayout *l = new QVBoxLayout(m_popup);
     l->setSpacing(0);
@@ -108,16 +108,16 @@ void VariableLineEdit::updateVariableLine()
 
     m_popup->layout()->removeWidget(m_listview);
     m_listview->deleteLater();
-    m_listview = 0;
+    m_listview = nullptr;
 }
 
 void VariableLineEdit::addKateItems(VariableListView *listview)
 {
-    VariableItem *item = 0;
+    VariableItem *item = nullptr;
 
     // If a current active doc is available
-    KTextEditor::ViewPrivate *activeView = 0;
-    KTextEditor::DocumentPrivate *activeDoc = 0;
+    KTextEditor::ViewPrivate *activeView = nullptr;
+    KTextEditor::DocumentPrivate *activeDoc = nullptr;
 
     KateDocumentConfig *docConfig = KateDocumentConfig::global();
     KateViewConfig *viewConfig = KateViewConfig::global();
@@ -159,9 +159,9 @@ void VariableLineEdit::addKateItems(VariableListView *listview)
     item->setHelpText(i18nc("short translation please", "Enable block selection mode."));
     listview->addItem(item);
 
-    // Add 'byte-order-marker' (bom) to list
-    item = new VariableBoolItem(QStringLiteral("byte-order-marker"), docConfig->bom());
-    item->setHelpText(i18nc("short translation please", "Enable the byte order marker when saving unicode files."));
+    // Add 'byte-order-mark' (bom) to list
+    item = new VariableBoolItem(QStringLiteral("byte-order-mark"), docConfig->bom());
+    item->setHelpText(i18nc("short translation please", "Enable the byte order mark (BOM) when saving Unicode files."));
     listview->addItem(item);
 
     // Add 'bracket-highlight-color' to list

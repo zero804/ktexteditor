@@ -78,7 +78,7 @@ KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
     , m_bmStart(doc()->newMovingRange(KTextEditor::Range::invalid(), KTextEditor::MovingRange::DoNotExpand))
     , m_bmEnd(doc()->newMovingRange(KTextEditor::Range::invalid(), KTextEditor::MovingRange::DoNotExpand))
     , m_bmLastFlashPos(doc()->newMovingCursor(KTextEditor::Cursor::invalid()))
-    , m_dummy(0)
+    , m_dummy(nullptr)
 
     // stay on cursor will avoid that the view scroll around on press return at beginning
     , m_startPos(doc()->buffer(), KTextEditor::Cursor(0, 0), Kate::TextCursor::StayOnInsert)
@@ -100,7 +100,7 @@ KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
     , m_textHintTimer(this)
     , m_textHintDelay(500)
     , m_textHintPos(-1, -1)
-    , m_imPreeditRange(0)
+    , m_imPreeditRange(nullptr)
 {
     QList<KateAbstractInputModeFactory *> factories = KTextEditor::EditorPrivate::self()->inputModeFactories();
     Q_FOREACH(KateAbstractInputModeFactory *factory, factories) {
@@ -763,6 +763,11 @@ QPoint KateViewInternal::cursorToCoordinate(const KTextEditor::Cursor &cursor, b
     const int y = (int)viewLine * renderer()->lineHeight();
 
     KateTextLayout layout = cache()->viewLine(viewLine);
+
+    if (cursor.column() > doc()->lineLength(cursor.line())) {
+        return QPoint(-1, -1);
+    }
+
     int x = 0;
 
     // only set x value if we have a valid layout (bug #171027)
@@ -1003,7 +1008,7 @@ KTextEditor::Cursor KateViewInternal::viewLineOffset(const KTextEditor::Cursor &
         if (offset <= currentOffset) {
             // the answer is on the same line
             KateTextLayout thisLine = cache()->textLayout(realCursor.line(), cursorViewLine + offset);
-            Q_ASSERT(thisLine.virtualLine() == virtualCursor.line());
+            Q_ASSERT(thisLine.virtualLine() == (int) m_view->textFolding().lineToVisibleLine(virtualCursor.line()));
             return KTextEditor::Cursor(virtualCursor.line(), thisLine.startCol());
         }
 
@@ -2303,7 +2308,7 @@ KTextEditor::Cursor KateViewInternal::coordinatesToCursor(const QPoint &_coord, 
         ret = renderer()->xToCursor(thisLine, coord.x(), !m_view->wrapCursor());
     }
 
-    if (ret.column() == view()->document()->lineLength(ret.line())) {
+    if (ret.column() > view()->document()->lineLength(ret.line())) {
         // The cursor is beyond the end of the line; in that case the renderer
         // gives the index of the character behind the last one.
         return KTextEditor::Cursor::invalid();
@@ -2760,22 +2765,26 @@ void KateViewInternal::dropEvent(QDropEvent *event)
         doc()->insertText(targetCursor, text, m_view->blockSelection());
 
         KTextEditor::DocumentCursor startCursor(doc(), targetCursor);
+        KTextEditor::DocumentCursor endCursor1(doc(), targetCursor);
+        const int textLength = text.length();
 
         if (event->dropAction() != Qt::CopyAction) {
             m_view->removeSelectedText();
+            if (m_cursors.primaryCursor() < startCursor.toCursor()) {
+                startCursor.move(-textLength);
+                endCursor1.move(-textLength);
+            }
         }
 
-        KTextEditor::DocumentCursor endCursor1(doc(), startCursor);
-
         if (!m_view->blockSelection()) {
-            endCursor1.move(text.length());
+            endCursor1.move(textLength);
         } else {
             endCursor1.setColumn(startCursor.column() + selectionWidth);
             endCursor1.setLine(startCursor.line() + selectionHeight);
         }
 
         KTextEditor::Cursor endCursor(endCursor1);
-        qCDebug(LOG_KTE) << startCursor << "---(" << text.length() << ")---" << endCursor;
+        qCDebug(LOG_KTE) << startCursor << "---(" << textLength << ")---" << endCursor;
         setSelection(KTextEditor::Range(startCursor, endCursor));
         editSetCursor(endCursor);
 
@@ -3199,7 +3208,7 @@ void KateViewInternal::inputMethodEvent(QInputMethodEvent *e)
     if (m_imPreeditRange && e->preeditString().isEmpty()) {
         // delete the range and reset the pointer
         delete m_imPreeditRange;
-        m_imPreeditRange = 0L;
+        m_imPreeditRange = nullptr;
         qDeleteAll(m_imPreeditRangeChildren);
         m_imPreeditRangeChildren.clear();
 

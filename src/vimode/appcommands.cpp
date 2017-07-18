@@ -33,7 +33,7 @@
 using namespace KateVi;
 
 //BEGIN AppCommands
-AppCommands *AppCommands::m_instance = 0;
+AppCommands *AppCommands::m_instance = nullptr;
 
 AppCommands::AppCommands()
     : KTextEditor::Command(QStringList() << QStringLiteral("q") << QStringLiteral("qa") << QStringLiteral("qall") << QStringLiteral("q!") << QStringLiteral("qa!") << QStringLiteral("qall!")
@@ -56,7 +56,7 @@ AppCommands::AppCommands()
 
 AppCommands::~AppCommands()
 {
-    m_instance = 0;
+    m_instance = nullptr;
 }
 
 bool AppCommands::exec(KTextEditor::View *view, const QString &cmd, QString &msg, const KTextEditor::Range &)
@@ -163,6 +163,8 @@ bool AppCommands::exec(KTextEditor::View *view, const QString &cmd, QString &msg
                 app->openUrl(QUrl())->saveAs(url);
             }
         }
+    // splitView() orientations are reversed from the usual editor convention.
+    // 'vsplit' and 'vnew' use Qt::Horizontal to match vi and the Kate UI actions.
     } else if (re_new.exactMatch(command)) {
         if (re_new.cap(1) == QLatin1String("v")) { // vertical split
             mainWin->splitView(Qt::Horizontal);
@@ -173,9 +175,9 @@ bool AppCommands::exec(KTextEditor::View *view, const QString &cmd, QString &msg
     } else if (command == QLatin1String("enew")) {
         mainWin->openUrl(QUrl());
     } else if (re_split.exactMatch(command)) {
-        mainWin->splitView(Qt::Horizontal);
+        mainWin->splitView(Qt::Vertical); // see above
     } else if (re_vsplit.exactMatch(command)) {
-        mainWin->splitView(Qt::Vertical);
+        mainWin->splitView(Qt::Horizontal);
     } else if (re_vclose.exactMatch(command)) {
         QTimer::singleShot(0, this, SLOT(closeCurrentSplitView()));
     } else if (re_only.exactMatch(command)) {
@@ -269,7 +271,7 @@ KTextEditor::View * AppCommands::findViewInDifferentSplitView(KTextEditor::MainW
             return it;
         }
     }
-    return Q_NULLPTR;
+    return nullptr;
 }
 
 void AppCommands::closeCurrentDocument()
@@ -298,7 +300,7 @@ void AppCommands::closeOtherSplitViews()
     KTextEditor::Application *app = KTextEditor::Editor::instance()->application();
     KTextEditor::MainWindow *mw = app->activeMainWindow();
     KTextEditor::View *view = mw->activeView();
-    KTextEditor::View *viewToRemove = Q_NULLPTR;
+    KTextEditor::View *viewToRemove = nullptr;
 
     while ((viewToRemove = findViewInDifferentSplitView(mw, view))) {
         mw->closeSplitView(viewToRemove);
@@ -313,7 +315,7 @@ void AppCommands::quit()
 //END AppCommands
 
 //BEGIN KateViBufferCommand
-BufferCommands *BufferCommands::m_instance = 0;
+BufferCommands *BufferCommands::m_instance = nullptr;
 
 BufferCommands::BufferCommands()
     : KTextEditor::Command(QStringList() << QStringLiteral("ls")
@@ -327,7 +329,7 @@ BufferCommands::BufferCommands()
 
 BufferCommands::~BufferCommands()
 {
-    m_instance = 0;
+    m_instance = nullptr;
 }
 
 bool BufferCommands::exec(KTextEditor::View *view, const QString &cmd, QString &, const KTextEditor::Range &)
@@ -378,7 +380,7 @@ void BufferCommands::switchDocument(KTextEditor::View *view, const QString &addr
         activateDocument(view, docs.at(idx - 1));
     } else {
         // string argument: switch to the given file
-        KTextEditor::Document *doc = 0;
+        KTextEditor::Document *doc = nullptr;
 
         Q_FOREACH(KTextEditor::Document *it, docs) {
             if (it->documentName() == address) {

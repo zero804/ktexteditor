@@ -175,7 +175,6 @@ private:
     int     m_grooveHeight;
     QRect   m_stdGroveRect;
     QRect   m_mapGroveRect;
-    QRect   m_mapSliderRect;
     QTimer  m_updateTimer;
     QPoint m_toolTipPos;
 
@@ -329,7 +328,7 @@ public:
 
     ~KateViewEncodingAction();
 
-    int mibForName(const QString &codecName, bool *ok = 0) const;
+    int mibForName(const QString &codecName, bool *ok = nullptr) const;
     QTextCodec *codecForMib(int mib) const;
 
     QTextCodec *currentCodec() const;
@@ -356,7 +355,7 @@ private:
     public:
         Private(KateViewEncodingAction *parent)
             : q(parent),
-              currentSubAction(0)
+              currentSubAction(nullptr)
         {
         }
 
@@ -386,7 +385,7 @@ class KateViewBarWidget : public QWidget
     friend class KateViewBar;
 
 public:
-    explicit KateViewBarWidget(bool addCloseButton, QWidget *parent = 0);
+    explicit KateViewBarWidget(bool addCloseButton, QWidget *parent = nullptr);
 
     virtual void closed() {}
 
@@ -514,7 +513,7 @@ class KTEXTEDITOR_EXPORT KateCommandLineBar : public KateViewBarWidget
     Q_OBJECT
 
 public:
-    explicit KateCommandLineBar(KTextEditor::ViewPrivate *view, QWidget *parent = 0);
+    explicit KateCommandLineBar(KTextEditor::ViewPrivate *view, QWidget *parent = nullptr);
     ~KateCommandLineBar();
 
     void setText(const QString &text, bool selected = true);

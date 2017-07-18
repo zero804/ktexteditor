@@ -1251,7 +1251,7 @@ void ModeBase::switchView(Direction direction)
     int curr_cursor_y = globalPos.y();
     int curr_cursor_x = globalPos.x();
 
-    KTextEditor::ViewPrivate *bestview = NULL;
+    KTextEditor::ViewPrivate *bestview = nullptr;
     int  best_x1 = -1, best_x2 = -1, best_y1 = -1, best_y2 = -1, best_center_y = -1, best_center_x = -1;
 
     if (direction == Next && visible_views.count() != 1) {
@@ -1279,7 +1279,7 @@ void ModeBase::switchView(Direction direction)
                 if (view != m_view && x2 <= curr_x1 &&
                         (x2 > best_x2 ||
                          (x2 == best_x2 && qAbs(curr_cursor_y - center_y) < qAbs(curr_cursor_y - best_center_y)) ||
-                         bestview == NULL)) {
+                         bestview == nullptr)) {
                     bestview = view;
                     best_x2 = x2;
                     best_center_y = center_y;
@@ -1289,7 +1289,7 @@ void ModeBase::switchView(Direction direction)
                 if (view != m_view && x1 >= curr_x2 &&
                         (x1 < best_x1 ||
                          (x1 == best_x1 && qAbs(curr_cursor_y - center_y) < qAbs(curr_cursor_y - best_center_y)) ||
-                         bestview == NULL)) {
+                         bestview == nullptr)) {
                     bestview = view;
                     best_x1 = x1;
                     best_center_y = center_y;
@@ -1299,16 +1299,17 @@ void ModeBase::switchView(Direction direction)
                 if (view != m_view && y1 >= curr_y2 &&
                         (y1 < best_y1 ||
                          (y1 == best_y1 && qAbs(curr_cursor_x - center_x) < qAbs(curr_cursor_x - best_center_x)) ||
-                         bestview == NULL)) {
+                         bestview == nullptr)) {
                     bestview = view;
                     best_y1 = y1;
                     best_center_x = center_x;
                 }
+                break;
             case Up:
                 if (view != m_view && y2 <= curr_y1 &&
                         (y2 > best_y2 ||
                          (y2 == best_y2 && qAbs(curr_cursor_x - center_x) < qAbs(curr_cursor_x - best_center_x)) ||
-                         bestview == NULL)) {
+                         bestview == nullptr)) {
                     bestview = view;
                     best_y2 = y2;
                     best_center_x = center_x;
@@ -1320,7 +1321,7 @@ void ModeBase::switchView(Direction direction)
 
         }
     }
-    if (bestview != NULL) {
+    if (bestview != nullptr) {
         bestview->setFocus();
         bestview->setInputMode(KTextEditor::View::ViInputMode);
     }

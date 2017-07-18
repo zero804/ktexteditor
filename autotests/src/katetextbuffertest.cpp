@@ -40,7 +40,7 @@ KateTextBufferTest::~KateTextBufferTest()
 void KateTextBufferTest::basicBufferTest()
 {
     // construct an empty text buffer
-    Kate::TextBuffer buffer(0, 1);
+    Kate::TextBuffer buffer(nullptr, 1);
 
     // one line per default
     QVERIFY(buffer.lines() == 1);
@@ -57,7 +57,7 @@ void KateTextBufferTest::basicBufferTest()
 void KateTextBufferTest::wrapLineTest()
 {
     // construct an empty text buffer
-    Kate::TextBuffer buffer(0, 1);
+    Kate::TextBuffer buffer(nullptr, 1);
 
     // wrap first empty line -> we should have two empty lines
     buffer.startEditing();
@@ -79,7 +79,7 @@ void KateTextBufferTest::wrapLineTest()
 void KateTextBufferTest::insertRemoveTextTest()
 {
     // construct an empty text buffer
-    Kate::TextBuffer buffer(0, 1);
+    Kate::TextBuffer buffer(nullptr, 1);
 
     // wrap first line
     buffer.startEditing();
@@ -139,7 +139,7 @@ void KateTextBufferTest::cursorTest()
     // test with different block sizes
     for (int i = 1; i <= 4; ++i) {
         // construct an empty text buffer
-        Kate::TextBuffer buffer(0, i);
+        Kate::TextBuffer buffer(nullptr, i);
 
         // wrap first line
         buffer.startEditing();
@@ -213,7 +213,7 @@ void KateTextBufferTest::cursorTest()
 void KateTextBufferTest::foldingTest()
 {
     // construct an empty text buffer & folding info
-    Kate::TextBuffer buffer(0, 1);
+    Kate::TextBuffer buffer(nullptr, 1);
     Kate::TextFolding folding(buffer);
 
     // insert some text
@@ -406,7 +406,7 @@ void KateTextBufferTest::foldingTest()
 void KateTextBufferTest::nestedFoldingTest()
 {
     // construct an empty text buffer & folding info
-    Kate::TextBuffer buffer(0, 1);
+    Kate::TextBuffer buffer(nullptr, 1);
     Kate::TextFolding folding(buffer);
 
     // insert two nested folds in 5 lines
@@ -445,7 +445,7 @@ void KateTextBufferTest::saveFileInUnwritableFolder()
 
     QFile::setPermissions(folder_name, QFile::ExeOwner);
 
-    Kate::TextBuffer buffer(0, 1);
+    Kate::TextBuffer buffer(nullptr, 1);
     buffer.setTextCodec(QTextCodec::codecForName("UTF-8"));
     buffer.setFallbackTextCodec(QTextCodec::codecForName("UTF-8"));
     bool a, b;
@@ -463,6 +463,40 @@ void KateTextBufferTest::saveFileInUnwritableFolder()
     f.close();
 
     QFile::setPermissions(folder_name, QFile::WriteOwner | QFile::ExeOwner);
+    QVERIFY(f.remove());
+    QVERIFY(dir.remove());
+}
+
+void KateTextBufferTest::saveFileWithElevatedPrivileges()
+{
+    // create temp dir and get file name inside
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+    const QString file_path = dir.path() + QLatin1String("/foo");
+
+    QFile f(file_path);
+    QVERIFY(f.open(QIODevice::WriteOnly | QIODevice::Truncate));
+    f.write("1234567890");
+    QVERIFY(f.flush());
+    f.close();
+
+    Kate::TextBuffer buffer(nullptr, 1, true);
+    buffer.setTextCodec(QTextCodec::codecForName("UTF-8"));
+    buffer.setFallbackTextCodec(QTextCodec::codecForName("UTF-8"));
+    bool a, b;
+    int c;
+    buffer.load(file_path, a, b, c, true);
+    buffer.clear();
+    buffer.startEditing();
+    buffer.insertText(KTextEditor::Cursor(0, 0), QLatin1String("ABC"));
+    buffer.finishEditing();
+    qDebug() << buffer.text();
+    buffer.save(file_path);
+
+    f.open(QIODevice::ReadOnly);
+    QCOMPARE(f.readAll(), QByteArray("ABC"));
+    f.close();
+
     QVERIFY(f.remove());
     QVERIFY(dir.remove());
 }

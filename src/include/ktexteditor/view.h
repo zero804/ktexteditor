@@ -215,11 +215,18 @@ public:
     };
 
     /**
+     * Possible line types
+     */
+    enum LineType {
+        RealLine = 0,   /** < Real line. */
+        VisibleLine = 1 /** < Visible line. Line that is not folded. */
+    };
+    /**
      * Get the current view mode/state.
      * This can be used to detect the view's current mode. For
      * example \NormalInputMode, \ViInputMode or whatever other input modes are
      * supported. \see viewModeHuman() for translated version.
-     * \return
+     * \return current view mode/state
      * \see viewModeChanged()
      */
     virtual ViewMode viewMode() const = 0;
@@ -232,7 +239,7 @@ public:
      * translated (i18n), as this is a user aimed representation of the view
      * state, which should be shown in the GUI, for example in the status bar.
      * This string may be rich-text.
-     * \return
+     * \return Human-readable version of the view mode state
      * \see viewModeChanged()
      */
     virtual QString viewModeHuman() const = 0;
@@ -370,7 +377,7 @@ public:
      * \param menu the menu to be populated, or null to create a new menu.
      * \return the menu, whether created or passed initially
      */
-    virtual QMenu *defaultContextMenu(QMenu *menu = 0L) const = 0;
+    virtual QMenu *defaultContextMenu(QMenu *menu = nullptr) const = 0;
 
 Q_SIGNALS:
     /**
@@ -679,13 +686,75 @@ public:
      * object defined in @p script. You can pass arguments to the function by just
      * writing any constant expression or a field name.
      * \param insertPosition where to insert the template
-     * \param templateScript template to insert using the above syntax
+     * \param templateString template to insert using the above syntax
      * \param script script with functions which can be used in @p templateScript
      * \return true on success, false if insertion failed (e.g. read-only mode)
      */
     bool insertTemplate(const KTextEditor::Cursor& insertPosition,
                         const QString& templateString,
                         const QString& script = QString());
+
+
+    /**
+    * Scroll view to cursor.
+    *
+    * \param cursor the cursor position to scroll to.
+    */
+    void setScrollPosition(KTextEditor::Cursor &cursor);
+
+    /**
+     * Horizontally scroll view to position.
+     *
+     * \param x the pixel position to scroll to.
+     */
+    void setHorizontalScrollPosition(int x);
+
+    /**
+     * Get the cursor corresponding to the maximum position
+     * the view can vertically scroll to.
+     *
+     * \return cursor position of the maximum vertical scroll position.
+     */
+    KTextEditor::Cursor maxScrollPosition() const;
+
+    /**
+     * Get the first displayed line in the view.
+     *
+     * \param real if REAL (the default), it returns the real line number
+     * accounting for folded regions. In that case it walks over all folded
+     * regions
+     * O(n) for n == number of folded ranges
+     *
+     * \note if code is folded, many hundred lines can be
+     * between firstVisibleLine() and lastVisibleLine().
+     *
+     * \return the first visible line.
+     * \see lastVisibleLine()
+     */
+    int firstDisplayedLine(LineType lineType = RealLine) const;
+
+    /**
+     * Get the last displayed line in the view.
+     *
+     * \param lineType if REAL (the default), it returns the real line number
+     * accounting for folded regions. In that case it walks over all folded
+     * regions
+     * O(n) for n == number of folded ranges
+     *
+     * \note if code is folded, many hundred lines can be
+     * between firstVisibleLine() and lastVisibleLine().
+     *
+     * \return the last visible line.
+     * \see firstVisibleLine()
+     */
+    int lastDisplayedLine(LineType lineType = RealLine) const;
+
+    /**
+     * Get the view's text area rectangle excluding border, scrollbars, etc.
+     *
+     * \return the view's text area rectangle
+     */
+    QRect textAreaRect() const;
 
 public:
     /**

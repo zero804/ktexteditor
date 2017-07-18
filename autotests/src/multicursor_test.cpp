@@ -177,6 +177,9 @@ struct MulticursorScriptRunner {
     bool compareState(KateMultiCursor* c, const QString& state) {
         auto cursors = c->cursors();
         auto selections = c->selections()->selections();
+        selections.erase(std::remove_if(selections.begin(), selections.end(), [](const KTextEditor::Range& r) {
+            return r.isEmpty();
+        }), selections.end());
         auto items = state.split(';');
         qDebug() << QString("[State %1]").arg(part) << "compare:" << state << cursors << selections;
         Q_FOREACH ( const auto& item, items ) {
