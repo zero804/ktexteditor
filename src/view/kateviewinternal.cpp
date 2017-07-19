@@ -986,7 +986,7 @@ KTextEditor::Cursor KateViewInternal::viewLineOffset(const KTextEditor::Cursor &
             int realLine = m_view->textFolding().visibleLineToLine(ret.line());
             KateTextLayout t = cache()->textLayout(realLine, 0);
             Q_ASSERT(t.isValid());
-
+#pragma warning FIXME: m_preservedX
             ret.setColumn(renderer()->xToCursor(t, m_preservedX, !m_view->wrapCursor()).column());
         }
 
@@ -1161,8 +1161,9 @@ void KateViewInternal::scrollLines(int lines, bool sel)
     // Fix the virtual cursor -> real cursor
     c.setLine(m_view->textFolding().visibleLineToLine(c.line()));
 
-    updateSelection(c, sel);
-    cursors()->setPrimaryCursor(c);
+    // how far do we move?
+    auto moveLines = c.line() - primaryCursor().line();
+    cursors()->moveCursorsDown(sel, moveLines); // handles negative values
 }
 
 // This is a bit misleading... it's asking for the view to be scrolled, not the cursor
@@ -1205,12 +1206,13 @@ void KateViewInternal::pageUp(bool sel, bool half)
     } else {
         linesToScroll = -qMax((linesDisplayed() / 2 - 1) - lineadj, 0);
     }
+    qDebug() << "scroll by:" << linesToScroll;
 
     if (!doc()->pageUpDownMovesCursor() && !atTop) {
         KTextEditor::Cursor newStartPos = viewLineOffset(startPos(), linesToScroll - 1);
         scrollPos(newStartPos);
 
-        cursors()->moveCursorsUp(sel, linesToScroll - 1);
+        cursors()->moveCursorsDown(sel, linesToScroll - 1);
     } else {
         scrollLines(linesToScroll, sel);
     }
@@ -1234,6 +1236,7 @@ void KateViewInternal::pageDown(bool sel, bool half)
     } else {
         linesToScroll = qMax((linesDisplayed() / 2 - 1) - lineadj, 0);
     }
+    qDebug() << "scroll by:" << linesToScroll;
 
     if (!doc()->pageUpDownMovesCursor() && !atEnd) {
         KTextEditor::Cursor newStartPos = viewLineOffset(startPos(), linesToScroll + 1);

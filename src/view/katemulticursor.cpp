@@ -504,13 +504,16 @@ void KateMultiCursor::moveCursorsUp(bool sel, int32_t chars)
     qDebug() << "called" << sel << chars;
     CursorRepainter rep(this);
     KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
-    Q_FOREACH (const auto& cursor, allCursors()) {
-        auto x = m_savedHorizontalPositions.value(cursor.data(), -1);
-        cursor->setPosition(moveUpDown(*cursor, -chars, x));
-        m_savedHorizontalPositions.insert(cursor.data(), x);
-        qDebug() << "add cached x:" << *cursor.data() << x;
-        if (secondaryFrozen()) {
-            break;
+    for ( int i = 0; i < abs(chars); i++ ) {
+        Q_FOREACH (const auto& cursor, allCursors()) {
+            auto x = m_savedHorizontalPositions.value(cursor.data(), -1);
+            // This always only moves by 1 line, thus the loop.
+            cursor->setPosition(moveUpDown(*cursor, -chars, x));
+            m_savedHorizontalPositions.insert(cursor.data(), x);
+            qDebug() << "add cached x:" << *cursor.data() << x;
+            if (secondaryFrozen()) {
+                break;
+            }
         }
     }
 }
