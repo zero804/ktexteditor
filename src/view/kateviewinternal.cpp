@@ -847,8 +847,13 @@ void KateViewInternal::doDelete()
 {
     auto cursors = view()->allCursors();
     KTextEditor::Document::EditingTransaction t(doc());
+    bool hadSelection = view()->selection();
     Q_FOREACH ( const auto& cursor, cursors ) {
         doc()->del(m_view, cursor);
+            if (hadSelection) {
+            // if we had a selection, only call del() once.
+            break;
+        }
     }
 }
 
@@ -856,8 +861,13 @@ void KateViewInternal::doBackspace()
 {
     auto cursors = view()->allCursors();
     KTextEditor::Document::EditingTransaction t(doc());
+    bool hadSelection = view()->selection();
     Q_FOREACH ( const auto& cursor, cursors ) {
         doc()->backspace(m_view, cursor);
+        if (hadSelection) {
+            // if we had a selection, only call backspace() once.
+            break;
+        }
     }
 }
 

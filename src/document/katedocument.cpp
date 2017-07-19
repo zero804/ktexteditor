@@ -3150,12 +3150,8 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
     view->cursors()->setSecondaryFrozen(false);
 
     if (!view->config()->persistentSelection() && view->selection()) {
-        auto range = view->selectionRange();
-        // only bail out on non-zero-width selections, the rest is handled below
-        if ( ! view->blockSelection() || range.start().column() != range.end().column() ) {
-            view->removeSelectedText();
-            return;
-        }
+        view->removeSelectedText();
+        return;
     }
 
     uint col = qMax(c.column(), 0);
