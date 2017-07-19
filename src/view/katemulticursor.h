@@ -167,6 +167,7 @@ public:
     bool hasMultipleSelections() const;
     bool hasSelections() const;
     Selections selections() const;
+    Selections validSelections() const;
 
     void setSelection(const KTextEditor::Range& selection, const Cursor& cursor = Cursor::invalid());
     void setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& cursors);

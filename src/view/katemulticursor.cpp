@@ -975,6 +975,15 @@ Selections KateMultiSelection::selections() const
     return ret;
 }
 
+Selections KateMultiSelection::validSelections() const
+{
+    auto ret = selections();
+    ret.erase(std::remove_if(ret.begin(), ret.end(), [](const KTextEditor::Range& s) {
+        return !s.isValid();
+    }), ret.end());
+    return ret;
+}
+
 bool KateMultiSelection::hasMultipleSelections() const
 {
     auto s = cursors()->m_selections;
