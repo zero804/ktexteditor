@@ -91,8 +91,6 @@ KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
     , m_selChangedByUser(false)
     , m_selectAnchor(-1, -1)
     , m_layoutCache(new KateLayoutCache(renderer(), this))
-    , m_preserveX(false)
-    , m_preservedX(0)
     , m_cachedMaxStartPos(-1, -1)
     , m_dragScrollTimer(this)
     , m_scrollTimer(this)
@@ -973,21 +971,13 @@ KateTextLayout KateViewInternal::nextLayout(const KTextEditor::Cursor& cursor) c
  * The cursors involved are virtual cursors (ie. equivalent to m_displayCursor)
  */
 
-KTextEditor::Cursor KateViewInternal::viewLineOffset(const KTextEditor::Cursor &virtualCursor, int offset, bool keepX)
+KTextEditor::Cursor KateViewInternal::viewLineOffset(const KTextEditor::Cursor &virtualCursor, int offset)
 {
     if (!m_view->dynWordWrap()) {
         KTextEditor::Cursor ret(qMin((int)m_view->textFolding().visibleLines() - 1, virtualCursor.line() + offset), 0);
 
         if (ret.line() < 0) {
             ret.setLine(0);
-        }
-
-        if (keepX) {
-            int realLine = m_view->textFolding().visibleLineToLine(ret.line());
-            KateTextLayout t = cache()->textLayout(realLine, 0);
-            Q_ASSERT(t.isValid());
-#pragma warning FIXME: m_preservedX
-            ret.setColumn(renderer()->xToCursor(t, m_preservedX, !m_view->wrapCursor()).column());
         }
 
         return ret;
@@ -1049,16 +1039,6 @@ KTextEditor::Cursor KateViewInternal::viewLineOffset(const KTextEditor::Cursor &
                 }
 
                 KTextEditor::Cursor ret(virtualLine, thisViewLine.startCol());
-
-                // keep column position
-                if (keepX) {
-                    KTextEditor::Cursor realCursor = toRealCursor(virtualCursor);
-                    KateTextLayout t = cache()->textLayout(realCursor);
-                    // renderer()->cursorToX(t, realCursor, !m_view->wrapCursor());
-
-                    realCursor = renderer()->xToCursor(thisViewLine, m_preservedX, !m_view->wrapCursor());
-                    ret.setColumn(realCursor.column());
-                }
 
                 return ret;
             }
@@ -1156,7 +1136,7 @@ void KateViewInternal::bottomOfView(bool sel)
 // lines is the offset to scroll by
 void KateViewInternal::scrollLines(int lines, bool sel)
 {
-    KTextEditor::Cursor c = viewLineOffset(m_displayCursor, lines, true);
+    KTextEditor::Cursor c = viewLineOffset(m_displayCursor, lines);
 
     // Fix the virtual cursor -> real cursor
     c.setLine(m_view->textFolding().visibleLineToLine(c.line()));

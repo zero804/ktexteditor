@@ -399,14 +399,10 @@ private:
     // find the cursor offset by (offset) view lines from a cursor.
     // when keepX is true, the column position will be calculated based on the x
     // position of the specified cursor.
-    KTextEditor::Cursor viewLineOffset(const KTextEditor::Cursor &virtualCursor, int offset, bool keepX = false);
+    KTextEditor::Cursor viewLineOffset(const KTextEditor::Cursor &virtualCursor, int offset);
 
     KTextEditor::Cursor toRealCursor(const KTextEditor::Cursor &virtualCursor) const;
     KTextEditor::Cursor toVirtualCursor(const KTextEditor::Cursor &realCursor) const;
-
-    // These variable holds the most recent maximum real & visible column number
-    bool m_preserveX;
-    int m_preservedX;
 
     int m_wrapChangeViewLine;
     KTextEditor::Cursor m_cachedMaxStartPos;
