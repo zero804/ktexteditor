@@ -482,6 +482,23 @@ void KateMultiCursor::moveCursorsRight(bool sel, int32_t chars)
     moveCursorsLeft(sel, -chars);
 }
 
+void KateMultiCursor::moveCursorsTopHome(bool sel)
+{
+    CursorRepainter rep(this);
+    clearSecondaryCursors();
+    KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
+    setPrimaryCursor({0, 0});
+}
+
+void KateMultiCursor::moveCursorsBottomEnd(bool sel)
+{
+    CursorRepainter rep(this);
+    clearSecondaryCursors();
+    KateMultiSelection::SelectingCursorMovement mov(selections(), sel);
+    KTextEditor::Cursor c(doc()->lastLine(), doc()->lineLength(doc()->lastLine()));
+    setPrimaryCursor(c);
+}
+
 void KateMultiCursor::moveCursorsUp(bool sel, int32_t chars)
 {
     qDebug() << "called" << sel << chars;

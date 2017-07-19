@@ -1276,26 +1276,6 @@ bool KateViewInternal::lineScrollingPossible()
     return m_lineScroll->minimum() != m_lineScroll->maximum();
 }
 
-void KateViewInternal::top(bool sel)
-{
-    KTextEditor::Cursor newCursor(0, 0);
-
-    newCursor = renderer()->xToCursor(cache()->textLayout(newCursor), m_preservedX, !m_view->wrapCursor());
-
-    updateSelection(newCursor, sel);
-    cursors()->setPrimaryCursor(newCursor);
-}
-
-void KateViewInternal::bottom(bool sel)
-{
-    KTextEditor::Cursor newCursor(doc()->lastLine(), 0);
-
-    newCursor = renderer()->xToCursor(cache()->textLayout(newCursor), m_preservedX, !m_view->wrapCursor());
-
-    updateSelection(newCursor, sel);
-    cursors()->setPrimaryCursor(newCursor);
-}
-
 void KateViewInternal::top_home(bool sel)
 {
     if (m_view->isCompletionActive()) {
@@ -1303,9 +1283,7 @@ void KateViewInternal::top_home(bool sel)
         return;
     }
 
-    KTextEditor::Cursor c(0, 0);
-    updateSelection(c, sel);
-    cursors()->setPrimaryCursor(c);
+    cursors()->moveCursorsTopHome(sel);
 }
 
 void KateViewInternal::bottom_end(bool sel)
@@ -1315,9 +1293,7 @@ void KateViewInternal::bottom_end(bool sel)
         return;
     }
 
-    KTextEditor::Cursor c(doc()->lastLine(), doc()->lineLength(doc()->lastLine()));
-    updateSelection(c, sel);
-    cursors()->setPrimaryCursor(c);
+    cursors()->moveCursorsBottomEnd(sel);
 }
 
 void KateViewInternal::updateSelection(const KTextEditor::Cursor &_newCursor, bool keepSel)

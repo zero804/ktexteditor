@@ -66,6 +66,8 @@ public:
     void moveCursorsStartOfLine(bool select = false);
     void moveCursorsWordPrevious(bool select = false);
     void moveCursorsWordNext(bool select = false);
+    void moveCursorsTopHome(bool select = false);
+    void moveCursorsBottomEnd(bool select = false);
 
     void removeDuplicateCursors();
 

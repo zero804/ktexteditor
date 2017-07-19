@@ -195,8 +195,6 @@ public:
     void bottomOfView(bool sel = false);
     void pageUp(bool sel = false, bool half = false);
     void pageDown(bool sel = false, bool half = false);
-    void top(bool sel = false);
-    void bottom(bool sel = false);
     void top_home(bool sel = false);
     void bottom_end(bool sel = false);
 
