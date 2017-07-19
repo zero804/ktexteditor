@@ -828,8 +828,8 @@ void KateMultiCursor::removeDuplicateCursors()
     for (size_t i = start; i < m_cursors.size(); i++) {
         for (size_t j = start; j < i; j++) {
             if (m_cursors.at(i)->toCursor() == m_cursors.at(j)->toCursor()) {
-                qDebug() << "removing duplicate cursor" << *m_cursors.at(j),
-                         removeCursorInternal(m_cursors.at(j));
+                qDebug() << "removing duplicate cursor" << *m_cursors.at(j);
+                removeCursorInternal(m_cursors.at(j));
                 j--;
                 i--;
             }
@@ -888,7 +888,7 @@ void KateMultiSelection::setSelection(const KTextEditor::Range& selection, const
     }
     auto newCursor = cursor.isValid() ? cursor : selection.end();
     setSelection(QVector<KTextEditor::Range> {selection}, QVector<Cursor> {newCursor});
-};
+}
 
 void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& newCursors)
 {
@@ -903,7 +903,7 @@ void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selecti
     }
 
     qDebug() << "new selections:" << selections();
-};
+}
 
 KateMultiCursor* KateMultiSelection::cursors()
 {
@@ -986,9 +986,9 @@ bool KateMultiSelection::hasMultipleSelections() const
 bool KateMultiSelection::hasSelections() const
 {
     auto s = cursors()->m_selections;
-    return std::find_if(s.begin(), s.end(), [](const KTextEditor::MovingRange::Ptr & r) {
+    return std::any_of(s.begin(), s.end(), [](const KTextEditor::MovingRange::Ptr & r) {
         return !r->isEmpty();
-    }) != s.end();
+    });
 }
 
 bool KateMultiSelection::positionSelected(const KTextEditor::Cursor &cursor) const
