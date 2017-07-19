@@ -375,7 +375,6 @@ void MulticursorTest::testBlockModeView()
 
 void MulticursorTest::testNavigationKeysView()
 {
-    QSKIP("Not working yet");
     KTextEditor::DocumentPrivate doc;
     //                  0         1         2         3         4         5
     //                  012345678901234567890123456789012345678901234567890
@@ -417,7 +416,7 @@ void MulticursorTest::testNavigationKeysView()
     {
         auto expected = CL{{5, 9}, {2, 5}, {1, 4}};
         QCOMPARE(view->cursors()->cursors(), expected);
-        auto expected2 = CL{{2, 5}, {1, 4}};
+        auto expected2 = CL{{1, 4}, {2, 5}};
         QCOMPARE(view->cursors()->secondaryCursors(), expected2);
     }
     QVERIFY(freezeMC->isChecked());
@@ -458,13 +457,13 @@ void MulticursorTest::testNavigationKeysView()
     {
         auto expected = CL{{2, 47}};
         QCOMPARE(view->allCursors(), expected);
-        QCOMPARE(view->cursors()->secondaryCursors(), expected);
+        QCOMPARE(view->cursors()->secondaryCursors(), CL{});
     }
+    toggleMC->trigger();
     view->cursors()->setSecondaryFrozen(true);
     view->up();
-    toggleMC->trigger();
-    view->cursors()->setSecondaryFrozen(false);
     auto prev = view->allCursors();
+    view->cursors()->setSecondaryFrozen(false);
     right->trigger();
     {
         auto expected = CL{{3, 0}, {2, 0}};
