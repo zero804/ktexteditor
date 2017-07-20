@@ -2030,6 +2030,7 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
                                             KateMultiSelection::Mouse,
                                             flags);
             selections()->updateNewSelection(newCursor);
+            Q_EMIT m_view->selectionChanged(m_view);
         }
         else {
             KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
@@ -2045,6 +2046,7 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
                 view()->cursors()->clearSecondaryCursors();
             }
             selections()->beginNewSelection(newCursor, selectionMode, flags);
+            Q_EMIT m_view->selectionChanged(m_view);
         }
         updateCursorFlashTimer();
         e->accept();
@@ -2118,6 +2120,7 @@ void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
     case Qt::LeftButton:
         selections()->beginNewSelection(newCursor, KateMultiSelection::Word,
                                         secondary ? KateMultiSelection::AddNewCursor : KateMultiSelection::UsePrimaryCursor);
+        Q_EMIT m_view->selectionChanged(m_view);
 
 #warning fixme: this weird "shift double click" feature
 #warning fixme: select to matching bracket on dclick
@@ -2989,7 +2992,6 @@ void KateViewInternal::editSetCursor(const KTextEditor::Cursor &_cursor)
 void KateViewInternal::viewSelectionChanged()
 {
 #warning TODO this is not what we want to do
-    selections()->finishNewSelection();
     /*
     if (!m_view->selection()) {
         m_selectAnchor = KTextEditor::Cursor::invalid();

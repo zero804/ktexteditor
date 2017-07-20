@@ -2493,9 +2493,11 @@ bool KTextEditor::ViewPrivate::setSelections(const QVector<KTextEditor::Range>& 
     if ( newSelections.isEmpty() ) {
         bool ret = selections()->hasSelections();
         selections()->clearSelection();
+        Q_EMIT selectionChanged(this);
         return ret;
     }
     selections()->setSelection(newSelections, newCursors);
+    Q_EMIT selectionChanged(this);
     return true;
 }
 
