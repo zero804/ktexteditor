@@ -29,6 +29,7 @@
 #include "katepartdebug.h"
 #include "katelayoutcache.h"
 #include "cursor.h"
+#include "movinginterface.h"
 
 #include <algorithm>
 
@@ -1144,7 +1145,7 @@ void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor
 
 void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
 {
-    qDebug() << "called" << cursor;
+    qDebug() << "called" << cursor << m_activeSelectionMode;
     auto selection = cursors()->m_selections.last();
 
     Q_ASSERT(m_activeSelectionMode != None);
@@ -1156,15 +1157,16 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
     if (oldPos == cursor) {
         return;
     }
+    auto anchor = (oldPos > selection->start() ? selection->start() : selection->end()).toCursor();
 
     KateMultiCursor::CursorRepainter rep(cursors());
     SelectingCursorMovement sel(this, true, true);
     m_activeSelectingCursor->setPosition(cursor);
     if (m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(cursor)) {
-        auto moved = cursors()->moveWord(cursor, oldPos < cursor ? KateMultiCursor::Left : KateMultiCursor::Right);
+        auto moved = cursors()->moveWord(cursor, anchor < cursor ? KateMultiCursor::Right : KateMultiCursor::Left);
         m_activeSelectingCursor->setPosition(moved);
     } else if (m_activeSelectionMode == Line) {
-        m_activeSelectingCursor->setColumn(oldPos < cursor ? 0 : doc()->lineLength(cursor.line()));
+        m_activeSelectingCursor->setColumn(anchor < cursor ? doc()->lineLength(cursor.line()) : 0);
     }
 }
 
