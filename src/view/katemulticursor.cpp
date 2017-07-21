@@ -763,7 +763,7 @@ bool KateMultiCursor::cursorAtWordBoundary(const KTextEditor::Cursor& c) const
 {
     KateHighlighting *h = doc()->highlight();
     auto line = doc()->line(c.line());
-    if (line.length() < c.column()) {
+    if (line.length() > c.column()) {
         auto character = line.at(c.column());
         return !h->isInWord(character);
     }
