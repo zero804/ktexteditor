@@ -45,7 +45,7 @@ KTextEditor::Cursor parseCursor(const QString& s) {
     Q_ASSERT(ok2);
     Q_ASSERT(cur.isValid());
     return cur;
-};
+}
 
 struct MulticursorScriptRunner {
     enum Mode {
