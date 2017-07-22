@@ -55,6 +55,7 @@ KateTemplateHandler::KateTemplateHandler(KTextEditor::ViewPrivate *view,
     , m_templateScript(script, KateScript::InputSCRIPT)
 {
     Q_ASSERT(m_view);
+    m_view->cursors()->clearSecondaryCursors();
 
     m_templateScript.setView(m_view);
 
