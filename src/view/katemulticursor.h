@@ -170,6 +170,7 @@ public:
     bool hasSelections() const;
     Selections selections() const;
     Selections validSelections() const;
+    KTextEditor::MovingRange::Ptr selectionForCursor(const KTextEditor::Cursor& cursor) const;
 
     void setSelection(const KTextEditor::Range& selection, const Cursor& cursor = Cursor::invalid());
     void setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& cursors);
@@ -208,7 +209,6 @@ private:
     KateViewInternal* viewInternal() const;
     KTextEditor::DocumentPrivate* doc() const;
 
-    KTextEditor::MovingRange::Ptr selectionForCursor(const KTextEditor::Cursor& cursor) const;
     KTextEditor::MovingRange::Ptr addSelectionInternal(const KTextEditor::Range& range, const Cursor& cursor);
     void doSelectWithCursorInternal(const KTextEditor::Range& range, int cursorIndex);
     void selectEntityAt(const Cursor& cursor, KTextEditor::MovingRange::Ptr update, SelectionMode kind);

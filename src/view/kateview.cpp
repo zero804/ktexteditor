@@ -2682,18 +2682,28 @@ void KTextEditor::ViewPrivate::uppercase()
 
 void KTextEditor::ViewPrivate::killLine()
 {
-    if (!selections()->hasSelections()) {
-        m_doc->removeLine(cursorPosition().line());
-    } else {
-        m_doc->editStart();
-        // cache endline, else that moves and we might delete complete document if last line is selected!
-        Q_FOREACH ( const auto range, selections()->selections() ) {
-            for (int line = range.end().line(), endLine = range.start().line(); line >= endLine; line--) {
-                m_doc->removeLine(line);
+    QSet<int> lines;
+
+    for ( const auto& cursor : cursors()->cursors() ) {
+        auto selection = selections()->selectionForCursor(cursor)->toRange();
+        if ( selection.isValid() ) {
+            for ( int i = selection.start().line(); i <= selection.end().line(); i++ ) {
+                lines.insert(i);
             }
         }
-        m_doc->editEnd();
+        else {
+            lines.insert(cursor.line());
+        }
     }
+
+    auto linesVector = lines.toList();
+    std::sort(linesVector.rbegin(), linesVector.rend());
+
+    m_doc->editStart();
+    for ( auto line : linesVector ) {
+        m_doc->removeLine(line);
+    }
+    m_doc->editEnd();
 }
 
 void KTextEditor::ViewPrivate::lowercase()
