@@ -218,8 +218,8 @@ struct MulticursorScriptRunner {
 
     QString m_script;
     QStringList m_states;
-    size_t pos = 0;
-    size_t part = 0;
+    int pos = 0;
+    int part = 0;
     bool select = false;
     Mode mode = Move;
 };

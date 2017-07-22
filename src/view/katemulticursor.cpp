@@ -378,7 +378,7 @@ const QVector<KTextEditor::MovingCursor::Ptr> KateMultiCursor::movingCursors() c
     return ret;
 }
 
-size_t KateMultiCursor::cursorsCount() const
+int KateMultiCursor::cursorsCount() const
 {
     Q_ASSERT(!m_cursors.isEmpty());
     return m_cursors.size();
@@ -846,8 +846,8 @@ void KateMultiCursor::removeDuplicateCursors()
     qDebug() << "called";
     // do not consider primary cursors in frozen mode
     auto start = secondaryFrozen() ? 1 : 0;
-    for (size_t i = start; i < m_cursors.size(); i++) {
-        for (size_t j = start; j < i; j++) {
+    for (int i = start; i < m_cursors.size(); i++) {
+        for (int j = start; j < i; j++) {
             if (m_cursors.at(i)->toCursor() == m_cursors.at(j)->toCursor()) {
                 qDebug() << "removing duplicate cursor" << *m_cursors.at(j);
                 removeCursorInternal(m_cursors.at(j));
@@ -918,7 +918,7 @@ void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selecti
 
     KateMultiCursor::CursorRepainter rep(cursors());
     clearCursorsInternal();
-    for (size_t i = 0; i < selection.size(); i++) {
+    for (int i = 0; i < selection.size(); i++) {
         auto cursor = newCursors.at(i).isValid() ? newCursors.at(i) : selection.at(i).end();
         addSelectionInternal(selection.at(i), cursor);
     }
@@ -931,9 +931,9 @@ KateMultiCursor* KateMultiSelection::cursors()
     return m_viewInternal->cursors();
 }
 
-size_t KateMultiCursor::indexOfCursor(const KTextEditor::Cursor& cursor) const
+int KateMultiCursor::indexOfCursor(const KTextEditor::Cursor& cursor) const
 {
-    for (size_t i = 0; i < m_cursors.size(); i++) {
+    for (int i = 0; i < m_cursors.size(); i++) {
         if (m_cursors.at(i)->toCursor() == cursor) {
             return i;
         }
@@ -941,7 +941,7 @@ size_t KateMultiCursor::indexOfCursor(const KTextEditor::Cursor& cursor) const
     return -1;
 }
 
-void KateMultiSelection::doSelectWithCursorInternal(const KTextEditor::Range& select, size_t cursorIndex)
+void KateMultiSelection::doSelectWithCursorInternal(const KTextEditor::Range& select, int cursorIndex)
 {
     auto adjacentRange = cursors()->m_selections.at(cursorIndex);
     auto adjacent = adjacentRange->toRange();

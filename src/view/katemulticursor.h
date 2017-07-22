@@ -51,7 +51,7 @@ public:
     Cursor primaryCursor() const;
     Cursors secondaryCursors() const;
     bool hasSecondaryCursors() const;
-    size_t cursorsCount() const;
+    int cursorsCount() const;
 
     void setPrimaryCursor(const Cursor& cursor, bool repaint = true, bool select = false);
 
@@ -119,7 +119,7 @@ public:
     KTextEditor::DocumentPrivate* doc() const;
 
 private:
-    size_t indexOfCursor(const KTextEditor::Cursor& cursor) const;
+    int indexOfCursor(const KTextEditor::Cursor& cursor) const;
 
 private:
     KateViewInternal* m_viewInternal = nullptr;
@@ -210,7 +210,7 @@ private:
 
     KTextEditor::MovingRange::Ptr selectionForCursor(const KTextEditor::Cursor& cursor) const;
     KTextEditor::MovingRange::Ptr addSelectionInternal(const KTextEditor::Range& range, const Cursor& cursor);
-    void doSelectWithCursorInternal(const KTextEditor::Range& range, size_t cursorIndex);
+    void doSelectWithCursorInternal(const KTextEditor::Range& range, int cursorIndex);
     void selectEntityAt(const Cursor& cursor, KTextEditor::MovingRange::Ptr update, SelectionMode kind);
 
     /**
