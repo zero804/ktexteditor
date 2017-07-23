@@ -3154,8 +3154,8 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
         return;
     }
 
-    uint col = qMax(c.column(), 0);
-    uint line = qMax(c.line(), 0);
+    auto col = qMax(c.column(), 0);
+    auto line = qMax(c.line(), 0);
 
     if ((col == 0) && (line == 0)) {
         return;
