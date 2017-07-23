@@ -2025,6 +2025,7 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
     qDebug() << "called";
     if ( e->button() == Qt::LeftButton ) {
         auto newCursor = pointToCursor(e->pos());
+
         if (e->modifiers() & Qt::ShiftModifier) {
             auto flags = (KateMultiSelection::SelectionFlags) (KateMultiSelection::UsePrimaryCursor | KateMultiSelection::KeepSelectionRange);
             selections()->beginNewSelection(primaryCursor(),
@@ -2033,16 +2034,17 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
             selections()->updateNewSelection(newCursor);
             Q_EMIT m_view->selectionChanged(m_view);
         }
-        else if (!(e->modifiers() & Qt::ShiftModifier) && isTargetSelected(e->pos())) {
-            m_dragInfo.state = diPending;
-            m_dragInfo.start = e->pos();
-        }
         else {
             KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
             KateMultiSelection::SelectionFlags flags = KateMultiSelection::UsePrimaryCursor;
             if ( m_possibleTripleClick ) {
                 m_possibleTripleClick = false;
                 selectionMode = KateMultiSelection::Line;
+            }
+            else if (isTargetSelected(e->pos())) {
+                m_dragInfo.state = diPending;
+                m_dragInfo.start = e->pos();
+                flags |= KateMultiSelection::KeepSelectionRange;
             }
             if ( e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
                 flags = KateMultiSelection::AddNewCursor;
@@ -2219,29 +2221,24 @@ void KateViewInternal::mouseReleaseEvent(QMouseEvent *e)
             selections()->finishNewSelection();
             updateCursorFlashTimer();
         }
+
+        if (m_selChangedByUser) {
+            if (m_view->selection()) {
+                QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
+            }
+            m_selChangedByUser = false;
+        }
+
+        if (m_dragInfo.state == diPending) {
+            placeCursor(e->pos(), e->modifiers() & Qt::ShiftModifier);
+            Q_EMIT m_view->selectionChanged(m_view);
+        } else if (m_dragInfo.state == diNone) {
+            m_scrollTimer.stop();
+        }
+
         m_dragInfo.state = diNone;
         e->accept();
         break;
-
-#warning fixme drag and drop
-//         m_selectionMode = Default;
-//       m_selectionCached.start().setLine( -1 );
-
-//         if (m_selChangedByUser) {
-//             if (m_view->selection()) {
-//                 QApplication::clipboard()->setText(m_view->selectionText(), QClipboard::Selection);
-//             }
-//             moveCursorToSelectionEdge();
-//
-//             m_selChangedByUser = false;
-//         }
-//
-//         if (m_dragInfo.state == diPending) {
-//             placeCursor(e->pos(), e->modifiers() & Qt::ShiftModifier);
-//         } else if (m_dragInfo.state == diNone) {
-//             m_scrollTimer.stop();
-//         }
-
     case Qt::MidButton:
         placeCursor(e->pos());
 
@@ -2732,9 +2729,7 @@ void KateViewInternal::dropEvent(QDropEvent *event)
         int selectionWidth = m_view->selectionRange().columnWidth(); // for block selection
         int selectionHeight = m_view->selectionRange().numberOfLines(); // for block selection
 
-        if (event->dropAction() != Qt::CopyAction) {
-            cursors()->setPrimaryCursorWithoutSelection(m_view->selectionRange().end());
-        } else {
+        if (event->dropAction() == Qt::CopyAction) {
             m_view->clearSelection();
         }
 
@@ -2742,30 +2737,22 @@ void KateViewInternal::dropEvent(QDropEvent *event)
         doc()->editStart();
 
         // on move: remove selected text; on copy: duplicate text
+        qDebug() << "insert text:" << text << text.length() << "at" << targetCursor;
         doc()->insertText(targetCursor, text, m_view->blockSelection());
 
         KTextEditor::DocumentCursor startCursor(doc(), targetCursor);
-        KTextEditor::DocumentCursor endCursor1(doc(), targetCursor);
-        const int textLength = text.length();
-
         if (event->dropAction() != Qt::CopyAction) {
             m_view->removeSelectedText();
-            if (m_cursors.primaryCursor() < startCursor.toCursor()) {
-                startCursor.move(-textLength);
-                endCursor1.move(-textLength);
+            auto selectionStartsAhead = m_view->primarySelection().start() < targetCursor;
+            if ( selectionStartsAhead ) {
+                startCursor.move(-text.length());
             }
         }
 
-        if (!m_view->blockSelection()) {
-            endCursor1.move(textLength);
-        } else {
-            endCursor1.setColumn(startCursor.column() + selectionWidth);
-            endCursor1.setLine(startCursor.line() + selectionHeight);
-        }
-
-        KTextEditor::Cursor endCursor(endCursor1);
-        qCDebug(LOG_KTE) << startCursor << "---(" << textLength << ")---" << endCursor;
-        setSelection(KTextEditor::Range(startCursor, endCursor));
+        auto endCursor = startCursor;
+        endCursor.move(text.length());
+        qDebug() << "end and taget cursor:" << endCursor << targetCursor;
+        setSelection({startCursor, endCursor});
         editSetCursor(endCursor);
 
         doc()->editEnd();

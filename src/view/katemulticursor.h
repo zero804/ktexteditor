@@ -186,11 +186,12 @@ public:
         Word,
         Line
     };
-    enum SelectionFlags {
+    enum SelectionFlag {
         UsePrimaryCursor = 0x1,
         AddNewCursor = 0x2,
         KeepSelectionRange = 0x4
     };
+    Q_DECLARE_FLAGS(SelectionFlags, SelectionFlag)
     void beginNewSelection(const Cursor& fromCursor, SelectionMode mode = Mouse, SelectionFlags flags = UsePrimaryCursor);
     void updateNewSelection(const Cursor& cursor);
     void finishNewSelection();
@@ -252,5 +253,7 @@ public:
     friend class SelectingCursorMovement;
     friend class CursorRepainter;
 };
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(KateMultiSelection::SelectionFlags)
 
 #endif // KATEMULTICURSOR_H
