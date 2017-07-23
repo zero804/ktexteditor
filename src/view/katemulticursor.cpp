@@ -358,6 +358,16 @@ void KateMultiCursor::setPrimaryCursor(const KTextEditor::Cursor& cursor, bool r
     m_cursors.first()->setPosition(cursor);
 }
 
+void KateMultiCursor::setPrimaryCursorWithoutSelection(const KTextEditor::Cursor& cursor, bool repaint)
+{
+    Q_ASSERT(cursor.isValid());
+    if (cursor == primaryCursor()) {
+        return;
+    }
+    CursorRepainter rep(this, repaint);
+    m_cursors.first()->setPosition(cursor);
+}
+
 
 Cursors KateMultiCursor::cursors() const
 {

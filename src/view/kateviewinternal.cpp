@@ -1712,13 +1712,14 @@ void KateViewInternal::placeCursor(const QPoint &p, bool keepSelection, bool upd
         return;
     }
 
-    if (updateSelection) {
-        KateViewInternal::updateSelection(c, keepSelection);
-    }
-
     int tmp = m_minLinesVisible;
     m_minLinesVisible = 0;
-    cursors()->setPrimaryCursor(c);
+    if ( keepSelection ) {
+        cursors()->setPrimaryCursorWithoutSelection(c);
+    }
+    else {
+        cursors()->setPrimaryCursor(c);
+    }
     m_minLinesVisible = tmp;
 
     if (updateSelection && keepSelection) {
@@ -2031,6 +2032,10 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
                                             flags);
             selections()->updateNewSelection(newCursor);
             Q_EMIT m_view->selectionChanged(m_view);
+        }
+        else if (!(e->modifiers() & Qt::ShiftModifier) && isTargetSelected(e->pos())) {
+            m_dragInfo.state = diPending;
+            m_dragInfo.start = e->pos();
         }
         else {
             KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
@@ -2682,6 +2687,8 @@ void KateViewInternal::dragMoveEvent(QDragMoveEvent *event)
     // track the cursor to the current drop location
     placeCursor(event->pos(), true, false);
 
+    qDebug() << "update drag:" << m_view->cursors()->cursors() << m_view->selections()->selections();
+
     // important: accept action to switch between copy and move mode
     // without this, the text will always be copied.
     fixDropEvent(event);
@@ -2708,6 +2715,7 @@ void KateViewInternal::dropEvent(QDropEvent *event)
         }
 
         // dropped on a text selection area?
+        qDebug() << "have selections:" << m_view->selections()->selections();
         bool selected = m_view->cursorSelected(primaryCursor());
 
         fixDropEvent(event);
@@ -2725,7 +2733,7 @@ void KateViewInternal::dropEvent(QDropEvent *event)
         int selectionHeight = m_view->selectionRange().numberOfLines(); // for block selection
 
         if (event->dropAction() != Qt::CopyAction) {
-            editSetCursor(m_view->selectionRange().end());
+            cursors()->setPrimaryCursorWithoutSelection(m_view->selectionRange().end());
         } else {
             m_view->clearSelection();
         }

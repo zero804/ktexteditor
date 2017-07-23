@@ -54,6 +54,8 @@ public:
     int cursorsCount() const;
 
     void setPrimaryCursor(const Cursor& cursor, bool repaint = true, bool select = false);
+    /// do not touch selection
+    void setPrimaryCursorWithoutSelection(const Cursor& cursor, bool repaint = true);
 
     bool toggleSecondaryCursorAt(const Cursor& cursor, bool ensureExists = false);
     void clearSecondaryCursors();
