@@ -1478,6 +1478,7 @@ void KateViewInternal::notifyPrimaryCursorChanged(const KTextEditor::Cursor &new
     m_view->textFolding().ensureLineIsVisible(newCursor.line());
 
     m_displayCursor = toVirtualCursor(newCursor);
+    Q_ASSERT(m_displayCursor.isValid());
     m_lastUpdatedPrimary = newCursor;
 
     if (m_view == doc()->activeView()) {

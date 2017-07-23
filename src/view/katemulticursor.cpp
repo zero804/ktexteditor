@@ -1104,7 +1104,9 @@ bool KateMultiSelection::overlapsLine(int line) const
 void KateMultiSelection::selectEntityAt(const KTextEditor::Cursor& cursor, KTextEditor::MovingRange::Ptr update, KateMultiSelection::SelectionMode kind)
 {
     if (kind == Mouse) {
-        return;
+        if ( !update->toRange().isValid() ) {
+            update->setRange(cursor, cursor);
+        }
     }
     if (kind == Word) {
         update->setRange(view()->document()->wordRangeAt(cursor));
