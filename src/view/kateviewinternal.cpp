@@ -2025,6 +2025,15 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
 {
     qDebug() << "called";
     if ( e->button() == Qt::LeftButton ) {
+        // request the software keyboard, if any
+        if (qApp->autoSipEnabled()) {
+            QStyle::RequestSoftwareInputPanel behavior = QStyle::RequestSoftwareInputPanel(style()->styleHint(QStyle::SH_RequestSoftwareInputPanel));
+            if (hasFocus() || behavior == QStyle::RSIP_OnMouseClick) {
+                QEvent event(QEvent::RequestSoftwareInputPanel);
+                QApplication::sendEvent(this, &event);
+            }
+        }
+
         // handle cursor placement and selection
         auto newCursor = pointToCursor(e->pos());
 
@@ -2065,18 +2074,7 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
     }
 
 #warning fixme: copy selection to selection clipboard
-#warning fixme: software keyboard (?!)
-#warning fixme: drag and drop
 /*
-        // request the software keyboard, if any
-        if (e->button() == Qt::LeftButton && qApp->autoSipEnabled()) {
-            QStyle::RequestSoftwareInputPanel behavior = QStyle::RequestSoftwareInputPanel(style()->styleHint(QStyle::SH_RequestSoftwareInputPanel));
-            if (hasFocus() || behavior == QStyle::RSIP_OnMouseClick) {
-                QEvent event(QEvent::RequestSoftwareInputPanel);
-                QApplication::sendEvent(this, &event);
-            }
-        }
-
         if (e->modifiers() & Qt::ShiftModifier) {
             if (!m_selectAnchor.isValid()) {
                 m_selectAnchor = primaryCursor();
