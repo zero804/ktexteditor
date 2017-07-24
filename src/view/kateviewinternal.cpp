@@ -208,10 +208,6 @@ KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
     connect(&m_textHintTimer, SIGNAL(timeout()),
             this, SLOT(textHintTimeout()));
 
-    // selection changed to set anchor
-    connect(m_view, SIGNAL(selectionChanged(KTextEditor::View*)),
-            this, SLOT(viewSelectionChanged()));
-
 #ifndef QT_NO_ACCESSIBILITY
     QAccessible::installFactory(accessibleInterfaceFactory);
 #endif
@@ -1423,9 +1419,7 @@ void KateViewInternal::updateSelection(const KTextEditor::Cursor &_newCursor, bo
 
 void KateViewInternal::setSelection(const KTextEditor::Range &range)
 {
-    disconnect(m_view, SIGNAL(selectionChanged(KTextEditor::View*)), this, SLOT(viewSelectionChanged()));
     m_view->setSelection(range);
-    connect(m_view, SIGNAL(selectionChanged(KTextEditor::View*)), this, SLOT(viewSelectionChanged()));
 }
 
 void KateViewInternal::moveCursorToSelectionEdge()
@@ -2939,23 +2933,6 @@ void KateViewInternal::editSetCursor(const KTextEditor::Cursor &_cursor)
     }
 }
 //END
-
-void KateViewInternal::viewSelectionChanged()
-{
-#warning TODO this is not what we want to do
-    /*
-    if (!m_view->selection()) {
-        m_selectAnchor = KTextEditor::Cursor::invalid();
-    } else {
-        m_selectAnchor = m_view->selectionRange().start();
-    }
-    // Do NOT nuke the entire range! The reason is that a shift+DC selection
-    // might (correctly) set the range to be empty (i.e. start() == end()), and
-    // subsequent dragging might shrink the selection into non-existence. When
-    // this happens, we use the cached end to restore the cached start so that
-    // updateSelection is not confused. See also comments in updateSelection.
-    m_selectionCached.setStart(KTextEditor::Cursor::invalid());*/
-}
 
 KateLayoutCache *KateViewInternal::cache() const
 {

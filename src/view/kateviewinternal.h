@@ -167,7 +167,6 @@ private Q_SLOTS:
     void scrollPrevLine();
     void scrollNextLine();
     void scrollColumns(int x);  // connected to the valueChanged of the m_columnScroll
-    void viewSelectionChanged();
 
 public:
     void doReturn();
