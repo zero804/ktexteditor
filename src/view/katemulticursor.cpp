@@ -1147,10 +1147,8 @@ void KateMultiSelection::beginNewSelection(const KTextEditor::Cursor& fromCursor
         cursors()->appendCursorInternal(fromCursor);
     } else {
         cursors()->clearSecondaryCursors();
+        SelectingCursorMovement sel(this, flags & KeepSelectionRange);
         cursors()->m_cursors.last()->setPosition(fromCursor);
-        if (!(flags & KeepSelectionRange)) {
-            cursors()->m_selections.last()->setRange({fromCursor, fromCursor});
-        }
     }
 
     m_activeSelectingCursor = cursors()->m_cursors.last();

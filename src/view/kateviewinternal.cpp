@@ -2025,14 +2025,15 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
 {
     qDebug() << "called";
     if ( e->button() == Qt::LeftButton ) {
+        // handle cursor placement and selection
         auto newCursor = pointToCursor(e->pos());
 
         if (e->modifiers() & Qt::ShiftModifier) {
             auto flags = (KateMultiSelection::SelectionFlags) (KateMultiSelection::UsePrimaryCursor | KateMultiSelection::KeepSelectionRange);
-            selections()->beginNewSelection(primaryCursor(),
+            selections()->beginNewSelection(newCursor,
                                             KateMultiSelection::Mouse,
                                             flags);
-            selections()->updateNewSelection(newCursor);
+            cursors()->setPrimaryCursorWithoutSelection(newCursor);
             Q_EMIT m_view->selectionChanged(m_view);
         }
         else {
