@@ -2072,50 +2072,6 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
     else {
         e->ignore();
     }
-
-#warning fixme: copy selection to selection clipboard
-/*
-        if (e->modifiers() & Qt::ShiftModifier) {
-            if (!m_selectAnchor.isValid()) {
-                m_selectAnchor = primaryCursor();
-            }
-        } else {
-            m_selectionCached = KTextEditor::Range::invalid();
-        }
-
-        if (!(e->modifiers() & Qt::ShiftModifier) && isTargetSelected(e->pos())) {
-            m_dragInfo.state = diPending;
-            m_dragInfo.start = e->pos();
-        } else {
-            m_dragInfo.state = diNone;
-
-            if (e->modifiers() & Qt::ShiftModifier) {
-                placeCursor(e->pos(), true, false);
-                if (m_selectionCached.start().isValid()) {
-                    if (primaryCursor() < m_selectionCached.start()) {
-                        m_selectAnchor = m_selectionCached.end();
-                    } else {
-                        m_selectAnchor = m_selectionCached.start();
-                    }
-                }
-                setSelection(KTextEditor::Range(m_selectAnchor, primaryCursor()));
-            } else {
-                placeCursor(e->pos());
-            }
-
-            m_scrollX = 0;
-            m_scrollY = 0;
-
-            m_scrollTimer.start(50);
-        }
-
-        e->accept();
-        break;
-
-    default:
-        e->ignore();
-        break;
-    }*/
 }
 
 void KateViewInternal::mouseDoubleClickEvent(QMouseEvent *e)
