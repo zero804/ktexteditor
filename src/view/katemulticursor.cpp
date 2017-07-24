@@ -849,6 +849,19 @@ void KateMultiCursor::removeEncompassedSecondaryCursors(CursorSelectionFlags fla
             }
         }
     } while (did_remove);
+
+    for (int i = 0; i < m_selections.size(); i++) {
+        for ( int j = 0; j < m_cursors.size(); j++ ) {
+            if ( i == j ) {
+                continue;
+            }
+            auto sel = m_selections.at(i);
+            auto c = m_cursors.at(j);
+            if ( sel->start() < *c && sel->end() > *c ) {
+                removeCursorInternal(m_cursors.at(j));
+            }
+        }
+    }
 }
 
 void KateMultiCursor::removeDuplicateCursors()
