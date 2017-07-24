@@ -2051,14 +2051,16 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
                 m_dragInfo.start = e->pos();
                 flags |= KateMultiSelection::KeepSelectionRange;
             }
-            if ( e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
-                flags = KateMultiSelection::AddNewCursor;
-            }
             else {
-                view()->cursors()->clearSecondaryCursors();
+                if ( e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
+                    flags = KateMultiSelection::AddNewCursor;
+                }
+                else {
+                    view()->cursors()->clearSecondaryCursors();
+                }
+                selections()->beginNewSelection(newCursor, selectionMode, flags);
+                Q_EMIT m_view->selectionChanged(m_view);
             }
-            selections()->beginNewSelection(newCursor, selectionMode, flags);
-            Q_EMIT m_view->selectionChanged(m_view);
         }
         updateCursorFlashTimer();
         e->accept();
