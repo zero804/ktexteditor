@@ -2043,13 +2043,11 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
             KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
             KateMultiSelection::SelectionFlags flags = KateMultiSelection::UsePrimaryCursor;
             if ( m_possibleTripleClick ) {
-                m_possibleTripleClick = false;
                 selectionMode = KateMultiSelection::Line;
             }
-            else if (isTargetSelected(e->pos())) {
+            if ( !m_possibleTripleClick && isTargetSelected(e->pos())) {
                 m_dragInfo.state = diPending;
                 m_dragInfo.start = e->pos();
-                flags |= KateMultiSelection::KeepSelectionRange;
             }
             else {
                 if ( e->modifiers() == (Qt::ControlModifier | Qt::MetaModifier) ) {
@@ -2061,6 +2059,7 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
                 selections()->beginNewSelection(newCursor, selectionMode, flags);
                 Q_EMIT m_view->selectionChanged(m_view);
             }
+            m_possibleTripleClick = false;
         }
         updateCursorFlashTimer();
         e->accept();
