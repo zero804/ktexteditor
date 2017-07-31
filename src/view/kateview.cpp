@@ -2686,7 +2686,7 @@ void KTextEditor::ViewPrivate::killLine()
 
     for ( const auto& cursor : cursors()->cursors() ) {
         auto selection = selections()->selectionForCursor(cursor)->toRange();
-        if ( selection.isValid() ) {
+        if ( selection.isValid() && !selection.isEmpty() ) {
             for ( int i = selection.start().line(); i <= selection.end().line(); i++ ) {
                 lines.insert(i);
             }
