@@ -2170,6 +2170,7 @@ void KateViewInternal::mouseReleaseEvent(QMouseEvent *e)
     case Qt::LeftButton:
         if ( selections()->currentlySelecting() ) {
             selections()->finishNewSelection();
+            Q_EMIT m_view->selectionChanged(m_view);
             updateCursorFlashTimer();
         }
 
