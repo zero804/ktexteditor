@@ -2112,13 +2112,9 @@ bool KTextEditor::ViewPrivate::setSelection(const KTextEditor::Range &selection)
 
     /**
      * set new range; repainting is done by the selection manager
+     * this also emits the selectionChanged() signal
      */
     selections()->setSelection(selection);
-
-    /**
-     * emit holy signal
-     */
-    emit selectionChanged(this);
 
     /**
      * be done
@@ -2141,16 +2137,9 @@ bool KTextEditor::ViewPrivate::clearSelection(bool redraw, bool finishedChanging
     }
 
     /**
-     * do clear
+     * do clear; this also emits the selectionChanged signal
      */
     selections()->clearSelection();
-
-    /**
-     * emit holy signal
-     */
-    if (finishedChangingSelection) {
-        emit selectionChanged(this);
-    }
 
     /**
      * be done
@@ -2493,11 +2482,9 @@ bool KTextEditor::ViewPrivate::setSelections(const QVector<KTextEditor::Range>& 
     if ( newSelections.isEmpty() ) {
         bool ret = selections()->hasSelections();
         selections()->clearSelection();
-        Q_EMIT selectionChanged(this);
         return ret;
     }
     selections()->setSelection(newSelections, newCursors);
-    Q_EMIT selectionChanged(this);
     return true;
 }
 

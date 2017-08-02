@@ -947,6 +947,7 @@ void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selecti
     }
 
     qDebug() << "new selections:" << selections();
+    notifySelectionChanged();
 }
 
 KateMultiCursor* KateMultiSelection::cursors()
@@ -1067,10 +1068,16 @@ bool KateMultiSelection::lineSelected(int line) const
     );
 }
 
+void KateMultiSelection::notifySelectionChanged()
+{
+    Q_EMIT view()->selectionChanged(view());
+}
+
 void KateMultiSelection::clearSelection()
 {
     KateMultiCursor::CursorRepainter rep(cursors());
     clearSelectionInternal();
+    notifySelectionChanged();
 }
 
 void KateMultiSelection::clearSelectionInternal()
@@ -1263,6 +1270,7 @@ KateMultiSelection::SelectingCursorMovement::~SelectingCursorMovement()
         m_selections->cursors()->removeEncompassedSecondaryCursors();
     }
     qDebug() << "** selections after cursor movement:" << m_selections->selections();
+    m_selections->notifySelectionChanged();
 }
 
 KateMultiCursor::CursorRepainter::CursorRepainter(KateMultiCursor* cursors, bool repaint)

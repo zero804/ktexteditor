@@ -211,6 +211,7 @@ private:
     KTextEditor::ViewPrivate* view() const;
     KateViewInternal* viewInternal() const;
     KTextEditor::DocumentPrivate* doc() const;
+    void notifySelectionChanged();
 
     KTextEditor::MovingRange::Ptr addSelectionInternal(const KTextEditor::Range& range, const Cursor& cursor);
     void doSelectWithCursorInternal(const KTextEditor::Range& range, int cursorIndex);
