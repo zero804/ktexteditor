@@ -478,7 +478,7 @@ void KateMultiCursor::moveCursorsLeft(bool sel, int32_t chars)
     m_savedHorizontalPositions.clear();
     Q_FOREACH (const auto& cursor, allCursors()) {
         if (! view()->wrapCursor() && cursor->column() == 0) {
-            return;
+            continue;
         }
         cursor->setPosition(moveLeftRight(*cursor, -chars));
         if (secondaryFrozen()) {
