@@ -1,6 +1,6 @@
 /* This file is part of the KDE and the Kate project
 *
-*   Copyright (C) 2016 Sven Brauch <mail@svenbrauch.de>
+*   Copyright (C) 2016-2017 Sven Brauch <mail@svenbrauch.de>
 *
 *  This library is free software; you can redistribute it and/or
 *  modify it under the terms of the GNU Library General Public
@@ -808,12 +808,12 @@ void KateMultiCursor::removeEncompassedSecondaryCursors(CursorSelectionFlags fla
     bool did_remove = false;
     do {
         did_remove = false;
-        for (int32_t i = 0; i < m_selections.size(); i++) {
+        for (auto i = 0; i < m_selections.size(); i++) {
             auto sel = m_selections.at(i)->toRange();
             if (sel.isEmpty()) {
                 continue;
             }
-            for (int32_t j = i + 1; j < m_selections.size(); j++) {
+            for (auto j = i + 1; j < m_selections.size(); j++) {
                 auto next = m_selections.at(j)->toRange();
                 KTextEditor::Range intersect;
                 if (!(intersect = sel.intersect(next)).isEmpty()) {
@@ -825,7 +825,7 @@ void KateMultiCursor::removeEncompassedSecondaryCursors(CursorSelectionFlags fla
 
                     m_selections[i]->setRange({qMin(sel.start(), next.start()),
                                                qMax(sel.end(), next.end())});
-                    if ( ! (flags & UseMostRecentCursorFlag) ) {
+                    if ( ! (flags & UseMostRecentCursor) ) {
                         // decide which cursor to keep: the one at the edge
                         if (m_selections.at(i)->toRange().boundaryAtCursor(newCurPos)) {
                             m_cursors.at(i)->setPosition(newCurPos);
@@ -1121,7 +1121,8 @@ bool KateMultiSelection::overlapsLine(int line) const
         });
 }
 
-void KateMultiSelection::selectEntityAt(const KTextEditor::Cursor& cursor, KTextEditor::MovingRange::Ptr update, KateMultiSelection::SelectionMode kind)
+void KateMultiSelection::selectEntityAt(const KTextEditor::Cursor& cursor, KTextEditor::MovingRange::Ptr update,
+                                        KateMultiSelection::SelectionMode kind)
 {
     if (kind == Mouse) {
         if ( !update->toRange().isValid() ) {
@@ -1190,13 +1191,20 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
     auto anchor = (oldPos > selection->start() ? selection->start() : selection->end()).toCursor();
 
     KateMultiCursor::CursorRepainter rep(cursors());
-    SelectingCursorMovement sel(this, true, true);
-    m_activeSelectingCursor->setPosition(cursor);
-    if (m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(cursor)) {
+    if (m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(oldPos)) {
+        // word select
+        SelectingCursorMovement sel(this, true, true);
         auto moved = cursors()->moveWord(cursor, anchor < cursor ? KateMultiCursor::Right : KateMultiCursor::Left);
         m_activeSelectingCursor->setPosition(moved);
     } else if (m_activeSelectionMode == Line) {
+        // line select
+        SelectingCursorMovement sel(this, true, true);
         m_activeSelectingCursor->setColumn(anchor < cursor ? doc()->lineLength(cursor.line()) : 0);
+    }
+    else {
+        // normal char-wise select
+        SelectingCursorMovement sel(this, true, true);
+        m_activeSelectingCursor->setPosition(cursor);
     }
 }
 
@@ -1216,7 +1224,7 @@ void KateMultiSelection::finishNewSelection()
     m_activeSelectionMode = None;
     m_activeSelectingCursor.clear();
     KateMultiCursor::CursorRepainter rep(cursors());
-    cursors()->removeEncompassedSecondaryCursors(KateMultiCursor::UseMostRecentCursorFlag);
+    cursors()->removeEncompassedSecondaryCursors(KateMultiCursor::UseMostRecentCursor);
 }
 
 KateMultiSelection::SelectingCursorMovement::SelectingCursorMovement(KateMultiSelection* selections,

@@ -1,5 +1,5 @@
 /* This file is part of the KDE libraries
-   Copyright (C) 2016 Sven Brauch <mail@svenbrauch.de>
+   Copyright (C) 2016-2017 Sven Brauch <mail@svenbrauch.de>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Library General Public
@@ -299,6 +299,10 @@ void MulticursorTest::testCursorMovement_data()
     QTest::newRow("multiselect_overlap_join_into3") << "(C 0,10;0,5) (+C 0,2;0,4;0,5;0,6)" << "0,10; 0,2->0,10";
     QTest::newRow("multiselect_overlap_full") << "(C 0,5;0,10) (+C 0,9;0,8;0,7;0,2)" << "0,2; 0,2->0,10";
     QTest::newRow("multiselect_start_inside") << "(C 0,5;0,10) (+C 0,7;0,12)" << "0,12; 0,5->0,12";
+
+    QTest::newRow("mselect_one_word") << "(W 0,0;0,1)" << "0,4; 0,0->0,4";
+    QTest::newRow("mselect_word_mid_right") << "(W 0,3;0,4)" << "0,4; 0,0->0,4";
+    QTest::newRow("mselect_word_mid_left") << "(W 0,3;0,2)" << "0,0; 0,0->0,4";
 }
 
 char* toString(const QVector<KTextEditor::Cursor>& t) {

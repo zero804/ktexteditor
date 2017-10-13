@@ -139,7 +139,7 @@ private:
     void removeCursorInternal(const MovingCursor::Ptr& cursor);
     enum CursorSelectionFlags {
         NoFlags = 0x0,
-        UseMostRecentCursorFlag = 0x1
+        UseMostRecentCursor = 0x1
     };
     void removeEncompassedSecondaryCursors(CursorSelectionFlags flags = NoFlags);
 
