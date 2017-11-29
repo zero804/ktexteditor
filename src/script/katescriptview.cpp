@@ -23,9 +23,13 @@
 #include "kateview.h"
 #include "katerenderer.h"
 #include "katescript.h"
+#include "scriptcursor.h"
+#include "scriptrange.h"
 
-KateScriptView::KateScriptView(QObject *parent)
-    : QObject(parent), m_view(nullptr)
+#include <QJSEngine>
+
+KateScriptView::KateScriptView(QJSEngine *engine, QObject *parent)
+    : QObject(parent), m_view(nullptr), m_engine(engine)
 {
 }
 
@@ -39,35 +43,38 @@ KTextEditor::ViewPrivate *KateScriptView::view()
     return m_view;
 }
 
-KTextEditor::Cursor KateScriptView::cursorPosition()
+QJSValue KateScriptView::cursorPosition()
 {
-    return m_view->cursorPosition();
+    return cursorToScriptValue(m_engine, m_view->cursorPosition());
 }
 
 void KateScriptView::setCursorPosition(int line, int column)
 {
-    KTextEditor::Cursor c(line, column);
-    m_view->setCursorPosition(c);
-}
-
-void KateScriptView::setCursorPosition(const KTextEditor::Cursor &cursor)
-{
+    const KTextEditor::Cursor cursor(line, column);
     m_view->setCursorPosition(cursor);
 }
 
-KTextEditor::Cursor KateScriptView::virtualCursorPosition()
+void KateScriptView::setCursorPosition(const QJSValue &jscursor)
 {
-    return m_view->cursorPositionVirtual();
+    const auto cursor = cursorFromScriptValue(jscursor);
+    m_view->setCursorPosition(cursor);
+}
+
+QJSValue KateScriptView::virtualCursorPosition()
+{
+    return cursorToScriptValue(m_engine, m_view->cursorPositionVirtual());
 }
 
 void KateScriptView::setVirtualCursorPosition(int line, int column)
 {
-    setVirtualCursorPosition(KTextEditor::Cursor(line, column));
+    const KTextEditor::Cursor cursor(line, column);
+    m_view->setCursorPositionVisual(cursor);
 }
 
-void KateScriptView::setVirtualCursorPosition(const KTextEditor::Cursor &cursor)
+void KateScriptView::setVirtualCursorPosition(const QJSValue &jscursor)
 {
-    m_view->setCursorPositionVisual(cursor);
+    const auto cursor = cursorFromScriptValue(jscursor);
+    setVirtualCursorPosition(cursor.line(), cursor.column());
 }
 
 QString KateScriptView::selectedText()
@@ -80,14 +87,14 @@ bool KateScriptView::hasSelection()
     return m_view->selection();
 }
 
-KTextEditor::Range KateScriptView::selection()
+QJSValue KateScriptView::selection()
 {
-    return m_view->selectionRange();
+    return rangeToScriptValue(m_engine, m_view->selectionRange());
 }
 
-void KateScriptView::setSelection(const KTextEditor::Range &range)
+void KateScriptView::setSelection(const QJSValue &jsrange)
 {
-    m_view->setSelection(range);
+    m_view->setSelection(rangeFromScriptValue(jsrange));
 }
 
 void KateScriptView::removeSelectedText()
@@ -105,7 +112,8 @@ void KateScriptView::clearSelection()
     m_view->clearSelection();
 }
 
-void KateScriptView::align(const KTextEditor::Range &range)
+void KateScriptView::align(const QJSValue &jsrange)
 {
+    const auto range = rangeFromScriptValue(jsrange);
     m_view->doc()->align (m_view, range);
 }

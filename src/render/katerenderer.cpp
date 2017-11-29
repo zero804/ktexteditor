@@ -63,6 +63,9 @@ KateRenderer::KateRenderer(KTextEditor::DocumentPrivate *doc, Kate::TextFolding 
 
     // initialize with a sane font height
     updateFontHeight();
+
+    // make the proper calculation for markerSize
+    updateMarkerSize();
 }
 
 KateRenderer::~KateRenderer()
@@ -143,20 +146,20 @@ void KateRenderer::setShowSelections(bool showSelections)
     m_showSelections = showSelections;
 }
 
-void KateRenderer::increaseFontSizes()
+void KateRenderer::increaseFontSizes(qreal step)
 {
     QFont f(config()->font());
-    f.setPointSize(f.pointSize() + 1);
+    f.setPointSizeF(f.pointSizeF() + step);
 
     config()->setFont(f);
 }
 
-void KateRenderer::decreaseFontSizes()
+void KateRenderer::decreaseFontSizes(qreal step)
 {
     QFont f(config()->font());
 
-    if ((f.pointSize() - 1) > 0) {
-        f.setPointSize(f.pointSize() - 1);
+    if ((f.pointSizeF() - step) > 0) {
+        f.setPointSizeF(f.pointSizeF() - step);
     }
 
     config()->setFont(f);
@@ -267,7 +270,8 @@ void KateRenderer::paintTrailingSpace(QPainter &paint, qreal x, qreal y)
 {
     QPen penBackup(paint.pen());
     QPen pen(config()->tabMarkerColor());
-    pen.setWidthF(spaceWidth() / 3.5);
+
+    pen.setWidthF(m_markerSize);
     pen.setCapStyle(Qt::RoundCap);
     paint.setPen(pen);
     paint.setRenderHint(QPainter::Antialiasing, true);
@@ -738,7 +742,11 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
                 if (spaceIndex >= trailingPos) {
                     while (spaceIndex >= line.startCol() && text.at(spaceIndex).isSpace()) {
                         if (text.at(spaceIndex) != QLatin1Char('\t') || !showTabs()) {
-                            paintTrailingSpace(paint, line.lineLayout().cursorToX(spaceIndex) - xStart + spaceWidth() / 2.0, y);
+                            if (range->layout()->textOption().alignment() == Qt::AlignRight) { // Draw on left for RTL lines
+                                paintTrailingSpace(paint, line.lineLayout().cursorToX(spaceIndex) - xStart - spaceWidth() / 2.0, y);
+                            } else {
+                                paintTrailingSpace(paint, line.lineLayout().cursorToX(spaceIndex) - xStart + spaceWidth() / 2.0, y);
+                            }
                         }
                         --spaceIndex;
                     }
@@ -928,6 +936,14 @@ void KateRenderer::updateFontHeight()
     // we round down to avoid artifacts: line height too large vs. qt background rendering of text attributes
     const qreal height = config()->fontMetrics().height();
     m_fontHeight = qMax(1, qFloor(height));
+}
+
+void KateRenderer::updateMarkerSize()
+{
+    // marker size will be calculated over the value defined
+    // on dialog
+
+    m_markerSize = spaceWidth() / (3.5 - (m_doc->config()->markerSize() * 0.5));
 }
 
 qreal KateRenderer::spaceWidth() const

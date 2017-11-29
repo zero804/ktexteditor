@@ -31,6 +31,7 @@
 #include <ktexteditor/mainwindow.h>
 
 #include <QPointer>
+#include <QScopedPointer>
 #include <QModelIndex>
 #include <QMenu>
 #include <QSpacerItem>
@@ -68,6 +69,7 @@ class KateStatusBar;
 class KateViewEncodingAction;
 class KateModeMenu;
 class KateAbstractInputMode;
+class KateScriptActionMenu;
 
 class KToggleAction;
 class KSelectAction;
@@ -382,6 +384,7 @@ public:
 Q_SIGNALS:
     void annotationContextMenuAboutToShow(KTextEditor::View *view, QMenu *menu, int line) Q_DECL_OVERRIDE;
     void annotationActivated(KTextEditor::View *view, int line) Q_DECL_OVERRIDE;
+    // KF6: fix View -> KTextEditor::View
     void annotationBorderVisibilityChanged(View *view, bool visible) Q_DECL_OVERRIDE;
 
     void navigateLeft();
@@ -593,7 +596,7 @@ private Q_SLOTS:
      */
     void slotSelectionChanged();
 
-    void toggleInputMode(bool);
+    void toggleInputMode();
     void cycleInputMode();
 
 public:
@@ -689,7 +692,7 @@ private:
     QAction *m_selectAll;
     QAction *m_deSelect;
 
-    QList<QAction *> m_inputModeActions;
+    QActionGroup *m_inputModeActions;
 
     KToggleAction *m_toggleBlockSelection;
     KToggleAction *m_toggleInsert;
@@ -1021,6 +1024,14 @@ public:
     int lastDisplayedLineInternal(LineType lineType) const;
 
     QRect textAreaRectInternal() const;
+
+private:
+    /**
+     * script action menu, stored in scoped pointer to ensure
+     * destruction before other QObject auto-cleanup as it
+     * manage sub objects on its own that have this view as parent
+     */
+    QScopedPointer<KateScriptActionMenu> m_scriptActionMenu;
 };
 
 }

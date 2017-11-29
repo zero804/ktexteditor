@@ -64,6 +64,59 @@
 
 static const bool debugPainting = false;
 
+class ZoomEventFilter
+{
+public:
+    ZoomEventFilter(KateViewInternal *vi)
+    {
+    }
+
+    bool detectZoomingEvent(QWheelEvent *e, Qt::KeyboardModifiers modifier = Qt::ControlModifier)
+    {
+        Qt::KeyboardModifiers modState = e->modifiers();
+        if (modState == modifier) {
+            if (m_lastWheelEvent.isValid()) {
+                const qint64 deltaT = m_lastWheelEvent.elapsed();
+                // Pressing the specified modifier key within 200ms of the previous "unmodified" 
+                // wheelevent is not allowed to toggle on text zooming
+                if (m_lastWheelEventUnmodified && deltaT < 200) {
+                    m_ignoreZoom = true;
+                }
+                else if (deltaT > 1000) {
+                    // the protection is kept active for 1s after the last wheel event
+                    // TODO: this value should be tuned, preferrably by someone using
+                    // Ctrl+Wheel zooming frequently.
+                    m_ignoreZoom = false;
+                }
+            } else {
+                // we can't say anything and have to assume there's nothing
+                // accidental to the modifier being pressed.
+                m_ignoreZoom = false;
+            }
+            m_lastWheelEventUnmodified = false;
+            if (m_ignoreZoom) {
+                // unset the modifier so the view scrollbars can handle the scroll
+                // event and produce normal, not accelerated scrolling
+                modState &= ~modifier;
+                e->setModifiers(modState);
+            }
+        } else {
+            // state is reset after any wheel event without the zoom modifier
+            m_lastWheelEventUnmodified = true;
+            m_ignoreZoom = false;
+        }
+        m_lastWheelEvent.start();
+
+        // inform the caller whether this event is allowed to trigger text zooming.
+        return !m_ignoreZoom && modState == modifier;
+    }
+
+protected:
+    QElapsedTimer m_lastWheelEvent;
+    bool m_ignoreZoom = false;
+    bool m_lastWheelEventUnmodified = false;
+};
+
 KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
     : QWidget(view)
     , editSessionNumber(0)
@@ -183,6 +236,7 @@ KateViewInternal::KateViewInternal(KTextEditor::ViewPrivate *view)
 
     setAcceptDrops(true);
 
+    m_zoomEventFilter = new ZoomEventFilter(this);
     // event filter
     installEventFilter(this);
 
@@ -237,6 +291,8 @@ KateViewInternal::~KateViewInternal()
     delete m_bm;
     delete m_bmStart;
     delete m_bmEnd;
+
+    delete m_zoomEventFilter;
 }
 
 void KateViewInternal::prepareForDynWrapChange()
@@ -327,14 +383,14 @@ int KateViewInternal::lineToY(int viewLine) const
     return (viewLine - startLine()) * renderer()->lineHeight();
 }
 
-void KateViewInternal::slotIncFontSizes()
+void KateViewInternal::slotIncFontSizes(qreal step)
 {
-    renderer()->increaseFontSizes();
+    renderer()->increaseFontSizes(step);
 }
 
-void KateViewInternal::slotDecFontSizes()
+void KateViewInternal::slotDecFontSizes(qreal step)
 {
-    renderer()->decreaseFontSizes();
+    renderer()->decreaseFontSizes(step);
 }
 
 /**
@@ -2396,6 +2452,7 @@ void KateViewInternal::paintEvent(QPaintEvent *e)
     renderer()->setCaretStyle(m_currentInputMode->caretStyle());
     renderer()->setShowTabs(doc()->config()->showTabs());
     renderer()->setShowTrailingSpaces(doc()->config()->showSpaces());
+    renderer()->updateMarkerSize();
 
     int sy = startz * h;
     paint.translate(unionRect.x(), startz * h);
@@ -2731,12 +2788,13 @@ void KateViewInternal::clear()
 
 void KateViewInternal::wheelEvent(QWheelEvent *e)
 {
-    // ctrl pressed -> change font size (only if angle is reported)
-    if (e->modifiers() == Qt::ControlModifier) {
+    // check if this event should change the font size (Ctrl pressed, angle reported and not accidentally so)
+    // Note: if detectZoomingEvent() doesn't unset the ControlModifier we'll get accelerated scrolling.
+    if (m_zoomEventFilter->detectZoomingEvent(e)) {
         if (e->angleDelta().y() > 0) {
-            slotIncFontSizes();
+            slotIncFontSizes(qreal(e->angleDelta().y()) / QWheelEvent::DefaultDeltasPerStep);
         } else if (e->angleDelta().y() < 0) {
-            slotDecFontSizes();
+            slotDecFontSizes(qreal(-e->angleDelta().y()) / QWheelEvent::DefaultDeltasPerStep);
         }
 
         // accept always and be done for zooming
@@ -3186,18 +3244,22 @@ void KateViewInternal::flashChar(const KTextEditor::Cursor &pos, KTextEditor::At
 
 void KateViewInternal::documentTextInserted(KTextEditor::Document *document, const KTextEditor::Range &range)
 {
+#ifndef QT_NO_ACCESSIBILITY
     if (QAccessible::isActive()) {
         QAccessibleTextInsertEvent ev(this,
             KateViewAccessible::positionFromCursor(this, range.start()), document->text(range));
         QAccessible::updateAccessibility(&ev);
     }
+#endif
 }
 
 void  KateViewInternal::documentTextRemoved(KTextEditor::Document * /*document*/, const KTextEditor::Range &range, const QString &oldText)
 {
+#ifndef QT_NO_ACCESSIBILITY
     if (QAccessible::isActive()) {
         QAccessibleTextRemoveEvent ev(this,
             KateViewAccessible::positionFromCursor(this, range.start()), oldText);
         QAccessible::updateAccessibility(&ev);
     }
+#endif
 }

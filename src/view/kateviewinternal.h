@@ -57,6 +57,7 @@ class KateScrollBar;
 class KateTextLayout;
 class KateTextAnimation;
 class KateAbstractInputMode;
+class ZoomEventFilter;
 
 class QScrollBar;
 
@@ -153,8 +154,8 @@ public:
     void dynWrapChanged();
 
 public Q_SLOTS:
-    void slotIncFontSizes();
-    void slotDecFontSizes();
+    void slotIncFontSizes(qreal step = 1.0);
+    void slotDecFontSizes(qreal step = 1.0);
 
     void paintCursor();
 
@@ -289,6 +290,8 @@ private:
     int m_mouseY;
     int m_scrollX;
     int m_scrollY;
+
+    ZoomEventFilter *m_zoomEventFilter;
 
     Qt::CursorShape m_mouseCursor;
 

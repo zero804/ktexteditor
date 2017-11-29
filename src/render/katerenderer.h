@@ -181,6 +181,11 @@ public:
      */
     void setShowTrailingSpaces(bool showSpaces);
 
+	/**
+	 * Update marker size shown.
+    */
+	 void updateMarkerSize();
+
     /**
      * @returns whether non-printable spaces should be shown
      */
@@ -237,8 +242,8 @@ public:
     /**
      * Change to a different font (soon to be font set?)
      */
-    void increaseFontSizes();
-    void decreaseFontSizes();
+    void increaseFontSizes(qreal step = 1.0);
+    void decreaseFontSizes(qreal step = 1.0);
     const QFont &currentFont() const;
     const QFontMetricsF &currentFontMetrics() const;
 
@@ -400,6 +405,7 @@ private:
     bool m_showSelections;
     bool m_showTabs;
     bool m_showSpaces;
+    float m_markerSize;
     bool m_showNonPrintableSpaces;
     bool m_printerFriendly;
     QColor m_caretOverrideColor;

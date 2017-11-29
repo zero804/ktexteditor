@@ -670,6 +670,7 @@ KateViewDefaultsConfig::KateViewDefaultsConfig(QWidget *parent)
     connect(textareaUi->chkShowTabs, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(textareaUi->chkShowSpaces, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(textareaUi->chkShowIndentationLines, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
+    connect(textareaUi->sliSetMarkerSize, SIGNAL(valueChanged(int)), this, SLOT(slotChanged()));
     connect(textareaUi->chkShowWholeBracketExpression, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(textareaUi->chkAnimateBracketMatching, SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
     connect(textareaUi->chkFoldFirstLine,  SIGNAL(toggled(bool)), this, SLOT(slotChanged()));
@@ -712,6 +713,7 @@ void KateViewDefaultsConfig::apply()
     KateViewConfig::global()->setDynWordWrapAlignIndent(textareaUi->sbDynamicWordWrapDepth->value());
     KateDocumentConfig::global()->setShowTabs(textareaUi->chkShowTabs->isChecked());
     KateDocumentConfig::global()->setShowSpaces(textareaUi->chkShowSpaces->isChecked());
+    KateDocumentConfig::global()->setMarkerSize(textareaUi->sliSetMarkerSize->value());
     KateViewConfig::global()->setLineNumbers(bordersUi->chkLineNumbers->isChecked());
     KateViewConfig::global()->setIconBar(bordersUi->chkIconBorder->isChecked());
     KateViewConfig::global()->setScrollBarMarks(bordersUi->chkScrollbarMarks->isChecked());
@@ -741,6 +743,7 @@ void KateViewDefaultsConfig::reload()
     textareaUi->sbDynamicWordWrapDepth->setValue(KateViewConfig::global()->dynWordWrapAlignIndent());
     textareaUi->chkShowTabs->setChecked(KateDocumentConfig::global()->showTabs());
     textareaUi->chkShowSpaces->setChecked(KateDocumentConfig::global()->showSpaces());
+    textareaUi->sliSetMarkerSize->setValue(KateDocumentConfig::global()->markerSize());
     bordersUi->chkLineNumbers->setChecked(KateViewConfig::global()->lineNumbers());
     bordersUi->chkIconBorder->setChecked(KateViewConfig::global()->iconBar());
     bordersUi->chkScrollbarMarks->setChecked(KateViewConfig::global()->scrollBarMarks());
@@ -1452,7 +1455,7 @@ void KateModOnHdPrompt::slotPDone()
     m_diffFile = nullptr;
 
     // KRun::runUrl should delete the file, once the client exits
-    KRun::runUrl(url, QStringLiteral("text/x-patch"), nullptr, true);
+    KRun::runUrl(url, QStringLiteral("text/x-patch"), nullptr, KRun::RunFlags(KRun::DeleteTemporaryFiles));
 }
 
 //END KateModOnHdPrompt

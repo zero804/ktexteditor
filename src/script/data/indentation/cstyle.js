@@ -2,7 +2,7 @@ var katescript = {
     "name": "C Style",
     "author": "Dominik Haumann <dhdev@gmx.de>, Milian Wolff <mail@milianw.de>",
     "license": "LGPL",
-    "revision": 5,
+    "revision": 6,
     "kate-version": "5.1"
 }; // kate-script-header, must be at the start of the file without comments, pure json
 
@@ -27,6 +27,7 @@ var katescript = {
 // required katepart js libraries
 require ("range.js");
 require ("string.js");
+require ("utils.js");
 
 //BEGIN USER CONFIGURATION
 var cfgIndentCase = true;         // indent 'case' and 'default' in a switch?
@@ -287,6 +288,10 @@ function tryCComment(line)
     var char2 = document.charAt(currentLine, firstPos + 1);
     var currentString = document.line(currentLine);
 
+    // not in comment, no * copying
+    if (!isComment(currentLine, firstPos))
+        return -1;
+
     if (char1 == '/' && char2 == '*' && !currentString.contains("*/")) {
         indentation = document.firstVirtualColumn(currentLine);
         if (cfgAutoInsertStar) {
@@ -509,6 +514,8 @@ function tryCondition(line)
                 if (currentString.search(/^\s*(if\b|[}]?\s*else|do\b|while\b|for)[^{]*$/) != -1)
                     indentation = firstPosVirtual;
                 break;
+            } else if (currentLine == 0 || lineDelimiter == 0) {
+                return indentation;
             }
         }
     }
@@ -756,8 +763,9 @@ function processChar(line, c)
     var prevFirstPos = document.firstColumn(line - 1);
     var lastPos = document.lastColumn(line);
 
-     dbg("firstPos: " + firstPos);
-     dbg("column..: " + column);
+    dbg("firstPos: " + firstPos);
+    dbg("column..: " + column);
+    dbg("char    : " + c);
 
     if (firstPos == column - 1 && c == '{') {
         // todo: maybe look for if etc.
@@ -785,7 +793,7 @@ function processChar(line, c)
     } else if (cfgSnapSlash && c == '/' && lastPos == column - 1) {
         // try to snap the string "* /" to "*/"
         var currentString = document.line(line);
-        if (currentString.search(/^(\s*)\*\s+\/\s*$/) != -1) {
+        if (/^(\s*)\*\s+\/\s*$/.test(currentString)) {
             currentString = RegExp.$1 + "*/";
             document.editBegin();
             document.removeLine(line);

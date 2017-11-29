@@ -59,7 +59,7 @@
 #include <QPushButton>
 #include <QStringListModel>
 
-#ifdef LIBGIT2_FOUND
+#if LIBGIT2_FOUND
 #include <git2.h>
 #endif
 
@@ -99,8 +99,18 @@ KTextEditor::EditorPrivate::EditorPrivate(QPointer<KTextEditor::EditorPrivate> &
     // remember this
     staticInstance = this;
 
+#if QT_VERSION < QT_VERSION_CHECK(5, 9, 1)
+    // disable the QML JIT compiler as a protection against an unknown bug
+    // in Qt's V4 engine which can provoke a crash in certain of our scripts.
+    // See https://bugreports.qt.io/browse/QTBUG-63045
+    // https://bugs.kde.org/show_bug.cgi?id=384404
+    // and https://bugs.kde.org/show_bug.cgi?id=385413
+    qputenv("QV4_FORCE_INTERPRETER", QByteArrayLiteral("1"));
+    qCDebug(LOG_KTE) << "QV4_FORCE_INTERPRETER set to 1";
+#endif
+
     // init libgit2, we require at least 0.22 which has this function!
-#ifdef LIBGIT2_FOUND
+#if LIBGIT2_FOUND
     git_libgit2_init();
 #endif
 
@@ -197,7 +207,7 @@ KTextEditor::EditorPrivate::EditorPrivate(QPointer<KTextEditor::EditorPrivate> &
     fact = new KateNormalInputModeFactory();
     m_inputModeFactories.insert(KTextEditor::View::NormalInputMode, fact);
 
-#ifdef BUILD_VIMODE
+#if BUILD_VIMODE
     fact = new KateViInputModeFactory();
     m_inputModeFactories.insert(KTextEditor::View::ViInputMode, fact);
 #endif
@@ -263,7 +273,7 @@ KTextEditor::EditorPrivate::~EditorPrivate()
     qDeleteAll(m_inputModeFactories);
 
     // shutdown libgit2, we require at least 0.22 which has this function!
-#ifdef LIBGIT2_FOUND
+#if LIBGIT2_FOUND
     git_libgit2_shutdown();
 #endif
 }

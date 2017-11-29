@@ -1,12 +1,12 @@
 cmake_minimum_required(VERSION 3.0)
 
-set(KF5_VERSION "5.37.0") # handled by release scripts
-set(KF5_DEP_VERSION "5.36.0") # handled by release scripts
+set(KF5_VERSION "5.41.0") # handled by release scripts
+set(KF5_DEP_VERSION "5.40.0") # handled by release scripts
 project(KTextEditor VERSION ${KF5_VERSION})
 
 # ECM setup
 include(FeatureSummary)
-find_package(ECM 5.36.0  NO_MODULE)
+find_package(ECM 5.40.0  NO_MODULE)
 set_package_properties(ECM PROPERTIES TYPE REQUIRED DESCRIPTION "Extra CMake Modules." URL "https://projects.kde.org/projects/kdesupport/extra-cmake-modules")
 feature_summary(WHAT REQUIRED_PACKAGES_NOT_FOUND FATAL_ON_MISSING_REQUIRED_PACKAGES)
 
@@ -21,6 +21,7 @@ include(CheckSymbolExists)
 include(KDEInstallDirs)
 include(KDEFrameworkCompilerSettings NO_POLICY_SCOPE)
 include(KDECMakeSettings)
+include(KDEPackageAppTemplates)
 include(GenerateExportHeader)
 include(ECMAddQch)
 
@@ -36,10 +37,11 @@ ecm_setup_version(
 )
 
 # Dependencies
-set(REQUIRED_QT_VERSION 5.6.0)
+set(REQUIRED_QT_VERSION 5.7.0)
 
 # Required Qt5 components to build this framework
-find_package(Qt5 ${REQUIRED_QT_VERSION} NO_MODULE REQUIRED Core Widgets Script PrintSupport Xml XmlPatterns)
+find_package(Qt5 ${REQUIRED_QT_VERSION} NO_MODULE REQUIRED Core Widgets Qml
+  PrintSupport Xml XmlPatterns)
 
 find_package(KF5Archive ${KF5_DEP_VERSION} REQUIRED)
 find_package(KF5Config ${KF5_DEP_VERSION} REQUIRED)
@@ -69,6 +71,7 @@ add_subdirectory(src)
 if (BUILD_TESTING)
     add_subdirectory(autotests)
 endif()
+add_subdirectory(templates)
 
 # Create a Config.cmake and a ConfigVersion.cmake file and install them
 set(CMAKECONFIG_INSTALL_DIR "${KDE_INSTALL_CMAKEPACKAGEDIR}/KF5TextEditor")

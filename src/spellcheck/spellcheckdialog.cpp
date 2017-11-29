@@ -120,8 +120,6 @@ void KateSpellCheckDialog::spellcheck(const KTextEditor::Cursor &from, const KTe
         m_sonnetDialog->showSpellCheckCompletionMessage();
         m_sonnetDialog->setSpellCheckContinuedAfterReplacement(false);
 
-        m_view->bottomViewBar()->addBarWidget(m_sonnetDialog);
-
         connect(m_sonnetDialog, SIGNAL(done(QString)), this, SLOT(installNextSpellCheckRange()));
 
         connect(m_sonnetDialog, SIGNAL(replace(QString,int,QString)),
@@ -139,6 +137,8 @@ void KateSpellCheckDialog::spellcheck(const KTextEditor::Cursor &from, const KTe
         connect(m_sonnetDialog, SIGNAL(languageChanged(QString)),
                 this, SLOT(languageChanged(QString)));
     }
+
+    m_view->bottomViewBar()->addBarWidget(m_sonnetDialog);
 
     m_userSpellCheckLanguage.clear();
     m_previousGivenSpellCheckLanguage.clear();
@@ -195,7 +195,6 @@ void KateSpellCheckDialog::corrected(const QString &word, int pos, const QString
     KTextEditor::DocumentPrivate *doc = m_view->doc();
     KTextEditor::EditorPrivate::self()->spellCheckManager()->replaceCharactersEncodedIfNecessary(newWord, doc, replacementRange);
 
-    m_currentSpellCheckRange.setRange(KTextEditor::Range(replacementStartCursor, m_currentSpellCheckRange.end()));
     // we have to be careful here: due to static word wrapping the text might change in addition to simply
     // the misspelled word being replaced, i.e. new line breaks might be inserted as well. As such, the text
     // in the 'Sonnet::Dialog' might be eventually out of sync with the visible text. Therefore, we 'restart'
@@ -207,6 +206,8 @@ void KateSpellCheckDialog::performSpellCheck(const KTextEditor::Range &range)
 {
     if (range.isEmpty()) {
         spellCheckDone();
+        m_sonnetDialog->closed();
+        return;
     }
     m_languagesInSpellCheckRange = KTextEditor::EditorPrivate::self()->spellCheckManager()->spellCheckLanguageRanges(m_view->doc(), range);
     m_currentLanguageRangeIterator = m_languagesInSpellCheckRange.begin();
@@ -217,6 +218,8 @@ void KateSpellCheckDialog::performSpellCheck(const KTextEditor::Range &range)
         m_view->bottomViewBar()->showBarWidget(m_sonnetDialog);
         m_sonnetDialog->show();
         m_sonnetDialog->setFocus();
+    } else {
+        m_sonnetDialog->closed();
     }
 }
 

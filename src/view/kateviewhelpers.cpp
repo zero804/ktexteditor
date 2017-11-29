@@ -427,7 +427,7 @@ const QColor KateScrollBar::charColor(const QVector<Kate::TextLineData::Attribut
     // than an A or similar.
     // This gives the pixels created a bit of structure, which makes it look more
     // like real text.
-    color.setAlpha((ch.unicode() < 256) ? characterOpacity[ch.unicode()] : 1.0);
+    color.setAlpha((ch.unicode() < 256) ? characterOpacity[ch.unicode()] : 222);
 
     return color;
 }
@@ -484,7 +484,7 @@ void KateScrollBar::updatePixmap()
     savedLineColor.setHsv(savedLineColor.hue(), 100, 255 - backgroundColor.value() / 3);
 
     // increase dimensions by ratio
-    m_pixmap = QPixmap(pixmapLineWidth * m_view->devicePixelRatio(), pixmapLineCount * m_view->devicePixelRatio());
+    m_pixmap = QPixmap(pixmapLineWidth * m_view->devicePixelRatioF(), pixmapLineCount * m_view->devicePixelRatioF());
     m_pixmap.fill(QColor("transparent"));
 
     // The text currently selected in the document, to be drawn later.
@@ -606,7 +606,7 @@ void KateScrollBar::updatePixmap()
     }
 
     // set right ratio
-    m_pixmap.setDevicePixelRatio(m_view->devicePixelRatio());
+    m_pixmap.setDevicePixelRatio(m_view->devicePixelRatioF());
 
     //qCDebug(LOG_KTE) << time.elapsed();
     // Redraw the scrollbar widget with the updated pixmap.
@@ -2140,11 +2140,15 @@ void KateIconBorder::mouseReleaseEvent(QMouseEvent *e)
             if (e->button() == Qt::LeftButton) {
                 if (!m_doc->handleMarkClick(cursorOnLine)) {
                     KateViewConfig *config = m_view->config();
-                    if (m_doc->editableMarks() & config->defaultMarkType()) {
-                        if (m_doc->mark(cursorOnLine) & config->defaultMarkType()) {
-                            m_doc->removeMark(cursorOnLine, config->defaultMarkType());
+                    const uint editBits = m_doc->editableMarks();
+                    // is the default or the only editable mark
+                    const uint singleMark = qPopulationCount(editBits) > 1 ?
+                        editBits & config->defaultMarkType() : editBits;
+                    if (singleMark) {
+                        if (m_doc->mark(cursorOnLine) & singleMark) {
+                            m_doc->removeMark(cursorOnLine, singleMark);
                         } else {
-                            m_doc->addMark(cursorOnLine, config->defaultMarkType());
+                            m_doc->addMark(cursorOnLine, singleMark);
                         }
                     } else if (config->allowMarkMenu()) {
                         showMarkMenu(cursorOnLine, QCursor::pos());
@@ -2245,12 +2249,13 @@ void KateIconBorder::showMarkMenu(uint line, const QPoint &pos)
 
         QAction *mA;
         QAction *dMA;
+        const QPixmap icon = m_doc->markPixmap(markType);
         if (!m_doc->markDescription(markType).isEmpty()) {
-            mA = markMenu.addAction(m_doc->markDescription(markType));
-            dMA = selectDefaultMark.addAction(m_doc->markDescription(markType));
+            mA = markMenu.addAction(icon, m_doc->markDescription(markType));
+            dMA = selectDefaultMark.addAction(icon, m_doc->markDescription(markType));
         } else {
-            mA = markMenu.addAction(i18n("Mark Type %1",  bit + 1));
-            dMA = selectDefaultMark.addAction(i18n("Mark Type %1",  bit + 1));
+            mA = markMenu.addAction(icon, i18n("Mark Type %1",  bit + 1));
+            dMA = selectDefaultMark.addAction(icon, i18n("Mark Type %1",  bit + 1));
         }
         selectDefaultMarkActionGroup->addAction(dMA);
         mA->setData(i);
