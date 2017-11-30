@@ -1213,18 +1213,44 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
 
     auto oldPos = m_activeSelectingCursor->toCursor();
     auto anchor = (oldPos > selection->start() ? selection->start() : selection->end()).toCursor();
+    auto dir = anchor < cursor ? KateMultiCursor::Right : KateMultiCursor::Left;
 
     KateMultiCursor::CursorRepainter rep(cursors());
+    if (anchor == cursor) {
+        // If the anchor (left/right end of selection) is equal to the new cursor,
+        // do not change selection, but just move the cursor there.
+        m_activeSelectingCursor->setPosition(cursor);
+        return;
+    }
+
+    if (m_activeSelectionMode != Mouse) {
+        // For word and line selection, we need "two-anchor" selection handling: the word
+        // which was initially double-clicked always remains selected, even when moving
+        // over it in the other direction. If such wrapping occurs, make sure the word
+        // stays selected and the cursor is at the right edge to continue selection.
+
+        // FIXME: broken for line selection when moving over the position more than once.
+        if (dir == KateMultiCursor::Left && oldPos == selection->end().toCursor()) {
+            selectEntityAt(selection->start(), cursors()->m_selections.last(), m_activeSelectionMode);
+            m_activeSelectingCursor->setPosition(selection->start());
+        }
+        if (dir == KateMultiCursor::Right && oldPos == selection->start().toCursor()) {
+            selectEntityAt(selection->end(), cursors()->m_selections.last(), m_activeSelectionMode);
+            m_activeSelectingCursor->setPosition(selection->end());
+        }
+    }
+
     if (m_activeSelectionMode == Word) {
         // word select
-        SelectingCursorMovement sel(this, true, true);
-        auto dir = anchor < cursor ? KateMultiCursor::Right : KateMultiCursor::Left;
         auto moved = cursors()->toWordBoundary(cursor, dir);
+        SelectingCursorMovement sel(this, true, true);
         m_activeSelectingCursor->setPosition(moved);
-    } else if (m_activeSelectionMode == Line) {
+    }
+    else if (m_activeSelectionMode == Line) {
         // line select
         SelectingCursorMovement sel(this, true, true);
         m_activeSelectingCursor->setColumn(anchor < cursor ? doc()->lineLength(cursor.line()) : 0);
+        m_activeSelectingCursor->setLine(cursor.line());
     }
     else if (m_activeSelectionMode == Mouse) {
         // normal char-wise select
