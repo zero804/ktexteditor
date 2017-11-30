@@ -183,7 +183,7 @@ public:
     // Mouse selection
     enum SelectionMode {
         None,
-        Mouse,
+        Character,
         Word,
         Line
     };
@@ -193,7 +193,7 @@ public:
         KeepSelectionRange = 0x4
     };
     Q_DECLARE_FLAGS(SelectionFlags, SelectionFlag)
-    void beginNewSelection(const Cursor& fromCursor, SelectionMode mode = Mouse, SelectionFlags flags = UsePrimaryCursor);
+    void beginNewSelection(const Cursor& fromCursor, SelectionMode mode = Character, SelectionFlags flags = UsePrimaryCursor);
     void updateNewSelection(const Cursor& cursor);
     void finishNewSelection();
     bool currentlySelecting() const;

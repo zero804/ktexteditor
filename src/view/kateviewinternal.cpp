@@ -2090,13 +2090,13 @@ void KateViewInternal::mousePressEvent(QMouseEvent *e)
         if (e->modifiers() & Qt::ShiftModifier) {
             auto flags = (KateMultiSelection::SelectionFlags) (KateMultiSelection::UsePrimaryCursor | KateMultiSelection::KeepSelectionRange);
             selections()->beginNewSelection(newCursor,
-                                            KateMultiSelection::Mouse,
+                                            KateMultiSelection::Character,
                                             flags);
             cursors()->setPrimaryCursorWithoutSelection(newCursor);
             Q_EMIT m_view->selectionChanged(m_view);
         }
         else {
-            KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Mouse;
+            KateMultiSelection::SelectionMode selectionMode = KateMultiSelection::Character;
             KateMultiSelection::SelectionFlags flags = KateMultiSelection::UsePrimaryCursor;
             if ( m_possibleTripleClick ) {
                 selectionMode = KateMultiSelection::Line;

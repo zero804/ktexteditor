@@ -1151,7 +1151,7 @@ bool KateMultiSelection::overlapsLine(int line) const
 void KateMultiSelection::selectEntityAt(const KTextEditor::Cursor& cursor, KTextEditor::MovingRange::Ptr update,
                                         KateMultiSelection::SelectionMode kind)
 {
-    if (kind == Mouse) {
+    if (kind == Character) {
         if ( !update->toRange().isValid() ) {
             update->setRange(cursor, cursor);
         }
@@ -1223,7 +1223,7 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
         return;
     }
 
-    if (m_activeSelectionMode != Mouse) {
+    if (m_activeSelectionMode != Character) {
         // For word and line selection, we need "two-anchor" selection handling: the word
         // which was initially double-clicked always remains selected, even when moving
         // over it in the other direction. If such wrapping occurs, make sure the word
@@ -1252,7 +1252,7 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
         m_activeSelectingCursor->setColumn(anchor < cursor ? doc()->lineLength(cursor.line()) : 0);
         m_activeSelectingCursor->setLine(cursor.line());
     }
-    else if (m_activeSelectionMode == Mouse) {
+    else if (m_activeSelectionMode == Character) {
         // normal char-wise select
         SelectingCursorMovement sel(this, true, true);
         m_activeSelectingCursor->setPosition(cursor);

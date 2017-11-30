@@ -137,7 +137,7 @@ struct MulticursorScriptRunner {
                         auto modeChar = m_script.at(pos);
                         pos++;
                         if ( modeChar == 'C' ) {
-                            smode = KateMultiSelection::Mouse;
+                            smode = KateMultiSelection::Character;
                         }
                         else if ( modeChar == 'W' ) {
                             smode = KateMultiSelection::Word;
