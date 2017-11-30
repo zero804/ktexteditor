@@ -746,7 +746,7 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
             ++c;
         }
     } else if (dir == Left) {
-        if (!c.atEdge(KateViewInternal::left)) {
+        if ( !c.atEdge(KateViewInternal::left)) {
             while (!c.atEdge(KateViewInternal::left) && doc()->line(c.line())[ c.column() - 1 ].isSpace()) {
                 --c;
             }
@@ -765,6 +765,33 @@ KTextEditor::Cursor KateMultiCursor::moveWord(const KTextEditor::Cursor& cursor,
                    && !doc()->line(c.line())[ c.column() - 1 ].isSpace()) {
                 --c;
             }
+        }
+    }
+    return c;
+}
+
+KTextEditor::Cursor KateMultiCursor::toWordBoundary(const KTextEditor::Cursor& cursor, KateMultiCursor::Direction dir) const
+{
+    // This is a simpler version of moveWord, which just moves the cursor to the next
+    // word boundary right or left. It does not include spaces or things like that.
+
+    WrappingCursor c(viewInternal(), cursor);
+    KateHighlighting *h = doc()->highlight();
+
+    if ( dir == Right ) {
+        if (!c.atEdge(KateViewInternal::left) && !h->isInWord(doc()->line(c.line())[ c.column()-1 ])) {
+            return c;
+        }
+        while (!c.atEdge(KateViewInternal::right) && h->isInWord(doc()->line(c.line())[ c.column() ])) {
+            ++c;
+        }
+    }
+    else {
+        if (!c.atEdge(KateViewInternal::right) && !h->isInWord(doc()->line(c.line())[ c.column() ])) {
+            return c;
+        }
+        while (!c.atEdge(KateViewInternal::left) && h->isInWord(doc()->line(c.line())[ c.column()-1 ])) {
+            --c;
         }
     }
     return c;
@@ -1185,23 +1212,21 @@ void KateMultiSelection::updateNewSelection(const KTextEditor::Cursor& cursor)
     Q_ASSERT(selection->isEmpty() || selection->toRange().boundaryAtCursor(*m_activeSelectingCursor));
 
     auto oldPos = m_activeSelectingCursor->toCursor();
-    if (oldPos == cursor) {
-        return;
-    }
     auto anchor = (oldPos > selection->start() ? selection->start() : selection->end()).toCursor();
 
     KateMultiCursor::CursorRepainter rep(cursors());
-    if (m_activeSelectionMode == Word && !cursors()->cursorAtWordBoundary(oldPos)) {
+    if (m_activeSelectionMode == Word) {
         // word select
         SelectingCursorMovement sel(this, true, true);
-        auto moved = cursors()->moveWord(cursor, anchor < cursor ? KateMultiCursor::Right : KateMultiCursor::Left);
+        auto dir = anchor < cursor ? KateMultiCursor::Right : KateMultiCursor::Left;
+        auto moved = cursors()->toWordBoundary(cursor, dir);
         m_activeSelectingCursor->setPosition(moved);
     } else if (m_activeSelectionMode == Line) {
         // line select
         SelectingCursorMovement sel(this, true, true);
         m_activeSelectingCursor->setColumn(anchor < cursor ? doc()->lineLength(cursor.line()) : 0);
     }
-    else {
+    else if (m_activeSelectionMode == Mouse) {
         // normal char-wise select
         SelectingCursorMovement sel(this, true, true);
         m_activeSelectingCursor->setPosition(cursor);

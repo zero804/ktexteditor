@@ -111,6 +111,7 @@ protected:
     Cursor moveLeftRight(const Cursor& c, int32_t chars) const;
     Cursor moveUpDown(const Cursor& c, int32_t direction, int32_t& xpos) const;
     Cursor moveWord(const Cursor& c, Direction dir) const;
+    Cursor toWordBoundary(const Cursor& c, Direction dir) const;
     bool cursorAtWordBoundary(const Cursor& c) const;
     Cursor moveHome(const Cursor& c) const;
     Cursor moveEnd(const Cursor& c) const;
