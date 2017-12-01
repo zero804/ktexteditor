@@ -1488,9 +1488,9 @@ void KateViewInternal::moveCursorToSelectionEdge()
     m_minLinesVisible = 0;
 
     if (m_view->selectionRange().start() < m_selectAnchor) {
-        cursors()->setPrimaryCursor(m_view->selectionRange().start());
+        cursors()->setPrimaryCursorWithoutSelection(m_view->selectionRange().start());
     } else {
-        cursors()->setPrimaryCursor(m_view->selectionRange().end());
+        cursors()->setPrimaryCursorWithoutSelection(m_view->selectionRange().end());
     }
 
     m_minLinesVisible = tmp;
