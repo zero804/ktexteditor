@@ -44,6 +44,12 @@ class KTEXTEDITOR_EXPORT KateMultiCursor
 public:
     friend class KateMultiSelection;
 
+    enum Direction {
+        Left = -1,
+        None = 0,
+        Right = +1
+    };
+
     KateMultiCursor(KateViewInternal* view);
 
     Cursors cursors() const;
@@ -100,12 +106,6 @@ public:
     KateMultiSelection* selections();
 
 protected:
-    enum Direction {
-        Left = -1,
-        None = 0,
-        Right = +1
-    };
-
     /// Cursor transformations. Functions to calculate where
     /// a given cursor moves under a certain operation.
     Cursor moveLeftRight(const Cursor& c, int32_t chars) const;
@@ -177,6 +177,7 @@ public:
 
     void setSelection(const KTextEditor::Range& selection, const Cursor& cursor = Cursor::invalid());
     void setSelection(const QVector<KTextEditor::Range>& selection, const QVector<Cursor>& cursors);
+    void setSelectionBlock(const KTextEditor::Range& encompassedBlock, const KateMultiCursor::Direction cursorEdge);
     void clearSelection();
     void clearSelectionIfNotPersistent();
 

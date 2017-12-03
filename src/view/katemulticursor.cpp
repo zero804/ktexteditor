@@ -977,6 +977,22 @@ void KateMultiSelection::setSelection(const QVector<KTextEditor::Range>& selecti
     notifySelectionChanged();
 }
 
+void KateMultiSelection::setSelectionBlock(const KTextEditor::Range& encompassedBlock, const KateMultiCursor::Direction cursorEdge)
+{
+    KateMultiCursor::CursorRepainter rep(cursors());
+    clearCursorsInternal();
+    for ( int line = encompassedBlock.start().line(); line <= encompassedBlock.end().line(); line++ ) {
+        auto startColumn = encompassedBlock.start().column();
+        auto endColumn = encompassedBlock.end().column();
+        startColumn = qMin(startColumn, doc()->lineLength(line));
+        endColumn = qMin(endColumn, doc()->lineLength(line));
+        auto start = Cursor(line, startColumn);
+        auto end = Cursor(line, endColumn);
+        addSelectionInternal({start, end}, cursorEdge == KateMultiCursor::Left ? start : end);
+    }
+    notifySelectionChanged();
+}
+
 KateMultiCursor* KateMultiSelection::cursors()
 {
     return m_viewInternal->cursors();

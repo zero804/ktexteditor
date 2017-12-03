@@ -739,9 +739,6 @@ private:
     bool m_startingUp;
     bool m_updatingDocumentConfig;
 
-    // do we select normal or blockwise ?
-    bool blockSelect;
-
     // templates
 public:
     bool insertTemplateInternal(const KTextEditor::Cursor& insertPosition,

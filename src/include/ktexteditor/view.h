@@ -644,6 +644,8 @@ public:
      * functions work on rectangular blocks of text rather than normal.
      * \return \e true, if block selection mode is enabled, otherwise \e false
      * \see setBlockSelection()
+     *
+     * KF6: Remove, Block selection is no longer a state.
      */
     virtual bool blockSelection() const = 0;
 

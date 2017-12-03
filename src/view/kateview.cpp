@@ -127,7 +127,6 @@ KTextEditor::ViewPrivate::ViewPrivate(KTextEditor::DocumentPrivate *doc, QWidget
     , m_bottomSpacer(new QSpacerItem(0,0))
     , m_startingUp(true)
     , m_updatingDocumentConfig(false)
-    , blockSelect(false)
     , m_bottomViewBar(nullptr)
     , m_gotoBar(nullptr)
     , m_dictionaryBar(nullptr)
@@ -2161,7 +2160,7 @@ bool KTextEditor::ViewPrivate::selection() const
 
 QString KTextEditor::ViewPrivate::selectionText() const
 {
-    return m_doc->text(primarySelection(), blockSelect);
+    return m_doc->text(primarySelection());
 }
 
 bool KTextEditor::ViewPrivate::removeSelectedText()
@@ -2175,7 +2174,7 @@ bool KTextEditor::ViewPrivate::removeSelectedText()
     auto sels = selections()->selections();
     std::sort(sels.begin(), sels.end(), [](const Range& a, const Range& b) { return a > b; });
     Q_FOREACH ( const auto& range, sels ) {
-        m_doc->removeText(range, blockSelect);
+        m_doc->removeText(range);
     }
 
     // don't redraw the cleared selection - that's done in editEnd().
@@ -2278,33 +2277,26 @@ void KTextEditor::ViewPrivate::applyWordWrap()
 
 bool KTextEditor::ViewPrivate::blockSelection() const
 {
-    return blockSelect;
+    return false;
 }
 
 bool KTextEditor::ViewPrivate::setBlockSelection(bool on)
 {
-    if (on != blockSelect) {
-        blockSelect = on;
+    auto blockSelect = on;
+    if (selections()->hasSelections()) {
+        auto s = selections()->selections();
+        auto blockStart = std::min_element(s.begin(), s.end(),
+            [](const KTextEditor::Range& r1, const KTextEditor::Range& r2) { return r1.start() < r2.start(); }
+        )->start();
+        auto blockEnd = std::max_element(s.begin(), s.end(),
+            [](const KTextEditor::Range& r1, const KTextEditor::Range& r2) { return r1.end() < r2.end(); }
+        )->end();
 
-        auto oldSelection = primarySelection();
-
-        const bool hadSelection = clearSelection(false, false);
-
-#warning handle properly: block mode
-        setSelection(oldSelection);
-
-        m_toggleBlockSelection->setChecked(blockSelection());
-
-        // when leaving block selection mode, if cursor is at an invalid position or past the end of the
-        // line, move the cursor to the last column of the current line unless cursor wrapping is off
-        ensureCursorColumnValid();
-
-        if (!hadSelection) {
-            // emit selectionChanged() according to the KTextEditor::View api
-            // documentation also if there is no selection around. This is needed,
-            // as e.g. the Kate App status bar uses this signal to update the state
-            // of the selection mode (block selection, line based selection)
-            emit selectionChanged(this);
+        if (blockSelect) {
+            selections()->setSelectionBlock({blockStart, blockEnd}, KateMultiCursor::Right);
+        }
+        else {
+            selections()->setSelection({blockStart, blockEnd});
         }
     }
 
@@ -2313,6 +2305,7 @@ bool KTextEditor::ViewPrivate::setBlockSelection(bool on)
 
 bool KTextEditor::ViewPrivate::toggleBlockSelection()
 {
+    auto blockSelect = selections()->hasMultipleSelections();
     m_toggleBlockSelection->setChecked(!blockSelect);
     return setBlockSelection(!blockSelect);
 }
