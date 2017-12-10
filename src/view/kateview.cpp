@@ -662,11 +662,16 @@ void KTextEditor::ViewPrivate::setupActions()
     a->setWhatsThis(i18n("This decreases the display font size."));
     connect(a, SIGNAL(triggered(bool)), m_viewInternal, SLOT(slotDecFontSizes()));
 
-    a = m_toggleBlockSelection = new KToggleAction(i18n("Bl&ock Selection Mode"), this);
+    a = m_toggleBlockSelection = new KToggleAction(i18n("Toggle Bl&ock Selection"), this);
     ac->addAction(QStringLiteral("set_verticalSelect"), a);
-    ac->setDefaultShortcut(a, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_B));
-    a->setWhatsThis(i18n("This command allows switching between the normal (line based) selection mode and the block selection mode."));
+    a->setWhatsThis(i18n("This command allows switching an existing selection between a block of text and a continuous (line-based) selection."));
     connect(a, SIGNAL(triggered(bool)), SLOT(toggleBlockSelection()));
+
+    a = ac->addAction(QStringLiteral("selection_to_block"), this);
+    a->setText(i18n("Selection to aligned block"));
+    ac->setDefaultShortcut(a, QKeySequence(Qt::CTRL + Qt::SHIFT + Qt::Key_B));
+    a->setWhatsThis(i18n("Transforms a selection to an aligned selection block, filling up lines with space characters as needed."));
+    connect(a, &QAction::triggered, this, [this]() { toAlignedBlock(true); });
 
     a = ac->addAction(QStringLiteral("switch_next_input_mode"));
     a->setText(i18n("Switch to Next Input Mode"));
@@ -2280,9 +2285,21 @@ bool KTextEditor::ViewPrivate::blockSelection() const
     return false;
 }
 
-bool KTextEditor::ViewPrivate::setBlockSelection(bool on)
+bool KTextEditor::ViewPrivate::setBlockSelection(bool /*on*/)
 {
-    auto blockSelect = on;
+    return toAlignedBlock(false);
+}
+
+bool KTextEditor::ViewPrivate::toggleBlockSelection()
+{
+    auto blockSelect = selections()->hasMultipleSelections();
+    m_toggleBlockSelection->setChecked(!blockSelect);
+    return setBlockSelection(!blockSelect);
+}
+
+bool KTextEditor::ViewPrivate::toAlignedBlock(bool fill)
+{
+    auto blockSelect = !selections()->hasMultipleSelections();
     if (selections()->hasSelections()) {
         auto s = selections()->selections();
         auto blockStart = std::min_element(s.begin(), s.end(),
@@ -2293,6 +2310,16 @@ bool KTextEditor::ViewPrivate::setBlockSelection(bool on)
         )->end();
 
         if (blockSelect) {
+            if (fill) {
+                Document::EditingTransaction tr(doc());
+                auto cursorColumn = blockEnd.column();
+                for ( int i = blockStart.line(); i <= blockEnd.line(); i++ ) {
+                    auto missing = cursorColumn - doc()->lineLength(i);
+                    if (missing > 0) {
+                        doc()->insertText({i, doc()->lineLength(i)}, QStringLiteral(" ").repeated(missing));
+                    }
+                }
+            }
             selections()->setSelectionBlock({blockStart, blockEnd}, KateMultiCursor::Right);
         }
         else {
@@ -2301,13 +2328,6 @@ bool KTextEditor::ViewPrivate::setBlockSelection(bool on)
     }
 
     return true;
-}
-
-bool KTextEditor::ViewPrivate::toggleBlockSelection()
-{
-    auto blockSelect = selections()->hasMultipleSelections();
-    m_toggleBlockSelection->setChecked(!blockSelect);
-    return setBlockSelection(!blockSelect);
 }
 
 bool KTextEditor::ViewPrivate::wrapCursor() const

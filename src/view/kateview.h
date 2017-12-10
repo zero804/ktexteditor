@@ -302,6 +302,7 @@ public Q_SLOTS:
 
     bool setBlockSelection(bool on) Q_DECL_OVERRIDE;
     bool toggleBlockSelection();
+    bool toAlignedBlock(bool fill);
 
     bool clearSelection();
     bool clearSelection(bool redraw, bool finishedChangingSelection = true);
