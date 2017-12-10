@@ -807,7 +807,7 @@ int KateSearchBar::findAll(Range inputRange, const QString *replacement)
     const bool multiLinePattern = regexMode ? KateRegExp(searchPattern()).isMultiLine() : false;
 
     KTextEditor::MovingRange *workingRange = m_view->doc()->newMovingRange(inputRange);
-    QList<Range> highlightRanges;
+    QVector<Range> highlightRanges;
     int matchCounter = 0;
 
     bool block = m_view->selection() && m_view->blockSelection();
@@ -886,14 +886,19 @@ int KateSearchBar::findAll(Range inputRange, const QString *replacement)
     }
 
     // Add highlights
-    if (replacement == nullptr)
+    if (replacement == nullptr) {
+        QVector<Cursor> cursors;
         foreach (Range r, highlightRanges) {
-            highlightMatch(r);
+            cursors << r.end();
         }
-    else
+        m_view->setSelections(highlightRanges, cursors);
+        m_view->setFocus();
+    }
+    else {
         foreach (Range r, highlightRanges) {
             highlightReplacement(r);
         }
+    }
 
     delete workingRange;
 
