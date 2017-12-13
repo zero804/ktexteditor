@@ -261,11 +261,7 @@ void KateViewTest::testSelection()
 void KateViewTest::testKillline()
 {
     KTextEditor::DocumentPrivate doc;
-    doc.insertLines(0, QStringList()
-        << "foo"
-        << "bar"
-        << "baz"
-    );
+    doc.insertLines(0, { "foo", "bar", "baz" });
 
     KTextEditor::ViewPrivate *view = new KTextEditor::ViewPrivate(&doc, nullptr);
 
@@ -277,12 +273,7 @@ void KateViewTest::testKillline()
     doc.clear();
     QVERIFY(doc.isEmpty());
 
-    doc.insertLines(0, QStringList()
-        << "foo"
-        << "bar"
-        << "baz"
-        << "xxx"
-    );
+    doc.insertLines(0, { "foo", "bar", "baz", "xxx" });
 
     view->setCursorPositionInternal(KTextEditor::Cursor(1, 2));
     view->shiftDown();
@@ -361,7 +352,7 @@ void KateViewTest::testDragAndDrop()
     view->setSelection(Range(1, 0, 2, 0));
     QCOMPARE(view->selectionRange(), Range(1, 0, 2, 0));
 
-    QTest::qWaitForWindowExposed(view);
+    QVERIFY(QTest::qWaitForWindowExposed(view));
     const QPoint startDragPos = internalView->mapFrom(view, view->cursorToCoordinate(KTextEditor::Cursor(1, 2)));
     const QPoint endDragPos = internalView->mapFrom(view, view->cursorToCoordinate(KTextEditor::Cursor(3, 0)));
     const QPoint gStartDragPos = internalView->mapToGlobal(startDragPos);
