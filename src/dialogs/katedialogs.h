@@ -93,7 +93,7 @@ protected Q_SLOTS:
     void gotoLine();
 
 protected:
-    void keyPressEvent(QKeyEvent *event) Q_DECL_OVERRIDE;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private:
     KTextEditor::View *const m_view;
@@ -125,17 +125,17 @@ class KateIndentConfigTab : public KateConfigPage
 
 public:
     explicit KateIndentConfigTab(QWidget *parent);
-    ~KateIndentConfigTab();
-    QString name() const Q_DECL_OVERRIDE;
+    ~KateIndentConfigTab() override;
+    QString name() const override;
 
 protected:
     Ui::IndentationConfigWidget *ui;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE {}
-    void defaults() Q_DECL_OVERRIDE {}
+    void apply() override;
+    void reload() override;
+    void reset() override {}
+    void defaults() override {}
 
 private Q_SLOTS:
     void slotChanged();
@@ -148,17 +148,17 @@ class KateCompletionConfigTab : public KateConfigPage
 
 public:
     explicit KateCompletionConfigTab(QWidget *parent);
-    ~KateCompletionConfigTab();
-    QString name() const Q_DECL_OVERRIDE;
+    ~KateCompletionConfigTab() override;
+    QString name() const override;
 
 protected:
     Ui::CompletionConfigTab *ui;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE {}
-    void defaults() Q_DECL_OVERRIDE {}
+    void apply() override;
+    void reload() override;
+    void reset() override {}
+    void defaults() override {}
 
 private Q_SLOTS:
     void showWhatsThis(const QString &text);
@@ -170,17 +170,17 @@ class KateEditGeneralConfigTab : public KateConfigPage
 
 public:
     explicit KateEditGeneralConfigTab(QWidget *parent);
-    ~KateEditGeneralConfigTab();
-    QString name() const Q_DECL_OVERRIDE;
+    ~KateEditGeneralConfigTab() override;
+    QString name() const override;
 
 private:
     Ui::EditConfigWidget *ui;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE {}
-    void defaults() Q_DECL_OVERRIDE {}
+    void apply() override;
+    void reload() override;
+    void reset() override {}
+    void defaults() override {}
 };
 
 class KateNavigationConfigTab : public KateConfigPage
@@ -189,17 +189,17 @@ class KateNavigationConfigTab : public KateConfigPage
 
 public:
     explicit KateNavigationConfigTab(QWidget *parent);
-    ~KateNavigationConfigTab();
-    QString name() const Q_DECL_OVERRIDE;
+    ~KateNavigationConfigTab() override;
+    QString name() const override;
 
 private:
     Ui::NavigationConfigWidget *ui;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE {}
-    void defaults() Q_DECL_OVERRIDE {}
+    void apply() override;
+    void reload() override;
+    void reset() override {}
+    void defaults() override {}
 };
 
 class KateSpellCheckConfigTab : public KateConfigPage
@@ -208,18 +208,18 @@ class KateSpellCheckConfigTab : public KateConfigPage
 
 public:
     explicit KateSpellCheckConfigTab(QWidget *parent);
-    ~KateSpellCheckConfigTab();
-    QString name() const Q_DECL_OVERRIDE;
+    ~KateSpellCheckConfigTab() override;
+    QString name() const override;
 
 protected:
     Ui::SpellCheckConfigWidget *ui;
     Sonnet::ConfigWidget *m_sonnetConfigWidget;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE {}
-    void defaults() Q_DECL_OVERRIDE {}
+    void apply() override;
+    void reload() override;
+    void reset() override {}
+    void defaults() override {}
 
 private Q_SLOTS:
     void showWhatsThis(const QString &text);
@@ -231,16 +231,16 @@ class KateEditConfigTab : public KateConfigPage
 
 public:
     explicit KateEditConfigTab(QWidget *parent);
-    ~KateEditConfigTab();
-    QString name() const Q_DECL_OVERRIDE;
-    QString fullName() const Q_DECL_OVERRIDE;
-    QIcon icon() const Q_DECL_OVERRIDE;
+    ~KateEditConfigTab() override;
+    QString name() const override;
+    QString fullName() const override;
+    QIcon icon() const override;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE;
-    void defaults() Q_DECL_OVERRIDE;
+    void apply() override;
+    void reload() override;
+    void reset() override;
+    void defaults() override;
 
 private:
     KateEditGeneralConfigTab *editConfigTab;
@@ -257,16 +257,16 @@ class KateViewDefaultsConfig : public KateConfigPage
 
 public:
     explicit KateViewDefaultsConfig(QWidget *parent);
-    ~KateViewDefaultsConfig();
-    QString name() const Q_DECL_OVERRIDE;
-    QString fullName() const Q_DECL_OVERRIDE;
-    QIcon icon() const Q_DECL_OVERRIDE;
+    ~KateViewDefaultsConfig() override;
+    QString name() const override;
+    QString fullName() const override;
+    QIcon icon() const override;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE;
-    void defaults() Q_DECL_OVERRIDE;
+    void apply() override;
+    void reload() override;
+    void reset() override;
+    void defaults() override;
 
 private:
     Ui::TextareaAppearanceConfigWidget *const textareaUi;
@@ -279,16 +279,16 @@ class KateSaveConfigTab : public KateConfigPage
 
 public:
     explicit KateSaveConfigTab(QWidget *parent);
-    ~KateSaveConfigTab();
-    QString name() const Q_DECL_OVERRIDE;
-    QString fullName() const Q_DECL_OVERRIDE;
-    QIcon icon() const Q_DECL_OVERRIDE;
+    ~KateSaveConfigTab() override;
+    QString name() const override;
+    QString fullName() const override;
+    QIcon icon() const override;
 
 public Q_SLOTS:
-    void apply() Q_DECL_OVERRIDE;
-    void reload() Q_DECL_OVERRIDE;
-    void reset() Q_DECL_OVERRIDE;
-    void defaults() Q_DECL_OVERRIDE;
+    void apply() override;
+    void reload() override;
+    void reset() override;
+    void defaults() override;
     void swapFileModeChanged(int);
 
 protected:

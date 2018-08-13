@@ -39,16 +39,16 @@ class InteractiveSedReplaceMode : public ActiveMode
 {
 public:
     InteractiveSedReplaceMode(EmulatedCommandBar* emulatedCommandBar, MatchHighlighter* matchHighlighter, InputModeManager* viInputModeManager, KTextEditor::ViewPrivate* view);
-    virtual ~InteractiveSedReplaceMode()
+    ~InteractiveSedReplaceMode() override
     {
-    };
+    }
     void activate(QSharedPointer<SedReplace::InteractiveSedReplacer> interactiveSedReplace);
     bool isActive() const
     {
         return m_isActive;
     }
-    bool handleKeyPress(const QKeyEvent* keyEvent) Q_DECL_OVERRIDE;
-    void deactivate(bool wasAborted) Q_DECL_OVERRIDE;
+    bool handleKeyPress(const QKeyEvent* keyEvent) override;
+    void deactivate(bool wasAborted) override;
     QWidget *label();
 private:
     void updateInteractiveSedReplaceLabelText();

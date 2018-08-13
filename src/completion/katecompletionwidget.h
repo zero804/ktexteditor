@@ -59,7 +59,7 @@ class KTEXTEDITOR_EXPORT KateCompletionWidget : public QFrame
 
 public:
     explicit KateCompletionWidget(KTextEditor::ViewPrivate *parent);
-    ~KateCompletionWidget();
+    ~KateCompletionWidget() override;
 
     KTextEditor::ViewPrivate *view() const;
     KateCompletionTree *treeView() const;
@@ -93,7 +93,7 @@ public:
     void setAutomaticInvocationDelay(int delay);
 
     struct CompletionRange {
-        CompletionRange() : range(nullptr)
+        CompletionRange()
         {
         }
         explicit CompletionRange(KTextEditor::MovingRange *r) : range(r)
@@ -105,7 +105,7 @@ public:
             return range->toRange() == rhs.range->toRange();
         }
 
-        KTextEditor::MovingRange *range;
+        KTextEditor::MovingRange *range = nullptr;
         //Whenever the cursor goes before this position, the completion is stopped, unless it is invalid.
         KTextEditor::Cursor leftBoundary;
     };
@@ -130,7 +130,7 @@ public:
     //Returns true if a screen border has been hit
     bool updatePosition(bool force = false);
 
-    bool eventFilter(QObject *watched, QEvent *event) Q_DECL_OVERRIDE;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
     KateArgumentHintTree *argumentHintTree() const;
 
@@ -164,9 +164,10 @@ public Q_SLOTS:
     void resetHadNavigation();
 
 protected:
-    void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
-    void resizeEvent(QResizeEvent *event) Q_DECL_OVERRIDE;
-    void focusOutEvent(QFocusEvent * event) Q_DECL_OVERRIDE;
+    void showEvent(QShowEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
+    void moveEvent(QMoveEvent *event) override;
+    void focusOutEvent(QFocusEvent * event) override;
 
 
 private Q_SLOTS:

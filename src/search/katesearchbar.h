@@ -77,9 +77,9 @@ public:
 
 public:
     explicit KateSearchBar(bool initAsPower, KTextEditor::ViewPrivate *view, KateViewConfig *config);
-    ~KateSearchBar();
+    ~KateSearchBar() override;
 
-    void closed() Q_DECL_OVERRIDE;
+    void closed() override;
 
     bool isPower() const;
 
@@ -129,7 +129,7 @@ public Q_SLOTS:
 
 protected:
     // Overridden
-    void showEvent(QShowEvent *event) Q_DECL_OVERRIDE;
+    void showEvent(QShowEvent *event) override;
 
 private Q_SLOTS:
     void onIncPatternChanged(const QString &pattern);
@@ -178,8 +178,8 @@ private:
     KateViewConfig *const m_config;
     QList<KTextEditor::MovingRange *> m_hlRanges;
     QPointer<KTextEditor::Message> m_infoMessage;
-    QPointer<KTextEditor::Message> m_wrappedTopMessage;
-    QPointer<KTextEditor::Message> m_wrappedBottomMessage;
+    QPointer<KTextEditor::Message> m_wrappedMessage;
+    SearchDirection m_lastSearchDirection = SearchForward;
 
     // Shared by both dialogs
     QVBoxLayout *const m_layout;

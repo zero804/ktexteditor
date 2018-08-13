@@ -24,7 +24,6 @@ namespace Kate
 {
 
 TextLineData::TextLineData()
-    : m_flags(0)
 {
 }
 
@@ -203,6 +202,18 @@ void TextLineData::addAttribute(const Attribute &attribute)
     }
 
     m_attributesList.append(attribute);
+}
+
+short TextLineData::attribute(int pos) const
+{
+    auto found = std::upper_bound(m_attributesList.cbegin(), m_attributesList.cend(), pos,
+                                  [](const int &p, const Attribute &x) {
+                                      return p < x.offset + x.length;
+                                  });
+    if (found != m_attributesList.cend() && found->offset <= pos && pos < (found->offset + found->length)) {
+        return found->attributeValue;
+    }
+    return 0;
 }
 
 }

@@ -53,9 +53,9 @@ public:
     explicit InsertViMode(InputModeManager *viInputModeManager,
                         KTextEditor::ViewPrivate *view,
                         KateViewInternal *viewInternal);
-    virtual ~InsertViMode();
+    ~InsertViMode() override;
 
-    bool handleKeypress(const QKeyEvent *e) Q_DECL_OVERRIDE;
+    bool handleKeypress(const QKeyEvent *e) override;
 
     bool commandInsertFromAbove();
     bool commandInsertFromBelow();
@@ -86,11 +86,11 @@ public:
     void setCount(int count)
     {
         m_count = count;
-    };
+    }
     void setCountedRepeatsBeginOnNewLine(bool countedRepeatsBeginOnNewLine)
     {
         m_countedRepeatsBeginOnNewLine = countedRepeatsBeginOnNewLine;
-    };
+    }
 
 protected:
     void leaveInsertMode(bool force = false);

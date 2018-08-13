@@ -28,11 +28,11 @@ class HTMLExporter : public AbstractExporter
 {
 public:
     HTMLExporter(KTextEditor::View *view, QTextStream &output, const bool withHeaderFooter = false);
-    virtual ~HTMLExporter();
+    ~HTMLExporter() override;
 
-    void openLine() Q_DECL_OVERRIDE;
-    void closeLine(const bool lastLine) Q_DECL_OVERRIDE;
-    void exportText(const QString &text, const KTextEditor::Attribute::Ptr &attrib) Q_DECL_OVERRIDE;
+    void openLine() override;
+    void closeLine(const bool lastLine) override;
+    void exportText(const QString &text, const KTextEditor::Attribute::Ptr &attrib) override;
 };
 
 #endif

@@ -20,7 +20,7 @@
 #ifndef KATE_DOCUMENT_TEST_H
 #define KATE_DOCUMENT_TEST_H
 
-#include <QtCore/QObject>
+#include <QObject>
 
 class KateDocumentTest : public QObject
 {
@@ -50,6 +50,7 @@ private Q_SLOTS:
     void testReplaceTabs();
 
     void testDigest();
+    void testModelines();
 
     void testDefStyleNum();
 

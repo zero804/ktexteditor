@@ -56,9 +56,9 @@ class KTEXTEDITOR_EXPORT NormalViMode : public ModeBase
 
 public:
     explicit NormalViMode(InputModeManager *viInputModeManager, KTextEditor::ViewPrivate *view, KateViewInternal *viewInternal);
-    virtual ~NormalViMode();
+    ~NormalViMode() override;
 
-    bool handleKeypress(const QKeyEvent *e) Q_DECL_OVERRIDE;
+    bool handleKeypress(const QKeyEvent *e) override;
 
     bool commandEnterInsertMode();
     bool commandEnterInsertModeAppend();

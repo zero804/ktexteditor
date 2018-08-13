@@ -43,14 +43,14 @@ class CommandMode : public ActiveMode
 {
 public:
     CommandMode(EmulatedCommandBar* emulatedCommandBar, MatchHighlighter* matchHighlighter, InputModeManager* viInputModeManager, KTextEditor::ViewPrivate* view,  QLineEdit* edit, InteractiveSedReplaceMode *interactiveSedReplaceMode, Completer* completer);
-    virtual ~CommandMode()
+    ~CommandMode() override
     {
     }
-    bool handleKeyPress ( const QKeyEvent* keyEvent ) Q_DECL_OVERRIDE;
-    void editTextChanged(const QString &newText) Q_DECL_OVERRIDE;
-    CompletionStartParams completionInvoked(Completer::CompletionInvocation invocationType) Q_DECL_OVERRIDE;
-    void completionChosen() Q_DECL_OVERRIDE;
-    void deactivate(bool wasAborted) Q_DECL_OVERRIDE;
+    bool handleKeyPress ( const QKeyEvent* keyEvent ) override;
+    void editTextChanged(const QString &newText) override;
+    CompletionStartParams completionInvoked(Completer::CompletionInvocation invocationType) override;
+    void completionChosen() override;
+    void deactivate(bool wasAborted) override;
     QString executeCommand(const QString &commandToExecute);
 private:
     CompletionStartParams activateCommandCompletion();

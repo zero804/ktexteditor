@@ -26,7 +26,6 @@ class KateColorItem
 {
 public:
     KateColorItem()
-        : useDefault(true)
     {
     }
 
@@ -36,7 +35,7 @@ public:
     QString key;  // untranslated id, used as key to save/load from KConfig
     QColor color; // user visible color
     QColor defaultColor; // used when "Default" is clicked
-    bool useDefault; // flag whether to use the default color
+    bool useDefault = true; // flag whether to use the default color
 };
 
 class KateColorTreeWidget : public QTreeWidget
@@ -63,8 +62,8 @@ Q_SIGNALS:
     void changed();
 
 protected:
-    bool edit(const QModelIndex &index, EditTrigger trigger, QEvent *event) Q_DECL_OVERRIDE;
-    void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const Q_DECL_OVERRIDE;
+    bool edit(const QModelIndex &index, EditTrigger trigger, QEvent *event) override;
+    void drawBranches(QPainter *painter, const QRect &rect, const QModelIndex &index) const override;
 };
 
 #endif

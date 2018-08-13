@@ -102,6 +102,19 @@
 #define EDIT_DEBUG if (0) qCDebug(LOG_KTE)
 #endif
 
+template<class C, class E>
+static int indexOf(const std::initializer_list<C> & list, const E& entry)
+{
+    auto it = std::find(list.begin(), list.end(), entry);
+    return it == list.end() ? -1 : std::distance(list.begin(), it);
+}
+
+template<class C, class E>
+static bool contains(const std::initializer_list<C> & list, const E& entry)
+{
+    return indexOf(list, entry) >= 0;
+}
+
 static inline QChar matchingStartBracket(QChar c, bool withQuotes)
 {
     switch (c.toLatin1()) {
@@ -187,34 +200,18 @@ KTextEditor::DocumentPrivate::DocumentPrivate(bool bSingleViewMode,
     : KTextEditor::Document (this, parent),
       m_bSingleViewMode(bSingleViewMode),
       m_bReadOnly(bReadOnly),
-      m_activeView(nullptr),
-      editSessionNumber(0),
-      editIsRunning(false),
-      m_undoMergeAllEdits(false),
+
       m_undoManager(new KateUndoManager(this)),
-      m_editableMarks(markType01),
-      m_annotationModel(nullptr),
+
       m_buffer(new KateBuffer(this)),
       m_indenter(new KateAutoIndent(this)),
-      m_hlSetByUser(false),
-      m_bomSetByUser(false),
-      m_indenterSetByUser(false),
-      m_userSetEncodingForNextReload(false),
-      m_modOnHd(false),
-      m_modOnHdReason(OnDiskUnmodified),
-      m_prevModOnHdReason(OnDiskUnmodified),
+
       m_docName(QStringLiteral("need init")),
-      m_docNameNumber(0),
+
       m_fileType(QStringLiteral("Normal")),
-      m_fileTypeSetByUser(false),
-      m_reloading(false),
-      m_config(new KateDocumentConfig(this)),
-      m_fileChangedDialogsActivated(false),
-      m_onTheFlyChecker(nullptr),
-      m_documentState(DocumentIdle),
-      m_readWriteStateBeforeLoading(false),
-      m_isUntitled(true),
-      m_openingError(false)
+
+      m_config(new KateDocumentConfig(this))
+
 {
     /**
      * no plugins from kparts here
@@ -2180,6 +2177,13 @@ void KTextEditor::DocumentPrivate::showAndSetOpeningErrorAccess()
 }
 //END: error
 
+#ifdef Q_OS_ANDROID
+int log2(double d) {
+    int result;
+    std::frexp(d, &result);
+    return result-1;
+}
+#endif
 
 void KTextEditor::DocumentPrivate::openWithLineLengthLimitOverride()
 {
@@ -2828,6 +2832,7 @@ void KTextEditor::DocumentPrivate::addView(KTextEditor::View *view)
 {
     Q_ASSERT (!m_views.contains(view));
     m_views.insert(view, static_cast<KTextEditor::ViewPrivate *>(view));
+    m_viewsCache.append(view);
 
     // apply the view & renderer vars from the file type
     if (!m_fileType.isEmpty()) {
@@ -2844,6 +2849,7 @@ void KTextEditor::DocumentPrivate::removeView(KTextEditor::View *view)
 {
     Q_ASSERT (m_views.contains(view));
     m_views.remove(view);
+    m_viewsCache.removeAll(view);
 
     if (activeView() == view) {
         setActiveView(nullptr);
@@ -3081,7 +3087,7 @@ void KTextEditor::DocumentPrivate::newLine(KTextEditor::ViewPrivate *v)
 
     // query cursor position
     Q_FOREACH ( auto c, v->allCursors() ) {
-        if (c.line() > (int)lastLine()) {
+        if (c.line() > lastLine()) {
             c.setLine(lastLine());
         }
 
@@ -3092,13 +3098,15 @@ void KTextEditor::DocumentPrivate::newLine(KTextEditor::ViewPrivate *v)
         uint ln = c.line();
 
         Kate::TextLine textLine = plainKateTextLine(ln);
-
         if (c.column() > (int)textLine->length()) {
             c.setColumn(textLine->length());
         }
 
         // first: wrap line
         editWrapLine(c.line(), c.column());
+        if (c.column() > textLine->length()) {
+            c.setColumn(textLine->length());
+        }
     }
 
     // end edit session here, to have updated HL in userTypedChar!
@@ -3196,12 +3204,12 @@ void KTextEditor::DocumentPrivate::backspace(KTextEditor::ViewPrivate *view, con
             KTextEditor::Cursor beginCursor(line, 0);
             KTextEditor::Cursor endCursor(line, col);
             if (!view->config()->backspaceRemoveComposed()) { // Normal backspace behavior
+                beginCursor.setColumn(col - 1);
                 // move to left of surrogate pair
                 if (!isValidTextPosition(beginCursor)) {
                     Q_ASSERT(col >= 2);
                     beginCursor.setColumn(col - 2);
                 }
-                beginCursor.setColumn(col - 1);
             } else {
                 beginCursor.setColumn(view->textLayout(c)->previousCursorPosition(c.column()));
             }
@@ -4291,7 +4299,7 @@ bool KTextEditor::DocumentPrivate::documentReload()
     }
 
     for (int z = 0; z < tmp.size(); z++) {
-        if (z < (int)lines()) {
+        if (z < lines()) {
             if (line(tmp.at(z).mark.line) == tmp.at(z).line) {
                 setMark(tmp.at(z).mark.line, tmp.at(z).mark.type);
             }
@@ -4507,6 +4515,9 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
             QRegExp wildcard(pattern, Qt::CaseSensitive, QRegExp::Wildcard);
 
             found = wildcard.exactMatch(nameOfFile);
+            if (found) {
+                break;
+            }
         }
 
         // nothing usable found...
@@ -4533,27 +4544,27 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
     }
 
     // view variable names
-    static const QStringList vvl {
-          QStringLiteral("dynamic-word-wrap")
-        , QStringLiteral("dynamic-word-wrap-indicators")
-        , QStringLiteral("line-numbers")
-        , QStringLiteral("icon-border")
-        , QStringLiteral("folding-markers")
-        , QStringLiteral("folding-preview")
-        , QStringLiteral("bookmark-sorting")
-        , QStringLiteral("auto-center-lines")
-        , QStringLiteral("icon-bar-color")
-        , QStringLiteral("scrollbar-minimap")
-        , QStringLiteral("scrollbar-preview")
+    static const auto vvl = {
+          QLatin1String("dynamic-word-wrap")
+        , QLatin1String("dynamic-word-wrap-indicators")
+        , QLatin1String("line-numbers")
+        , QLatin1String("icon-border")
+        , QLatin1String("folding-markers")
+        , QLatin1String("folding-preview")
+        , QLatin1String("bookmark-sorting")
+        , QLatin1String("auto-center-lines")
+        , QLatin1String("icon-bar-color")
+        , QLatin1String("scrollbar-minimap")
+        , QLatin1String("scrollbar-preview")
         // renderer
-        , QStringLiteral("background-color")
-        , QStringLiteral("selection-color")
-        , QStringLiteral("current-line-color")
-        , QStringLiteral("bracket-highlight-color")
-        , QStringLiteral("word-wrap-marker-color")
-        , QStringLiteral("font")
-        , QStringLiteral("font-size")
-        , QStringLiteral("scheme")
+        , QLatin1String("background-color")
+        , QLatin1String("selection-color")
+        , QLatin1String("current-line-color")
+        , QLatin1String("bracket-highlight-color")
+        , QLatin1String("word-wrap-marker-color")
+        , QLatin1String("font")
+        , QLatin1String("font-size")
+        , QLatin1String("scheme")
     };
     int spaceIndent = -1;  // for backward compatibility; see below
     bool replaceTabsSet = false;
@@ -4569,7 +4580,7 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
 
         // only apply view & renderer config stuff
         if (onlyViewAndRenderer) {
-            if (vvl.contains(var)) {   // FIXME define above
+            if (contains(vvl, var)) {   // FIXME define above
                 setViewVariable(var, val);
             }
         } else {
@@ -4628,8 +4639,8 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
 
             // STRING SETTINGS
             else if (var == QLatin1String("eol") || var == QLatin1String("end-of-line")) {
-                const QStringList l{ QStringLiteral("unix"), QStringLiteral("dos"), QStringLiteral("mac") };
-                if ((n = l.indexOf(val.toLower())) != -1) {
+                const auto l = { QLatin1String("unix"), QLatin1String("dos"), QLatin1String("mac") };
+                if ((n = indexOf(l, val.toLower())) != -1) {
                     /**
                      * set eol + avoid that it is overwritten by auto-detection again!
                      * this fixes e.g. .kateconfig files with // kate: eol dos; to work, bug 365705
@@ -4663,7 +4674,7 @@ void KTextEditor::DocumentPrivate::readVariableLine(QString t, bool onlyViewAndR
             }
 
             // VIEW SETTINGS
-            else if (vvl.contains(var)) {
+            else if (contains(vvl, var)) {
                 setViewVariable(var, val);
             } else {
                 m_storedVariables.insert(var, val);
@@ -4748,14 +4759,14 @@ void KTextEditor::DocumentPrivate::setViewVariable(QString var, QString val)
 bool KTextEditor::DocumentPrivate::checkBoolValue(QString val, bool *result)
 {
     val = val.trimmed().toLower();
-    static const QStringList trueValues{ QStringLiteral("1"), QStringLiteral("on"), QStringLiteral("true") };
-    if (trueValues.contains(val)) {
+    static const auto trueValues = { QLatin1String("1"), QLatin1String("on"), QLatin1String("true") };
+    if (contains(trueValues, val)) {
         *result = true;
         return true;
     }
 
-    static const QStringList falseValues{ QStringLiteral("0"), QStringLiteral("off"), QStringLiteral("false") };
-    if (falseValues.contains(val)) {
+    static const auto falseValues = { QLatin1String("0"), QLatin1String("off"), QLatin1String("false") };
+    if (contains(falseValues, val)) {
         *result = false;
         return true;
     }
@@ -5081,14 +5092,14 @@ bool KTextEditor::DocumentPrivate::checkOverwrite(QUrl u, QWidget *parent)
 QStringList KTextEditor::DocumentPrivate::configKeys() const
 {
     static const QStringList keys = {
-        QStringLiteral("backup-on-save-local"),
-        QStringLiteral("backup-on-save-suffix"),
-        QStringLiteral("backup-on-save-prefix"),
-        QStringLiteral("replace-tabs"),
-        QStringLiteral("indent-pasted-text"),
-        QStringLiteral("tab-width"),
-        QStringLiteral("indent-width"),
-        QStringLiteral("on-the-fly-spellcheck"),
+        QLatin1String("backup-on-save-local"),
+        QLatin1String("backup-on-save-suffix"),
+        QLatin1String("backup-on-save-prefix"),
+        QLatin1String("replace-tabs"),
+        QLatin1String("indent-pasted-text"),
+        QLatin1String("tab-width"),
+        QLatin1String("indent-width"),
+        QLatin1String("on-the-fly-spellcheck"),
     };
     return keys;
 }

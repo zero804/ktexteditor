@@ -467,8 +467,14 @@ void KTextEditor::EditorPrivate::updateClipboardHistory(const QVector<QString> &
 
     /**
      * remember in history
+     */
+    QApplication::clipboard()->setText(text.first(), QClipboard::Clipboard);
+
+    /**
+     * LRU, kill potential duplicated, move new entry to top
      * cut after 10 entries
      */
+    m_clipboardHistory.removeOne(text);
     m_clipboardHistory.prepend(text);
     if (m_clipboardHistory.size() > 10) {
         m_clipboardHistory.removeLast();

@@ -20,7 +20,7 @@
 #ifndef KATE_SCRIPTDOCUMENT_TEST_H
 #define KATE_SCRIPTDOCUMENT_TEST_H
 
-#include <QtCore/QObject>
+#include <QObject>
 
 namespace KTextEditor
 {
@@ -49,9 +49,9 @@ private Q_SLOTS:
     void testRfind();
 
 private:
-    KTextEditor::DocumentPrivate *m_doc;
-    KTextEditor::View *m_view;
-    KateScriptDocument *m_scriptDoc;
+    KTextEditor::DocumentPrivate *m_doc = nullptr;
+    KTextEditor::View *m_view = nullptr;
+    KateScriptDocument *m_scriptDoc = nullptr;
 
 public:
     static QtMessageHandler s_msgHandler;

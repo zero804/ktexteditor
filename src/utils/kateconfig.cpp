@@ -38,7 +38,6 @@
 
 //BEGIN KateConfig
 KateConfig::KateConfig()
-    : configSessionNumber(0), configIsRunning(false)
 {
 }
 
@@ -167,12 +166,7 @@ bool KateGlobalConfig::setFallbackEncoding(const QString &encoding)
 }
 
 KateDocumentConfig::KateDocumentConfig()
-    : m_indentationWidth(2),
-      m_tabWidth(4),
-      m_tabHandling(tabSmart),
-      m_configFlags(0),
-      m_wordWrapAt(80),
-      m_tabWidthSet(false),
+    : m_tabWidthSet(false),
       m_indentationWidthSet(false),
       m_indentationModeSet(false),
       m_wordWrapSet(false),
@@ -184,6 +178,7 @@ KateDocumentConfig::KateDocumentConfig()
       m_smartHomeSet(false),
       m_showTabsSet(false),
       m_showSpacesSet(false),
+
       m_replaceTabsDynSet(false),
       m_removeSpacesSet(false),
       m_newLineAtEofSet(false),
@@ -200,8 +195,8 @@ KateDocumentConfig::KateDocumentConfig()
       m_swapDirectorySet(false),
       m_swapSyncIntervalSet(false),
       m_onTheFlySpellCheckSet(false),
-      m_lineLengthLimitSet(false),
-      m_doc(nullptr)
+      m_lineLengthLimitSet(false)
+
 {
     s_global = this;
 
@@ -228,6 +223,7 @@ KateDocumentConfig::KateDocumentConfig(const KConfigGroup &cg)
       m_smartHomeSet(false),
       m_showTabsSet(false),
       m_showSpacesSet(false),
+      m_markerSize(1),
       m_replaceTabsDynSet(false),
       m_removeSpacesSet(false),
       m_newLineAtEofSet(false),
@@ -266,6 +262,7 @@ KateDocumentConfig::KateDocumentConfig(KTextEditor::DocumentPrivate *doc)
       m_smartHomeSet(false),
       m_showTabsSet(false),
       m_showSpacesSet(false),
+      m_markerSize(1),
       m_replaceTabsDynSet(false),
       m_removeSpacesSet(false),
       m_newLineAtEofSet(false),
@@ -1230,7 +1227,7 @@ void KateDocumentConfig::setLineLengthLimit(int lineLengthLimit)
 //BEGIN KateViewConfig
 KateViewConfig::KateViewConfig()
     :
-    m_showWordCount(false),
+
     m_dynWordWrapSet(false),
     m_dynWordWrapIndicatorsSet(false),
     m_dynWordWrapAlignIndentSet(false),
@@ -1262,9 +1259,11 @@ KateViewConfig::KateViewConfig()
     m_allowMarkMenu(true),
     m_wordCompletionRemoveTailSet(false),
     m_foldFirstLineSet (false),
+    m_showWordCountSet(false),
+    m_showLinesCountSet(false),
     m_autoBracketsSet(false),
-    m_backspaceRemoveComposedSet(false),
-    m_view(nullptr)
+    m_backspaceRemoveComposedSet(false)
+
 {
     s_global = this;
 
@@ -1353,6 +1352,7 @@ const char KEY_WORD_COMPLETION_REMOVE_TAIL[] = "Word Completion Remove Tail";
 const char KEY_SMART_COPY_CUT[] = "Smart Copy Cut";
 const char KEY_SCROLL_PAST_END[] = "Scroll Past End";
 const char KEY_FOLD_FIRST_LINE[] = "Fold First Line";
+const char KEY_SHOW_LINES_COUNT[] = "Show Lines Count";
 const char KEY_SHOW_WORD_COUNT[] = "Show Word Count";
 const char KEY_AUTO_BRACKETS[] = "Auto Brackets";
 const char KEY_BACKSPACE_REMOVE_COMPOSED[] = "Backspace Remove Composed Characters";
@@ -1415,6 +1415,7 @@ void KateViewConfig::readConfig(const KConfigGroup &config)
     setSmartCopyCut(config.readEntry(KEY_SMART_COPY_CUT, false));
     setScrollPastEnd(config.readEntry(KEY_SCROLL_PAST_END, false));
     setFoldFirstLine(config.readEntry(KEY_FOLD_FIRST_LINE, false));
+    setShowLinesCount(config.readEntry(KEY_SHOW_LINES_COUNT, false));
     setShowWordCount(config.readEntry(KEY_SHOW_WORD_COUNT, false));
     setAutoBrackets(config.readEntry(KEY_AUTO_BRACKETS, false));
 
@@ -1479,6 +1480,7 @@ void KateViewConfig::writeConfig(KConfigGroup &config)
     config.writeEntry(KEY_VI_INPUT_MODE_STEAL_KEYS, viInputModeStealKeys());
     config.writeEntry(KEY_VI_RELATIVE_LINE_NUMBERS, viRelativeLineNumbers());
 
+    config.writeEntry(KEY_SHOW_LINES_COUNT, showLinesCount());
     config.writeEntry(KEY_SHOW_WORD_COUNT, showWordCount());
     config.writeEntry(KEY_AUTO_BRACKETS, autoBrackets());
 
@@ -2225,19 +2227,45 @@ void KateViewConfig::setFoldFirstLine(bool on)
     configEnd();
 }
 
-bool KateViewConfig::showWordCount()
+bool KateViewConfig::showWordCount() const
 {
-    return m_showWordCount;
+    if (m_showWordCountSet || isGlobal()) {
+        return m_showWordCount;
+    }
+
+    return s_global->showWordCount();
 }
 
 void KateViewConfig::setShowWordCount(bool on)
 {
-    if (m_showWordCount == on) {
+    if (m_showWordCountSet && m_showWordCount == on) {
         return;
     }
 
     configStart();
+    m_showWordCountSet = true;
     m_showWordCount = on;
+    configEnd();
+}
+
+bool KateViewConfig::showLinesCount() const
+{
+    if (m_showLinesCountSet || isGlobal()) {
+        return m_showLinesCount;
+    }
+
+    return s_global->showLinesCount();
+}
+
+void KateViewConfig::setShowLinesCount(bool on)
+{
+    if (m_showLinesCountSet && m_showLinesCount == on) {
+        return;
+    }
+
+    configStart();
+    m_showLinesCountSet = true;
+    m_showLinesCount = on;
     configEnd();
 }
 
@@ -2270,10 +2298,7 @@ void KateViewConfig::setBackspaceRemoveComposed(bool on)
 KateRendererConfig::KateRendererConfig()
     : m_fontMetrics(QFont()),
       m_lineMarkerColor(KTextEditor::MarkInterface::reservedMarkersCount()),
-      m_wordWrapMarker(false),
-      m_showIndentationLines(false),
-      m_showWholeBracketExpression(false),
-      m_animateBracketMatching(false),
+
       m_schemaSet(false),
       m_fontSet(false),
       m_wordWrapMarkerSet(false),
@@ -2297,8 +2322,8 @@ KateRendererConfig::KateRendererConfig()
       m_savedLineColorSet(false),
       m_searchHighlightColorSet(false),
       m_replaceHighlightColorSet(false),
-      m_lineMarkerColorSet(m_lineMarkerColor.size()),
-      m_renderer(nullptr)
+      m_lineMarkerColorSet(m_lineMarkerColor.size())
+
 {
     // init bitarray
     m_lineMarkerColorSet.fill(true);
@@ -2500,11 +2525,7 @@ void KateRendererConfig::setSchemaInternal(const QString &schema)
         m_lineMarkerColor[i] = col;
     }
 
-    QFont f(QFontDatabase::systemFont(QFontDatabase::FixedFont));
-
-    m_font = config.readEntry("Font", f);
-    m_fontMetrics = QFontMetricsF(m_font);
-    m_fontSet = true;
+    setFontWithDroppedStyleName(config.readEntry("Font", QFontDatabase::systemFont(QFontDatabase::FixedFont)));
 
     m_templateBackgroundColor = config.readEntry(QStringLiteral("Color Template Background"), colors.color(Kate::TemplateBackground));
 
@@ -2545,12 +2566,19 @@ void KateRendererConfig::setFont(const QFont &font)
     }
 
     configStart();
-
-    m_fontSet = true;
-    m_font = font;
-    m_fontMetrics = QFontMetricsF(m_font);
-
+    setFontWithDroppedStyleName(font);
     configEnd();
+}
+
+void KateRendererConfig::setFontWithDroppedStyleName(const QFont &font)
+{
+    /**
+     * Drop styleName, otherwise stuff like bold/italic/... won't work as style!
+     */
+    m_font = font;
+    m_font.setStyleName(QString());
+    m_fontMetrics = QFontMetricsF(m_font);
+    m_fontSet = true;
 }
 
 bool KateRendererConfig::wordWrapMarker() const

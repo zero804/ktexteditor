@@ -44,19 +44,19 @@ class NormalRenderRange : public KateRenderRange
 {
 public:
     NormalRenderRange();
-    virtual ~NormalRenderRange();
+    ~NormalRenderRange() override;
 
     void addRange(KTextEditor::Range *range, KTextEditor::Attribute::Ptr attribute);
 
-    KTextEditor::Cursor nextBoundary() const Q_DECL_OVERRIDE;
-    bool advanceTo(const KTextEditor::Cursor &pos) Q_DECL_OVERRIDE;
-    KTextEditor::Attribute::Ptr currentAttribute() const Q_DECL_OVERRIDE;
+    KTextEditor::Cursor nextBoundary() const override;
+    bool advanceTo(const KTextEditor::Cursor &pos) override;
+    KTextEditor::Attribute::Ptr currentAttribute() const override;
 
 private:
     QList<pairRA> m_ranges;
     KTextEditor::Cursor m_nextBoundary;
     KTextEditor::Attribute::Ptr m_currentAttribute;
-    int m_currentRange;
+    int m_currentRange = 0;
 };
 
 class RenderRangeList : public QList<KateRenderRange *>

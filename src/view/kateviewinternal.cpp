@@ -75,7 +75,7 @@ public:
         if (modState == modifier) {
             if (m_lastWheelEvent.isValid()) {
                 const qint64 deltaT = m_lastWheelEvent.elapsed();
-                // Pressing the specified modifier key within 200ms of the previous "unmodified" 
+                // Pressing the specified modifier key within 200ms of the previous "unmodified"
                 // wheelevent is not allowed to toggle on text zooming
                 if (m_lastWheelEventUnmodified && deltaT < 200) {
                     m_ignoreZoom = true;
@@ -2222,6 +2222,12 @@ void KateViewInternal::tripleClickTimeout()
     m_possibleTripleClick = false;
 }
 
+void KateViewInternal::beginSelectLine(const QPoint &pos)
+{
+    placeCursor(pos);
+    m_possibleTripleClick = true; // set so subsequent mousePressEvent will select line
+}
+
 void KateViewInternal::mouseReleaseEvent(QMouseEvent *e)
 {
     switch (e->button()) {
@@ -2786,6 +2792,7 @@ void KateViewInternal::clear()
     primaryCursor().setPosition(0, 0);
     cache()->clear();
     updateView(true);
+    m_lineScroll->updatePixmap();
 }
 
 void KateViewInternal::wheelEvent(QWheelEvent *e)
@@ -2806,11 +2813,24 @@ void KateViewInternal::wheelEvent(QWheelEvent *e)
 
     // handle vertical scrolling via the scrollbar
     if (e->orientation() == Qt::Vertical) {
-        QWheelEvent copy = *e;
-        QApplication::sendEvent(m_lineScroll, &copy);
-        if (copy.isAccepted()) {
-            e->accept();
+        // compute distance
+        auto sign = m_lineScroll->invertedControls() ? -1 : 1;
+        auto offset = sign * qreal(e->angleDelta().y()) / 120;
+        if ( e->modifiers() & Qt::ShiftModifier ) {
+            const auto pageStep = m_lineScroll->pageStep();
+            offset = qBound(-pageStep, int(offset * pageStep), pageStep);
+        } else {
+            offset *= QApplication::wheelScrollLines();
         }
+
+        // handle accumulation
+        m_accumulatedScroll += offset - int(offset);
+        auto extraAccumulated = int(m_accumulatedScroll);
+        m_accumulatedScroll -= extraAccumulated;
+
+        // do scroll
+        scrollViewLines(int(offset) + extraAccumulated);
+        e->accept();
     }
 
     // handle horizontal scrolling via the scrollbar
@@ -3044,8 +3064,10 @@ void KateViewInternal::cursorMoved()
     m_view->updateRangesIn(KTextEditor::Attribute::ActivateCaretIn);
 
 #ifndef QT_NO_ACCESSIBILITY
-    QAccessibleTextCursorEvent ev(this, KateViewAccessible::positionFromCursor(this, primaryCursor()));
-    QAccessible::updateAccessibility(&ev);
+    if (QAccessible::isActive()) {
+        QAccessibleTextCursorEvent ev(this, static_cast<KateViewAccessible *>(QAccessible::queryAccessibleInterface(this))->positionFromCursor(this, primaryCursor()));
+        QAccessible::updateAccessibility(&ev);
+    }
 #endif
 }
 
@@ -3249,7 +3271,7 @@ void KateViewInternal::documentTextInserted(KTextEditor::Document *document, con
 #ifndef QT_NO_ACCESSIBILITY
     if (QAccessible::isActive()) {
         QAccessibleTextInsertEvent ev(this,
-            KateViewAccessible::positionFromCursor(this, range.start()), document->text(range));
+            static_cast<KateViewAccessible *>(QAccessible::queryAccessibleInterface(this))->positionFromCursor(this, range.start()), document->text(range));
         QAccessible::updateAccessibility(&ev);
     }
 #endif
@@ -3260,7 +3282,7 @@ void  KateViewInternal::documentTextRemoved(KTextEditor::Document * /*document*/
 #ifndef QT_NO_ACCESSIBILITY
     if (QAccessible::isActive()) {
         QAccessibleTextRemoveEvent ev(this,
-            KateViewAccessible::positionFromCursor(this, range.start()), oldText);
+            static_cast<KateViewAccessible *>(QAccessible::queryAccessibleInterface(this))->positionFromCursor(this, range.start()), oldText);
         QAccessible::updateAccessibility(&ev);
     }
 #endif

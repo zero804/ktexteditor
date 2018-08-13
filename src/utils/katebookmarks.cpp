@@ -68,6 +68,7 @@ void KateBookmarks::createActions(KActionCollection *ac)
 
     m_bookmarkClear = new QAction(i18n("Clear &All Bookmarks"), this);
     ac->addAction(QStringLiteral("bookmarks_clear"), m_bookmarkClear);
+    m_bookmarkClear->setIcon(QIcon::fromTheme(QStringLiteral("bookmark-remove")));
     m_bookmarkClear->setWhatsThis(i18n("Remove all bookmarks of the current document."));
     connect(m_bookmarkClear, SIGNAL(triggered()), this, SLOT(clearBookmarks()));
 
@@ -87,6 +88,7 @@ void KateBookmarks::createActions(KActionCollection *ac)
 
     KActionMenu *actionMenu = new KActionMenu(i18n("&Bookmarks"), this);
     ac->addAction(QStringLiteral("bookmarks"), actionMenu);
+    actionMenu->setDelayed(false);
     m_bookmarksMenu = actionMenu->menu();
 
     connect(m_bookmarksMenu, SIGNAL(aboutToShow()), this, SLOT(bookmarkMenuAboutToShow()));

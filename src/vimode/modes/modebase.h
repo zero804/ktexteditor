@@ -55,11 +55,7 @@ class KTEXTEDITOR_EXPORT ModeBase : public QObject
 
 public:
     ModeBase()
-        : QObject(),
-          m_count(0),
-          m_oneTimeCountOverride(-1),
-          m_iscounted(false),
-          m_stickyColumn(-1)
+        : QObject()
     {
     }
     virtual ~ModeBase() {}
@@ -152,20 +148,20 @@ protected:
     inline KTextEditor::DocumentPrivate *doc() const
     {
         return m_view->doc();
-    };
+    }
 
 protected:
     QChar m_register;
 
     Range m_commandRange;
-    unsigned int m_count;
-    int m_oneTimeCountOverride;
-    bool m_iscounted;
+    unsigned int m_count = 0;
+    int m_oneTimeCountOverride = -1;
+    bool m_iscounted = false;
 
     QString m_extraWordCharacters;
     QString m_keysVerbatim;
 
-    int m_stickyColumn;
+    int m_stickyColumn = -1;
     bool m_lastMotionWasVisualLineUpOrDown;
     bool m_currentMotionWasVisualLineUpOrDown;
 

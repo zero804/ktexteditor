@@ -78,7 +78,7 @@ uint ExpandingWidgetModel::matchColor(const QModelIndex &index) const
         const qreal dynamicTint = 0.2;
         const qreal minimumTint = 0.2;
         qreal tintStrength = (dynamicTint * matchQuality) / 10;
-        if (tintStrength) {
+        if (tintStrength != 0.0) {
             tintStrength += minimumTint;    //Some minimum tinting strength, else it's not visible any more
         }
 
@@ -393,47 +393,43 @@ int ExpandingWidgetModel::basicRowHeight(const QModelIndex &idx_) const
 void ExpandingWidgetModel::placeExpandingWidget(const QModelIndex &idx_)
 {
     QModelIndex idx(firstColumn(idx_));
-
-    QWidget *w = nullptr;
-    if (m_expandingWidgets.contains(idx)) {
-        w = m_expandingWidgets[idx];
+    if (!idx.isValid() || !isExpanded(idx)) {
+        return;
     }
 
-    if (w && isExpanded(idx)) {
-        if (!idx.isValid()) {
-            return;
+    QWidget *w = m_expandingWidgets.value(idx);
+    if (!w) {
+        return;
+    }
+
+    QRect rect = treeView()->visualRect(idx);
+
+    if (!rect.isValid() || rect.bottom() < 0 || rect.top() >= treeView()->height()) {
+        //The item is currently not visible
+        w->hide();
+        return;
+    }
+
+    //Find out the basic width of the row
+    rect.setLeft(rect.left() + 20);
+    for (int i = 0, numColumns = idx.model()->columnCount(idx.parent()); i < numColumns; ++i) {
+        QModelIndex rightMostIndex = idx.sibling(idx.row(), i);
+        int right = treeView()->visualRect(rightMostIndex).right();
+        if (right > rect.right()) {
+            rect.setRight(right);
         }
+    }
+    rect.setRight(rect.right() - 5);
 
-        QRect rect = treeView()->visualRect(idx);
+    //These offsets must match exactly those used in KateCompletionDeleage::sizeHint()
+    rect.setTop(rect.top() + basicRowHeight(idx) + 5);
+    rect.setHeight(w->height());
 
-        if (!rect.isValid() || rect.bottom() < 0 || rect.top() >= treeView()->height()) {
-            //The item is currently not visible
-            w->hide();
-            return;
-        }
+    if (w->parent() != treeView()->viewport() || w->geometry() != rect || !w->isVisible()) {
+        w->setParent(treeView()->viewport());
 
-        QModelIndex rightMostIndex = idx;
-        QModelIndex tempIndex = idx;
-        while ((tempIndex = rightMostIndex.sibling(rightMostIndex.row(), rightMostIndex.column() + 1)).isValid()) {
-            rightMostIndex = tempIndex;
-        }
-
-        QRect rightMostRect = treeView()->visualRect(rightMostIndex);
-
-        //Find out the basic height of the row
-        rect.setLeft(rect.left() + 20);
-        rect.setRight(rightMostRect.right() - 5);
-
-        //These offsets must match exactly those used in KateCompletionDeleage::sizeHint()
-        rect.setTop(rect.top() + basicRowHeight(idx) + 5);
-        rect.setHeight(w->height());
-
-        if (w->parent() != treeView()->viewport() || w->geometry() != rect || !w->isVisible()) {
-            w->setParent(treeView()->viewport());
-
-            w->setGeometry(rect);
-            w->show();
-        }
+        w->setGeometry(rect);
+        w->show();
     }
 }
 

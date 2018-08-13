@@ -21,8 +21,8 @@
 #ifndef KATE_SCRIPTHELPERS_H
 #define KATE_SCRIPTHELPERS_H
 
-#include <QtCore/QObject>
-#include <QtQml/QJSValue>
+#include <QObject>
+#include <QJSValue>
 #include <ktexteditor_export.h>
 
 class QJSEngine;
@@ -42,7 +42,7 @@ class KTEXTEDITOR_EXPORT ScriptHelper : public QObject {
     Q_OBJECT
     QJSEngine *m_engine;
 public:
-    ScriptHelper(QJSEngine *engine) : m_engine(engine) {}
+    explicit ScriptHelper(QJSEngine *engine) : m_engine(engine) {}
     Q_INVOKABLE QString read(const QString &file);
     Q_INVOKABLE void require(const QString &file);
     Q_INVOKABLE void debug(const QString &msg);

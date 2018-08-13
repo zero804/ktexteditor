@@ -40,7 +40,7 @@ class KateTextPreview : public QFrame
 
 public:
     KateTextPreview(KTextEditor::ViewPrivate *view);
-    virtual ~KateTextPreview();
+    ~KateTextPreview() override;
 
     KTextEditor::ViewPrivate *view() const;
 
@@ -92,7 +92,7 @@ public:
     bool showFoldedLines() const;
 
 protected:
-    void paintEvent(QPaintEvent *event) Q_DECL_OVERRIDE;
+    void paintEvent(QPaintEvent *event) override;
 
 private:
     KTextEditor::ViewPrivate *m_view;

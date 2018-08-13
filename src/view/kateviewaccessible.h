@@ -42,34 +42,39 @@ public:
     explicit KateViewAccessible(KateViewInternal *view)
         : QAccessibleWidget(view, QAccessible::EditableText)
     {
+        // to invalidate positionFromCursor cache when the document is changed
+        m_conn = QObject::connect(view->view()->document(), &KTextEditor::Document::textChanged,
+                         [this](){ m_lastPosition = -1; });
     }
 
-    void *interface_cast(QAccessible::InterfaceType t) Q_DECL_OVERRIDE
+    void *interface_cast(QAccessible::InterfaceType t) override
     {
         if (t == QAccessible::TextInterface)
             return static_cast<QAccessibleTextInterface*>(this);
         return nullptr;
     }
 
-    virtual ~KateViewAccessible()
+    ~KateViewAccessible() override
     {
+        QObject::disconnect(m_conn);
     }
 
-    QAccessibleInterface *childAt(int x, int y) const Q_DECL_OVERRIDE
+    QAccessibleInterface *childAt(int x, int y) const override
     {
         Q_UNUSED(x);
         Q_UNUSED(y);
         return nullptr;
     }
 
-    void setText(QAccessible::Text t, const QString &text) Q_DECL_OVERRIDE
+    void setText(QAccessible::Text t, const QString &text) override
     {
         if (t == QAccessible::Value && view()->view()->document()) {
             view()->view()->document()->setText(text);
+            m_lastPosition = -1;
         }
     }
 
-    QAccessible::State state() const Q_DECL_OVERRIDE
+    QAccessible::State state() const override
     {
         QAccessible::State s = QAccessibleWidget::state();
         s.focusable = view()->focusPolicy() != Qt::NoFocus;
@@ -80,7 +85,7 @@ public:
         return s;
     }
 
-    QString text(QAccessible::Text t) const Q_DECL_OVERRIDE
+    QString text(QAccessible::Text t) const override
     {
         QString s;
         if (view()->view()->document()) {
@@ -94,12 +99,12 @@ public:
         return s;
     }
 
-    int characterCount() const Q_DECL_OVERRIDE
+    int characterCount() const override
     {
         return view()->view()->document()->text().size();
     }
 
-    void addSelection(int startOffset, int endOffset) Q_DECL_OVERRIDE
+    void addSelection(int startOffset, int endOffset) override
     {
         KTextEditor::Range range;
         range.setRange(cursorFromInt(startOffset), cursorFromInt(endOffset));
@@ -107,14 +112,14 @@ public:
         view()->view()->setCursorPosition(cursorFromInt(endOffset));
     }
 
-    QString attributes(int offset, int *startOffset, int *endOffset) const Q_DECL_OVERRIDE
+    QString attributes(int offset, int *startOffset, int *endOffset) const override
     {
         Q_UNUSED(offset);
         *startOffset = 0;
         *endOffset = characterCount();
         return QString();
     }
-    QRect characterRect(int offset) const Q_DECL_OVERRIDE
+    QRect characterRect(int offset) const override
     {
         KTextEditor::Cursor c = cursorFromInt(offset);
         if (!c.isValid()) {
@@ -125,27 +130,27 @@ public:
         QPoint size = view()->cursorToCoordinate(endCursor) - p;
         return QRect(view()->mapToGlobal(p), QSize(size.x(), size.y()));
     }
-    int cursorPosition() const Q_DECL_OVERRIDE
+    int cursorPosition() const override
     {
         KTextEditor::Cursor c = view()->primaryCursor();
         return positionFromCursor(view(), c);
     }
-    int offsetAtPoint(const QPoint & /*point*/) const Q_DECL_OVERRIDE
+    int offsetAtPoint(const QPoint & /*point*/) const override
     {
         return 0;
     }
-    void removeSelection(int selectionIndex) Q_DECL_OVERRIDE
+    void removeSelection(int selectionIndex) override
     {
         if (selectionIndex != 0) {
             return;
         }
         view()->view()->clearSelection();
     }
-    void scrollToSubstring(int /*startIndex*/, int /*endIndex*/) Q_DECL_OVERRIDE
+    void scrollToSubstring(int /*startIndex*/, int /*endIndex*/) override
     {
         // FIXME
     }
-    void selection(int selectionIndex, int *startOffset, int *endOffset) const Q_DECL_OVERRIDE
+    void selection(int selectionIndex, int *startOffset, int *endOffset) const override
     {
         if (selectionIndex != 0 || !view()->view()->selection()) {
             *startOffset = 0;
@@ -157,15 +162,15 @@ public:
         *endOffset = positionFromCursor(view(), range.end());
     }
 
-    int selectionCount() const Q_DECL_OVERRIDE
+    int selectionCount() const override
     {
         return view()->view()->selection() ? 1 : 0;
     }
-    void setCursorPosition(int position) Q_DECL_OVERRIDE
+    void setCursorPosition(int position) override
     {
         view()->view()->setCursorPosition(cursorFromInt(position));
     }
-    void setSelection(int selectionIndex, int startOffset, int endOffset) Q_DECL_OVERRIDE
+    void setSelection(int selectionIndex, int startOffset, int endOffset) override
     {
         if (selectionIndex != 0) {
             return;
@@ -173,7 +178,7 @@ public:
         KTextEditor::Range range = KTextEditor::Range(cursorFromInt(startOffset), cursorFromInt(endOffset));
         view()->view()->setSelection(range);
     }
-    QString text(int startOffset, int endOffset) const Q_DECL_OVERRIDE
+    QString text(int startOffset, int endOffset) const override
     {
         if (startOffset > endOffset) {
             return QString();
@@ -181,16 +186,50 @@ public:
         return view()->view()->document()->text().mid(startOffset, endOffset - startOffset);
     }
 
-    static int positionFromCursor(KateViewInternal *view, const KTextEditor::Cursor &cursor)
+    /**
+     * When possible, using the last returned value m_lastPosition do the count
+     * from the last cursor position m_lastCursor.
+     * @return the number of chars (including one character for new lines)
+     *         from the beggining of the file.
+     */
+    int positionFromCursor(KateViewInternal *view, const KTextEditor::Cursor &cursor) const
     {
-        int pos = 0;
-        for (int line = 0; line < cursor.line(); ++line) {
-            // length of the line plus newline
-            pos += view->view()->document()->line(line).size() + 1;
-        }
-        pos += cursor.column();
+        int pos = m_lastPosition;
+        const auto *doc = view->view()->document();
 
-        return pos;
+        // m_lastPosition < 0 is invalid, calculate from the beginning of the document
+        if (m_lastPosition < 0 || view != m_lastView) {
+            pos = 0;
+            // Default (worst) case
+            for (int line = 0; line < cursor.line(); ++line) {
+                pos += doc->line(line).size();
+            }
+            // new line for each line
+            pos += cursor.line();
+            m_lastView = view;
+        } else {
+            // if the lines are the same, just add the cursor.column(), otherwise
+            if (cursor.line() != m_lastCursor.line()) {
+                // If the cursor is after the previous cursor
+                if (m_lastCursor.line() < cursor.line()) {
+                    for (int line = m_lastCursor.line(); line < cursor.line(); ++line) {
+                        pos += doc->line(line).size();
+                    }
+                    // add new line character for each line
+                    pos += cursor.line() - m_lastCursor.line();
+                } else {
+                    for (int line = cursor.line(); line < m_lastCursor.line(); ++line) {
+                        pos -= doc->line(line).size();
+                    }
+                    // remove new line character for each line
+                    pos -= m_lastCursor.line() - cursor.line();
+                }
+            }
+        }
+        m_lastCursor = cursor;
+        m_lastPosition = pos;
+
+        return pos + cursor.column();
     }
 
 private:
@@ -227,6 +266,14 @@ private:
         *endOffset = *startOffset + line.length();
         return line;
     }
+private:
+    // Cache data for positionFromCursor
+    mutable KateViewInternal *m_lastView;
+    mutable KTextEditor::Cursor m_lastCursor;
+    // m_lastPosition stores the positionFromCursor, with the cursor always in column 0
+    mutable int m_lastPosition;
+    // to disconnect the signal
+    QMetaObject::Connection m_conn;
 };
 
 /**

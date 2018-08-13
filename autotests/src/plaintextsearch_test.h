@@ -20,7 +20,7 @@
 #ifndef KATE_PLAINTEXTSEARCH_TEST_H
 #define KATE_PLAINTEXTSEARCH_TEST_H
 
-#include <QtCore/QObject>
+#include <QObject>
 
 namespace KTextEditor { class DocumentPrivate; }
 class KatePlainTextSearch;
@@ -50,8 +50,8 @@ private Q_SLOTS:
     void testMultilineSearch();
 
 private:
-    KTextEditor::DocumentPrivate *m_doc;
-    KatePlainTextSearch *m_search;
+    KTextEditor::DocumentPrivate *m_doc = nullptr;
+    KatePlainTextSearch *m_search = nullptr;
 
 public:
     static QtMessageHandler s_msgHandler;

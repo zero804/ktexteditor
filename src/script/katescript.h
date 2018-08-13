@@ -21,14 +21,15 @@
 #ifndef KATE_SCRIPT_H
 #define KATE_SCRIPT_H
 
-#include <QtCore/QString>
-#include <QtCore/QMap>
-#include <QtQml/QJSValue>
+#include <QString>
+#include <QMap>
+#include <QJSValue>
 
 class QJSEngine;
 
 namespace KTextEditor { class ViewPrivate; }
 
+class KateScriptEditor;
 class KateScriptDocument;
 class KateScriptView;
 
@@ -49,7 +50,7 @@ enum ScriptType {
 class KateScriptHeader
 {
 public:
-    KateScriptHeader() : m_revision(0), m_scriptType(Kate::UnknownScript)
+    KateScriptHeader()
     {}
     virtual ~KateScriptHeader()
     {}
@@ -102,9 +103,9 @@ public:
 private:
     QString m_license;        ///< the script's license, e.g. LGPL
     QString m_author;         ///< the script author, e.g. "John Smith <john@example.com>"
-    int m_revision;           ///< script revision, a simple number, e.g. 1, 2, 3, ...
+    int m_revision = 0;           ///< script revision, a simple number, e.g. 1, 2, 3, ...
     QString m_kateVersion;    ///< required katepart version
-    Kate::ScriptType m_scriptType;  ///< the script type
+    Kate::ScriptType m_scriptType = Kate::UnknownScript;  ///< the script type
 };
 //END
 
@@ -194,10 +195,10 @@ protected:
 
 private:
     /** Whether or not there has been a call to load */
-    bool m_loaded;
+    bool m_loaded = false;
 
     /** Whether or not the script loaded successfully into memory */
-    bool m_loadSuccessful;
+    bool m_loadSuccessful = false;
 
     /** The script's URL */
     QString m_url;
@@ -207,15 +208,16 @@ private:
 
 protected:
     /** The Qt interpreter for this script */
-    QJSEngine *m_engine;
+    QJSEngine *m_engine = nullptr;
 
 private:
     /** general header data */
     KateScriptHeader m_generalHeader;
 
-    /** document/view wrapper objects */
-    KateScriptDocument *m_document;
-    KateScriptView *m_view;
+    /** wrapper objects */
+    KateScriptEditor *m_editor = nullptr;
+    KateScriptDocument *m_document = nullptr;
+    KateScriptView *m_view = nullptr;
 
 private:
     /** if input is script or url**/

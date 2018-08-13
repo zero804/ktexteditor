@@ -84,7 +84,7 @@ public:
 
 public:
     KateViewInternal(KTextEditor::ViewPrivate *view);
-    ~KateViewInternal();
+    ~KateViewInternal() override;
     KTextEditor::ViewPrivate *view() const
     {
         return m_view;
@@ -222,27 +222,27 @@ public:
 private:
     void fixDropEvent(QDropEvent *event);
 protected:
-    void hideEvent(QHideEvent *e) Q_DECL_OVERRIDE;
-    void paintEvent(QPaintEvent *e) Q_DECL_OVERRIDE;
-    bool eventFilter(QObject *obj, QEvent *e) Q_DECL_OVERRIDE;
-    void keyPressEvent(QKeyEvent *) Q_DECL_OVERRIDE;
-    void keyReleaseEvent(QKeyEvent *) Q_DECL_OVERRIDE;
-    void resizeEvent(QResizeEvent *) Q_DECL_OVERRIDE;
-    void mousePressEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void mouseDoubleClickEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void mouseReleaseEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void mouseMoveEvent(QMouseEvent *) Q_DECL_OVERRIDE;
-    void leaveEvent(QEvent *) Q_DECL_OVERRIDE;
-    void dragEnterEvent(QDragEnterEvent *) Q_DECL_OVERRIDE;
-    void dragMoveEvent(QDragMoveEvent *) Q_DECL_OVERRIDE;
-    void dropEvent(QDropEvent *) Q_DECL_OVERRIDE;
-    void showEvent(QShowEvent *) Q_DECL_OVERRIDE;
-    void wheelEvent(QWheelEvent *e) Q_DECL_OVERRIDE;
-    void focusInEvent(QFocusEvent *) Q_DECL_OVERRIDE;
-    void focusOutEvent(QFocusEvent *) Q_DECL_OVERRIDE;
-    void inputMethodEvent(QInputMethodEvent *e) Q_DECL_OVERRIDE;
+    void hideEvent(QHideEvent *e) override;
+    void paintEvent(QPaintEvent *e) override;
+    bool eventFilter(QObject *obj, QEvent *e) override;
+    void keyPressEvent(QKeyEvent *) override;
+    void keyReleaseEvent(QKeyEvent *) override;
+    void resizeEvent(QResizeEvent *) override;
+    void mousePressEvent(QMouseEvent *) override;
+    void mouseDoubleClickEvent(QMouseEvent *) override;
+    void mouseReleaseEvent(QMouseEvent *) override;
+    void mouseMoveEvent(QMouseEvent *) override;
+    void leaveEvent(QEvent *) override;
+    void dragEnterEvent(QDragEnterEvent *) override;
+    void dragMoveEvent(QDragMoveEvent *) override;
+    void dropEvent(QDropEvent *) override;
+    void showEvent(QShowEvent *) override;
+    void wheelEvent(QWheelEvent *e) override;
+    void focusInEvent(QFocusEvent *) override;
+    void focusOutEvent(QFocusEvent *) override;
+    void inputMethodEvent(QInputMethodEvent *e) override;
 
-    void contextMenuEvent(QContextMenuEvent *e) Q_DECL_OVERRIDE;
+    void contextMenuEvent(QContextMenuEvent *e) override;
 
 private Q_SLOTS:
     void tripleClickTimeout();
@@ -272,6 +272,7 @@ private:
     void notifyPrimaryCursorChanged(const KTextEditor::Cursor &newCursor, bool force = false, bool center = false, bool calledExternally = false);
     void updateCursorFlashTimer();
     void updateBracketMarks();
+    void beginSelectLine(const QPoint &pos);
 
     KTextEditor::Cursor pointToCursor(const QPoint& p) const;
     void placeCursor(const QPoint &p, bool keepSelection = false, bool updateSelection = true);
@@ -341,6 +342,7 @@ private:
     // line scrollbar + first visible (virtual) line in the current view
     //
     KateScrollBar *m_lineScroll;
+    qreal m_accumulatedScroll = 0.0;
     QWidget *m_dummy;
 
     // These are now cursors to account for word-wrap.
@@ -459,7 +461,7 @@ private:
     // IM input stuff
     //
 public:
-    QVariant inputMethodQuery(Qt::InputMethodQuery query) const Q_DECL_OVERRIDE;
+    QVariant inputMethodQuery(Qt::InputMethodQuery query) const override;
 
 public:
     void notifyLinesUpdated(const QVector<KTextEditor::Cursor>& changed);

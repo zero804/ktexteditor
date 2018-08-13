@@ -827,6 +827,7 @@ void KateRenderer::paintTextLine(QPainter &paint, KateLineLayoutPtr range, int x
                 }
 
                 paint.save();
+                paint.setRenderHint(QPainter::Antialiasing, false);
                 switch (style) {
                 case Line :
                     paint.setPen(QPen(color, caretWidth));
@@ -932,10 +933,9 @@ void KateRenderer::updateConfig()
 
 void KateRenderer::updateFontHeight()
 {
-    // use height of font + round down, ensure we have at least one pixel
-    // we round down to avoid artifacts: line height too large vs. qt background rendering of text attributes
-    const qreal height = config()->fontMetrics().height();
-    m_fontHeight = qMax(1, qFloor(height));
+    // ensure minimal height of one pixel to not fall in the div by 0 trap somewhere
+    // use font line spacing, this includes the leading
+    m_fontHeight = qMax(1, qCeil(config()->fontMetrics().lineSpacing()));
 }
 
 void KateRenderer::updateMarkerSize()
@@ -1006,7 +1006,7 @@ void KateRenderer::layoutLine(KateLineLayoutPtr lineLayout, int maxwidth, bool c
                       && m_view && (m_view->config()->dynWordWrapAlignIndent() > 0);
 
     forever {
-    QTextLine line = l->createLine();
+        QTextLine line = l->createLine();
         if (!line.isValid())
         {
             break;
@@ -1016,6 +1016,9 @@ void KateRenderer::layoutLine(KateLineLayoutPtr lineLayout, int maxwidth, bool c
         {
             line.setLineWidth(maxwidth);
         }
+
+        // we include the leading, this must match the ::updateFontHeight code!
+        line.setLeadingIncluded(true);
 
         line.setPosition(QPoint(line.lineNumber() ? shiftX : 0, height));
 

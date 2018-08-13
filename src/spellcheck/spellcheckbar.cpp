@@ -36,7 +36,7 @@
 #include <QPushButton>
 #include <QComboBox>
 #include <QLabel>
-#include <QtCore/QTimer>
+#include <QTimer>
 #include <QMessageBox>
 
 //to initially disable sorting in the suggestions listview
@@ -46,7 +46,7 @@ class ReadOnlyStringListModel: public QStringListModel
 {
 public:
     ReadOnlyStringListModel(QObject *parent): QStringListModel(parent) {}
-    Qt::ItemFlags flags(const QModelIndex &index) const Q_DECL_OVERRIDE
+    Qt::ItemFlags flags(const QModelIndex &index) const override
     {
         Q_UNUSED(index);
         return Qt::ItemIsEnabled | Qt::ItemIsSelectable;
@@ -61,7 +61,7 @@ public:
  * @short struct represents word
  */
 struct Word {
-  Word() : start(0), end(true)
+  Word()
   {}
 
   Word(const QString &w, int st, bool e = false)
@@ -73,8 +73,8 @@ struct Word {
   {}
 
   QString word;
-  int    start;
-  bool    end;
+  int start = 0;
+  bool end = true;
 };
 
 class SpellCheckBar::Private

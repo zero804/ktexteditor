@@ -86,12 +86,12 @@ private:
     /**
      * recursion depth
      */
-    uint configSessionNumber;
+    uint configSessionNumber = 0;
 
     /**
      * is a config session running
      */
-    bool configIsRunning;
+    bool configIsRunning = false;
 };
 
 class KTEXTEDITOR_EXPORT KateGlobalConfig : public KateConfig
@@ -107,7 +107,7 @@ private:
     /**
      * Destructor
      */
-    ~KateGlobalConfig();
+    ~KateGlobalConfig() override;
 
 public:
     static KateGlobalConfig *global()
@@ -127,7 +127,7 @@ public:
     void writeConfig(KConfigGroup &config);
 
 protected:
-    void updateConfig() Q_DECL_OVERRIDE;
+    void updateConfig() override;
 
 public:
     KEncodingProber::ProberType proberType() const
@@ -167,7 +167,7 @@ public:
     /**
      * Cu DocumentConfig
      */
-    ~KateDocumentConfig();
+    ~KateDocumentConfig() override;
 
     inline static KateDocumentConfig *global()
     {
@@ -191,7 +191,7 @@ public:
     void writeConfig(KConfigGroup &config);
 
 protected:
-    void updateConfig() Q_DECL_OVERRIDE;
+    void updateConfig() override;
 
 public:
     int tabWidth() const;
@@ -323,11 +323,11 @@ public:
 
 private:
     QString m_indentationMode;
-    int m_indentationWidth;
-    int m_tabWidth;
-    uint m_tabHandling;
-    uint m_configFlags;
-    int m_wordWrapAt;
+    int m_indentationWidth = 2;
+    int m_tabWidth = 4;
+    uint m_tabHandling = tabSmart;
+    uint m_configFlags = 0;
+    int m_wordWrapAt = 80;
     bool m_wordWrap;
     bool m_pageUpDownMovesCursor;
     bool m_allowEolDetection;
@@ -362,7 +362,7 @@ private:
     bool m_showTabs : 1;
     bool m_showSpacesSet : 1;
     bool m_showSpaces : 1;
-    uint m_markerSize;
+    uint m_markerSize = 1;
     bool m_replaceTabsDynSet : 1;
     bool m_replaceTabsDyn : 1;
     bool m_removeSpacesSet : 1;
@@ -389,7 +389,7 @@ private:
 
 private:
     static KateDocumentConfig *s_global;
-    KTextEditor::DocumentPrivate *m_doc;
+    KTextEditor::DocumentPrivate *m_doc = nullptr;
 };
 
 class KTEXTEDITOR_EXPORT KateViewConfig : public KateConfig
@@ -411,7 +411,7 @@ public:
     /**
      * Cu DocumentConfig
      */
-    ~KateViewConfig();
+    ~KateViewConfig() override;
 
     inline static KateViewConfig *global()
     {
@@ -435,7 +435,7 @@ public:
     void writeConfig(KConfigGroup &config);
 
 protected:
-    void updateConfig() Q_DECL_OVERRIDE;
+    void updateConfig() override;
 
 public:
     bool dynWordWrapSet() const
@@ -569,8 +569,11 @@ public:
     bool foldFirstLine() const;
     void setFoldFirstLine(bool on);
 
-    bool showWordCount();
+    bool showWordCount() const;
     void setShowWordCount(bool on);
+
+    bool showLinesCount() const;
+    void setShowLinesCount(bool on);
 
     bool autoBrackets() const;
     void setAutoBrackets(bool on);
@@ -610,7 +613,8 @@ private:
     bool m_smartCopyCut;
     bool m_scrollPastEnd;
     bool m_foldFirstLine;
-    bool m_showWordCount;
+    bool m_showWordCount = false;
+    bool m_showLinesCount = false;
     bool m_autoBrackets;
     bool m_backspaceRemoveComposed;
 
@@ -645,12 +649,14 @@ private:
     bool m_allowMarkMenu : 1;
     bool m_wordCompletionRemoveTailSet : 1;
     bool m_foldFirstLineSet : 1;
+    bool m_showWordCountSet : 1;
+    bool m_showLinesCountSet : 1;
     bool m_autoBracketsSet : 1;
     bool m_backspaceRemoveComposedSet : 1;
 
 private:
     static KateViewConfig *s_global;
-    KTextEditor::ViewPrivate *m_view;
+    KTextEditor::ViewPrivate *m_view = nullptr;
 };
 
 class KTEXTEDITOR_EXPORT KateRendererConfig : public KateConfig
@@ -672,7 +678,7 @@ public:
     /**
      * Cu DocumentConfig
      */
-    ~KateRendererConfig();
+    ~KateRendererConfig() override;
 
     inline static KateRendererConfig *global()
     {
@@ -696,7 +702,7 @@ public:
     void writeConfig(KConfigGroup &config);
 
 protected:
-    void updateConfig() Q_DECL_OVERRIDE;
+    void updateConfig() override;
 
 public:
     const QString &schema() const;
@@ -791,6 +797,12 @@ private:
      */
     void setSchemaInternal(const QString &schema);
 
+    /**
+     * Set the font but drop style name before that.
+     * Otherwise e.g. styles like bold/italic/... will not work
+     */
+    void setFontWithDroppedStyleName(const QFont &font);
+
     QString m_schema;
     QFont m_font;
     QFontMetricsF m_fontMetrics;
@@ -819,10 +831,10 @@ private:
     QColor m_searchHighlightColor;
     QColor m_replaceHighlightColor;
 
-    bool m_wordWrapMarker;
-    bool m_showIndentationLines;
-    bool m_showWholeBracketExpression;
-    bool m_animateBracketMatching;
+    bool m_wordWrapMarker = false;
+    bool m_showIndentationLines = false;
+    bool m_showWholeBracketExpression = false;
+    bool m_animateBracketMatching = false;
 
     bool m_schemaSet : 1;
     bool m_fontSet : 1;
@@ -851,7 +863,7 @@ private:
 
 private:
     static KateRendererConfig *s_global;
-    KateRenderer *m_renderer;
+    KateRenderer *m_renderer = nullptr;
 };
 
 #endif
