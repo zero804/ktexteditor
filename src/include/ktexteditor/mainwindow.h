@@ -80,12 +80,6 @@ public:
      */
     QWidget *window();
 
-    /**
-     * Accessor to the XMLGUIFactory.
-     * \return the mainwindow's KXMLGUIFactory, nullptr if not available
-     */
-    KXMLGUIFactory *guiFactory();
-
     //
     // Signals related to the main window
     //

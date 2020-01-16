@@ -45,16 +45,6 @@ QWidget *MainWindow::window()
     return window;
 }
 
-KXMLGUIFactory *MainWindow::guiFactory()
-{
-    /**
-     * dispatch to parent
-     */
-    KXMLGUIFactory *guiFactory = nullptr;
-    QMetaObject::invokeMethod(parent(), "guiFactory", Qt::DirectConnection, Q_RETURN_ARG(KXMLGUIFactory *, guiFactory));
-    return guiFactory;
-}
-
 QList<KTextEditor::View *> MainWindow::views()
 {
     /**

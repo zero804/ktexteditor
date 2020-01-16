@@ -76,13 +76,13 @@ class ViewPrivate;
  * (or into a KXMLGUIFactory) by calling
  * \code
  * // view is of type KTextEditor::View*
- * mainWindow()->guiFactory()->addClient( view );
+ * my_window->factory()->addClient( view );
  * \endcode
  * You can add only one view as client, so if you have several views, you first
  * have to remove the current view, and then add the new one, like this
  * \code
- * mainWindow()->guiFactory()->removeClient( currentView );
- * mainWindow()->guiFactory()->addClient( newView );
+ * my_window->factory()->removeClient( currentView );
+ * my_window->factory()->addClient( newView );
  * \endcode
  *
  * \section view_selection Text Selection

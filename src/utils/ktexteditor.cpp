@@ -214,6 +214,7 @@ View::~View()
 
 Plugin::Plugin(QObject *parent)
     : QObject(parent)
+    , KXMLGUIClient()
     , d(nullptr)
 {
 }

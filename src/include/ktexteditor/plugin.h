@@ -23,6 +23,7 @@
 #define KTEXTEDITOR_PLUGIN_H
 
 #include <QObject>
+#include <KXMLGUIClient>
 
 #include <ktexteditor_export.h>
 
@@ -87,7 +88,7 @@ class MainWindow;
  *      KTextEditor::MainWindow
  * \author Christoph Cullmann \<cullmann@kde.org\>
  */
-class KTEXTEDITOR_EXPORT Plugin : public QObject
+class KTEXTEDITOR_EXPORT Plugin : public QObject, public KXMLGUIClient
 {
     Q_OBJECT
 
@@ -105,6 +106,12 @@ public:
      */
     virtual ~Plugin();
 
+    struct PluginView {
+        PluginView(QObject *object, KXMLGUIClient *client): object(object), client(client) {};
+        PluginView(): object(nullptr), client(nullptr) {};
+        QObject *object;
+        KXMLGUIClient *client;
+    };
     /**
      * Create a new View for this plugin for the given KTextEditor::MainWindow.
      * This may be called arbitrary often by the application to create as much
@@ -121,7 +128,7 @@ public:
      * \return the new created view or NULL
      * @see SessionConfigInterface
      */
-    virtual QObject *createView(KTextEditor::MainWindow *mainWindow) = 0;
+    virtual PluginView createView(KTextEditor::MainWindow *mainWindow) = 0;
 
     /**
      * Get the number of available config pages.
