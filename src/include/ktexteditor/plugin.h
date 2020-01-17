@@ -106,12 +106,6 @@ public:
      */
     virtual ~Plugin();
 
-    struct PluginView {
-        PluginView(QObject *object, KXMLGUIClient *client): object(object), client(client) {};
-        PluginView(): object(nullptr), client(nullptr) {};
-        QObject *object;
-        KXMLGUIClient *client;
-    };
     /**
      * Create a new View for this plugin for the given KTextEditor::MainWindow.
      * This may be called arbitrary often by the application to create as much
@@ -122,13 +116,15 @@ public:
      * \note Session configuration: The host application will try to cast the
      *       returned QObject with \p qobject_cast into the SessionConfigInterface.
      *       This way, not only your Plugin, but also each Plugin view can have
-     *       session related settings.
+     *       session related settings. Further the host application will try to
+     *       cast the returned QObject into KXMLGUIClient, and, if succesful
+     *       merge it into the MainWindow's UI as appropriate.
      *
      * \param mainWindow the MainWindow for which a view should be created
      * \return the new created view or NULL
-     * @see SessionConfigInterface
+     * @see SessionConfigInterface @see KXMLGUIClient
      */
-    virtual PluginView createView(KTextEditor::MainWindow *mainWindow) = 0;
+    virtual QObject *createView(KTextEditor::MainWindow *mainWindow) = 0;
 
     /**
      * Get the number of available config pages.
